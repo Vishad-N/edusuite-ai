@@ -21,7 +21,8 @@
     "stack:up": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.local.yml --env-file infra/.env.local up -d --build",
     "stack:init": "node infra/scripts/garage-init.mjs",
     "stack:down": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.local.yml --env-file infra/.env.local down",
-    "stack:logs": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.local.yml --env-file infra/.env.local logs -f --tail=100"
+    "stack:logs": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.local.yml --env-file infra/.env.local logs -f --tail=100",
+    "db:seed": "npm run db:seed -w @edusuite/api"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

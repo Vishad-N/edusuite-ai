@@ -1,25 +1,9 @@
-import {
-  type ArgumentsHost,
-  Catch,
-  type ExceptionFilter,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from "@nestjs/common";
+import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, HttpStatus, Logger } from "@nestjs/common";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { pickLanguage, type ApiError, type Language } from "@edusuite/shared";
+import { pickLanguage, type ApiError } from "@edusuite/shared";
+import { ApiHttpException, ERROR_MESSAGES, type ErrorCode } from "./errors";
 
-const MESSAGES: Record<string, Record<Language, string>> = {
-  BAD_REQUEST: { hi: "अनुरोध सही नहीं है।", en: "The request is not valid." },
-  UNAUTHORIZED: { hi: "कृपया दोबारा लॉगिन करें।", en: "Please log in again." },
-  FORBIDDEN: { hi: "आपको यह करने की अनुमति नहीं है।", en: "You don't have permission to do this." },
-  NOT_FOUND: { hi: "यह चीज़ नहीं मिली।", en: "Not found." },
-  CONFLICT: { hi: "यह पहले से मौजूद है या बदल चुका है।", en: "This already exists or has changed." },
-  TOO_MANY_REQUESTS: { hi: "बहुत ज़्यादा प्रयास। थोड़ी देर बाद कोशिश करें।", en: "Too many attempts. Try again shortly." },
-  INTERNAL: { hi: "सर्वर में समस्या आई। कृपया फिर से कोशिश करें।", en: "Something went wrong on the server. Please try again." },
-};
-
-function codeFor(status: number): string {
+function codeForStatus(status: number): ErrorCode {
   switch (status) {
     case HttpStatus.BAD_REQUEST: return "BAD_REQUEST";
     case HttpStatus.UNAUTHORIZED: return "UNAUTHORIZED";
@@ -27,6 +11,7 @@ function codeFor(status: number): string {
     case HttpStatus.NOT_FOUND: return "NOT_FOUND";
     case HttpStatus.CONFLICT: return "CONFLICT";
     case HttpStatus.TOO_MANY_REQUESTS: return "TOO_MANY_REQUESTS";
+    case HttpStatus.SERVICE_UNAVAILABLE: return "SERVICE_UNAVAILABLE";
     default: return status >= 500 ? "INTERNAL" : "BAD_REQUEST";
   }
 }
@@ -43,10 +28,11 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const lang = pickLanguage(req.headers["accept-language"]);
 
     const status = exception instanceof HttpException ? exception.getStatus() : 500;
-    const code = codeFor(status);
-    const body: ApiError = { code, message: (MESSAGES[code] ?? MESSAGES.INTERNAL!)[lang] };
+    const code: ErrorCode = exception instanceof ApiHttpException ? exception.code : codeForStatus(status);
+    const body: ApiError = { code, message: ERROR_MESSAGES[code][lang] };
+    if (exception instanceof ApiHttpException && exception.details !== undefined) body.details = exception.details;
 
-    if (status >= 500) {
+    if (status >= 500 && code !== "SERVICE_UNAVAILABLE") {
       // Log the error type and request id only; messages may contain user data.
       const name = exception instanceof Error ? exception.name : typeof exception;
       this.logger.error(`unhandled ${name} on ${req.method} ${req.routeOptions?.url ?? "unknown"} (req ${req.id})`);

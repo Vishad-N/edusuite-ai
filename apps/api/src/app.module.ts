@@ -1,15 +1,49 @@
-import { type DynamicModule, Module } from "@nestjs/common";
+import { type DynamicModule, Module, type Type } from "@nestjs/common";
+import { APP_GUARD, Reflector } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { ENV, type Env } from "./config/env";
 import { HealthController } from "./health/health.controller";
 import { ReadinessService } from "./health/readiness.service";
+import { PrismaService } from "./prisma/prisma.service";
+import { AuditService } from "./audit/audit.service";
+import { AuthController } from "./auth/auth.controller";
+import { AuthService } from "./auth/auth.service";
+import { AuthGuard, LOGIN_RATE_LIMITED, PermissionGuard } from "./auth/guards";
+
+const MINUTE_MS = 60_000;
 
 @Module({})
 export class AppModule {
-  static forRoot(env: Env): DynamicModule {
+  /** `extraControllers` lets tests mount probe routes; production passes none. */
+  static forRoot(env: Env, extraControllers: Type[] = []): DynamicModule {
+    const reflector = new Reflector();
     return {
       module: AppModule,
-      controllers: [HealthController],
-      providers: [{ provide: ENV, useValue: env }, ReadinessService],
+      imports: [
+        ThrottlerModule.forRoot({
+          throttlers: [
+            // Plan §09: login and refresh are limited per IP. Other routes are not limited here.
+            {
+              name: "login",
+              ttl: MINUTE_MS,
+              limit: env.LOGIN_RATE_LIMIT,
+              skipIf: (ctx) => !reflector.get<boolean>(LOGIN_RATE_LIMITED, ctx.getHandler()),
+            },
+          ],
+        }),
+      ],
+      controllers: [HealthController, AuthController, ...extraControllers],
+      providers: [
+        { provide: ENV, useValue: env },
+        PrismaService,
+        AuditService,
+        ReadinessService,
+        AuthService,
+        // Order matters: rate limit, then who is calling, then what they may do.
+        { provide: APP_GUARD, useClass: ThrottlerGuard },
+        { provide: APP_GUARD, useClass: AuthGuard },
+        { provide: APP_GUARD, useClass: PermissionGuard },
+      ],
     };
   }
 }

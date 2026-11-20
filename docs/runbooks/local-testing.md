@@ -36,7 +36,15 @@ Run every command from the repo root.
    npm run stack:init
    ```
 
-5. Check the API:
+5. Load the demo data (one demo institute, one user per role):
+
+   ```bash
+   npm run db:seed
+   ```
+
+   The test logins and passwords are listed in `apps/api/src/scripts/seed.ts`. They are for local testing only.
+
+6. Check the API:
 
    ```bash
    curl http://localhost:3000/health

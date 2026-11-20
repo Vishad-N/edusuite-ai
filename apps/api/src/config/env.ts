@@ -14,10 +14,19 @@ const EnvSchema = z
     DATABASE_URL: z.string().url().optional(),
     REDIS_URL: z.string().url().optional(),
     S3_ENDPOINT: z.string().url().optional(),
+    /** HS256 key for access tokens; at least 32 characters of random data. */
+    JWT_SECRET: z.string().min(32).optional(),
+    /** Set to "true" behind Caddy so request IPs (rate limits, audit log) are the client's. */
+    TRUST_PROXY: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((v) => v === "true"),
+    /** Login attempts allowed per IP per minute (plan §09). */
+    LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(10),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== "production") return;
-    for (const key of ["DATABASE_URL", "REDIS_URL", "S3_ENDPOINT"] as const) {
+    for (const key of ["DATABASE_URL", "REDIS_URL", "S3_ENDPOINT", "JWT_SECRET"] as const) {
       if (!env[key]) ctx.addIssue({ code: "custom", path: [key], message: "required in production" });
     }
   });

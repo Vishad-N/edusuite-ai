@@ -72,6 +72,9 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      # Caddy sits in front in production, so trust its X-Forwarded-For.
+      TRUST_PROXY: ${TRUST_PROXY:-true}
       S3_ENDPOINT: http://garage:3900
       S3_REGION: garage
       S3_BUCKET: ${S3_BUCKET:?set S3_BUCKET}

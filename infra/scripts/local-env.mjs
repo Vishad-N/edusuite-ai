@@ -16,6 +16,7 @@ if (existsSync(target)) {
 const hex = (bytes) => randomBytes(bytes).toString("hex");
 const values = {
   POSTGRES_PASSWORD: hex(24),
+  JWT_SECRET: hex(32),
   GARAGE_RPC_SECRET: hex(32),
   GARAGE_ADMIN_TOKEN: hex(32),
   S3_ACCESS_KEY_ID: `GK${hex(12)}`,

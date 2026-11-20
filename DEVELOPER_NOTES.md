@@ -18,6 +18,35 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-033 · Auth module design: opaque rotating refresh tokens, deny-by-default guards
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 2 · `apps/api/src/auth`
+- **Status:** Decided by agent
+- **What was unclear:** The plan fixes the outline (argon2id, 15-minute JWT, rotating refresh until 23:59 IST, reuse ends all sessions, 5-attempt lockout) but not several details that are hard to change once the desktop app depends on them.
+- **Options considered / Decision:**
+  - Refresh token: an opaque 32-byte random value; only its SHA-256 is stored (`sessions.refresh_hash`). Rotation marks the old row `replaced_by_id` inside a transaction with a conditional update, so two racing refreshes can't both win.
+  - Reuse: presenting a rotated or revoked token, or one from a different `deviceId`, revokes every session of that user and writes `auth.refresh_reuse`.
+  - Access token: HS256 with `JWT_SECRET`, claims `sub`, `sid`, `iid`, `bid`, `role`; never valid past the session's 23:59 IST end. Stateless for its 15 minutes, so blocking a user takes effect at the next refresh (at most 15 minutes).
+  - Login lookup: `@` means email, 10+ digits means a +91 mobile number, otherwise employee code (case-insensitive). Unknown IDs and wrong passwords return the same `AUTH_INVALID` and take the same time (a dummy argon2 check). Lockout returns 423 `AUTH_LOCKED`; blocked status is checked only after a correct password, so it can't be probed.
+  - Guards: global, in order rate limit → auth → permission. Every route must declare `@Public()`, `@AnySignedIn()` or `@RequirePermission()`; a route with none is refused. Institute scoping comes only from the token (`scopeWhere`, `assertSameInstitute`, which answers 404 for other institutes).
+  - Rate limit: `@nestjs/throttler`, in memory, only on `auth/login` and `auth/refresh`, `LOGIN_RATE_LIMIT` per IP per minute (default 10). `TRUST_PROXY=true` behind Caddy.
+  - Errors: specific codes (`AUTH_INVALID`, `AUTH_LOCKED`, `AUTH_BLOCKED`, `AUTH_BRANCH_NOT_ALLOWED`, `AUTH_SESSION_EXPIRED`, `AUTH_SESSION_REVOKED`, `VALIDATION_FAILED`) with Hindi and English messages; validation errors list field paths only, never values.
+  - Tests: a separate `edusuite_test` database (or `DATABASE_URL_TEST` in CI) is created, migrated and emptied per run; CI sets `REQUIRE_DB_TESTS=1` so missing Postgres fails instead of skipping.
+- **Reason:** Matches plan §05 and §09 and AGENT_README §7–8 with no extra infrastructure.
+- **Affects:** `apps/api/src/{auth,audit,common,prisma}`, `packages/shared/src/auth.ts`, `apps/api/test/*`, `.github/workflows/ci.yml`, `infra/*` (`JWT_SECRET`, `TRUST_PROXY`)
+- **Revisit if:** More than one API instance runs (move rate limits to Redis), or blocking must take effect immediately (check the session on every request).
+
+### DN-032 · Auth packages: @node-rs/argon2, jose, @nestjs/throttler
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 2 · dependencies
+- **Status:** Decided by developer
+- **What was unclear:** The plan names argon2id, JWT and rate limiting but no packages (AGENT_README §3: ask before adding unnamed dependencies).
+- **Options considered:** argon2id: A) `@node-rs/argon2` B) `argon2`. JWT: A) `jose` B) `@nestjs/jwt`. Rate limit: A) `@nestjs/throttler` B) a Caddy plugin.
+- **Decision:** A for all three. argon2id parameters: 19 MiB memory, 2 passes, parallelism 1 (OWASP minimum).
+- **Reason:** Prebuilt binaries with no C++ build tools; a small dependency-free JWT library; Nest's official limiter, which can limit per route.
+- **Affects:** `apps/api/package.json`
+- **Revisit if:** Any of them stops being maintained.
+
 ### DN-031 · Shared `PageHeader` fixes the four invisible tool-screen titles
 - **Date:** 2026-11-20
 - **Phase / area:** Track A · NoticeHub, IdAndFeeReceipt, LessonPlanner, ImageStudio
