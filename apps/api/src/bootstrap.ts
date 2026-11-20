@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { randomUUID } from "node:crypto";
 import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
-import { RequestMethod, type LoggerService } from "@nestjs/common";
+import { RequestMethod, type LoggerService, type Type } from "@nestjs/common";
 import type { FastifyBaseLogger } from "fastify";
 import { AppModule } from "./app.module";
 import { ApiExceptionFilter } from "./common/apiExceptionFilter";
@@ -18,7 +18,7 @@ class PinoNestLogger implements LoggerService {
   verbose(message: unknown, context?: string) { this.pino.trace({ context }, String(message)); }
 }
 
-export async function createApp(env: Env): Promise<NestFastifyApplication> {
+export async function createApp(env: Env, extraControllers: Type[] = []): Promise<NestFastifyApplication> {
   const adapter = new FastifyAdapter({
     logger:
       env.NODE_ENV === "test"
@@ -31,9 +31,11 @@ export async function createApp(env: Env): Promise<NestFastifyApplication> {
     requestIdHeader: "x-request-id",
     genReqId: () => randomUUID(),
     bodyLimit: 1024 * 1024,
+    // Behind Caddy, use X-Forwarded-For so rate limits and audit IPs are the real client's.
+    trustProxy: env.TRUST_PROXY,
   });
 
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(env), adapter, {
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(env, extraControllers), adapter, {
     bufferLogs: true,
   });
   if (env.NODE_ENV !== "test") app.useLogger(new PinoNestLogger(app.getHttpAdapter().getInstance().log));

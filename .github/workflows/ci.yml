@@ -16,6 +16,24 @@ jobs:
   checks:
     name: Lint, typecheck, unit and API tests
     runs-on: ubuntu-latest
+    services:
+      # Disposable Postgres for the API tests (AGENT_README §7).
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL_TEST: postgres://ci:ci@localhost:5432/edusuite_test
+      # Fail instead of skipping if the test database is missing.
+      REQUIRE_DB_TESTS: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

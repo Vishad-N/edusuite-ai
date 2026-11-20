@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { connect } from "node:net";
 import { Redis } from "ioredis";
 import { ENV, type Env } from "../config/env";
+import { PrismaService } from "../prisma/prisma.service";
 
 export type CheckStatus = "up" | "down" | "not_configured";
 export type ReadinessReport = {
@@ -13,7 +13,10 @@ const TIMEOUT_MS = 2000;
 
 @Injectable()
 export class ReadinessService {
-  constructor(@Inject(ENV) private readonly env: Env) {}
+  constructor(
+    @Inject(ENV) private readonly env: Env,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async check(): Promise<ReadinessReport> {
     const [database, redis, storage] = await Promise.all([
@@ -25,11 +28,15 @@ export class ReadinessService {
     return { ready: Object.values(checks).every((s) => s === "up"), checks };
   }
 
-  /** Phase 1: confirms Postgres accepts TCP connections. Replaced by a `SELECT 1` once Prisma is wired in. */
-  private checkDatabase(): Promise<CheckStatus> {
-    if (!this.env.DATABASE_URL) return Promise.resolve("not_configured");
-    const url = new URL(this.env.DATABASE_URL);
-    return tcpReachable(url.hostname, Number(url.port || 5432));
+  /** Runs SELECT 1 through Prisma, with a time limit. */
+  private async checkDatabase(): Promise<CheckStatus> {
+    if (!this.prisma.configured) return "not_configured";
+    try {
+      await withTimeout(this.prisma.db.$queryRaw`SELECT 1`, TIMEOUT_MS);
+      return "up";
+    } catch {
+      return "down";
+    }
   }
 
   private async checkRedis(): Promise<CheckStatus> {
@@ -62,15 +69,12 @@ export class ReadinessService {
   }
 }
 
-function tcpReachable(host: string, port: number): Promise<CheckStatus> {
-  return new Promise((resolve) => {
-    const socket = connect({ host, port, timeout: TIMEOUT_MS });
-    const done = (status: CheckStatus) => {
-      socket.destroy();
-      resolve(status);
-    };
-    socket.once("connect", () => done("up"));
-    socket.once("timeout", () => done("down"));
-    socket.once("error", () => done("down"));
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("timeout")), ms);
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e: unknown) => { clearTimeout(timer); reject(e); },
+    );
   });
 }
