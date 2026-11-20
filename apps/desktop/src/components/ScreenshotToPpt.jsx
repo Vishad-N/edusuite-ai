@@ -207,6 +207,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
   // Motion Player Modal states
   const [showMotionPlayer, setShowMotionPlayer] = useState(false);
   const [motionHtmlDoc, setMotionHtmlDoc] = useState("");
+  const [motionPlayerUrl, setMotionPlayerUrl] = useState("");
 
   const fileInputRef = useRef(null);
 
@@ -470,7 +471,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
   };
 
   // Launch In-App Motion Studio Player (60fps Interactive HTML5 matching Biology_Unit-1_Taxonomy_Enhanced)
-  const handleOpenMotionPlayer = () => {
+  const handleOpenMotionPlayer = async () => {
     if (!questions.length) return;
     const htmlDoc = generateMotionHtml({
       title: sessionTitle,
@@ -480,7 +481,11 @@ export default function ScreenshotToPpt({ activeInstitute }) {
       instituteName: activeInstitute.name || "सत्याधी शर्मा क्लासेस, इंदौर",
       questions,
     });
-    setMotionHtmlDoc(htmlDoc);
+    // In the desktop app the player runs on its own isolated origin with no
+    // network access (DN-036). A plain browser (vite dev) falls back to srcDoc.
+    const motion = window.edusuite?.motion;
+    setMotionPlayerUrl(motion ? await motion.open(htmlDoc) : "");
+    setMotionHtmlDoc(motion ? "" : htmlDoc);
     setShowMotionPlayer(true);
   };
 
@@ -1463,13 +1468,15 @@ export default function ScreenshotToPpt({ activeInstitute }) {
               </div>
             </div>
 
-            {/* Embedded Live Motion Player (iframe with srcDoc) */}
+            {/* Embedded Live Motion Player: isolated origin in the desktop app, srcDoc in a plain browser */}
             <div className="flex-1 w-full h-full bg-black relative">
               <iframe
                 title="Satyadhi Motion Interactive Player"
-                srcDoc={motionHtmlDoc}
+                {...(motionPlayerUrl ? { src: motionPlayerUrl } : { srcDoc: motionHtmlDoc })}
                 className="w-full h-full border-0"
-                sandbox="allow-scripts allow-same-origin allow-popups"
+                // No allow-same-origin: with allow-scripts it would let the frame remove its own sandbox.
+                sandbox="allow-scripts"
+                allow="fullscreen"
               />
             </div>
           </div>

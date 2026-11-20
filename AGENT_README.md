@@ -201,6 +201,9 @@ Run these from the repo root. Node 26 is required (`.nvmrc`).
 | Run the desktop UI in development | `npm run dev` |
 | See every UI primitive and state (development only) | `npm run dev`, then open `http://localhost:5173/#ui-gallery` |
 | Run the desktop app in Electron | `npm run electron:dev` |
+| Electron against the Vite dev server (hot reload) | run `npm run dev`, then in `apps/desktop`: set `ELECTRON_DEV_SERVER_URL=http://localhost:5173` and run `npx electron .` |
+| Electron security self-check (prints JSON, then quits) | `npm run build`, then in `apps/desktop`: set `EDUSUITE_SMOKE=1` and run `npx electron .` |
+| Point the desktop app at another API | set `EDUSUITE_API_URL` when building (CSP) and running (Electron) |
 | Build the desktop UI | `npm run build` |
 | Build the Windows installer | `npm run dist:nsis` |
 | Lint (all workspaces) | `npm run lint` |

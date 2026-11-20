@@ -18,6 +18,26 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-036 · Electron hardening: sandbox, meta CSP, isolated motion-player origin, DPAPI token vault
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 2 · `apps/desktop/electron`
+- **Status:** Decided by agent
+- **What was unclear:** The plan asks for `sandbox`, `webSecurity`, a strict CSP and a preload exposing named functions, while the motion-class player (which the plan keeps "exactly as is") runs inline scripts inside an `srcdoc` iframe. A srcdoc frame inherits the page's CSP, so a strict policy breaks it; the old frame also used `allow-scripts allow-same-origin`, which let it remove its own sandbox (audit R6). Pages loaded from `file://` can't receive CSP response headers.
+- **Options considered:** A) Serve the player from a separate custom origin with its own CSP. B) Allow `'unsafe-inline'` scripts in the app CSP. C) Drop the in-app preview and only offer the download.
+- **Decision:** A.
+  - Window: `contextIsolation`, `sandbox`, `webSecurity` on; `nodeIntegration`, webviews and spellcheck off. Navigation is locked to the app's own `index.html`; new windows are denied; only the `clipboard-sanitized-write` permission is granted.
+  - CSP: generated into `index.html` at build time by a Vite plugin (`electron/security.cjs`): scripts only from the bundle, network only to the API origin (`EDUSUITE_API_URL`, default `http://localhost:3000`; Phase 6 sets the production URL), frames only from `edusuite-motion://player`. Inline style attributes are allowed (React `style={{…}}`); inline scripts are not. `vite` dev gets the dev-server additions.
+  - Motion player: `motion:open` keeps the HTML in the main process (last 3 only) and serves it from `edusuite-motion://player/<random id>` with `connect-src 'none'`; the iframe is `sandbox="allow-scripts"` (no `allow-same-origin`) with `allow="fullscreen"`. Google Fonts and pop-ups in the player are therefore blocked (local fonts are used); the downloaded `.html` is unchanged.
+  - Loading: packaged builds load only `dist/index.html`; the Vite dev server is used only when not packaged and `ELECTRON_DEV_SERVER_URL` is set. Single-instance lock.
+  - Preload (`window.edusuite`): `app.version/config`, `update.status` (stub until Phase 6), `auth.getToken/setToken/clearToken`, `print.toPdf`, `file.saveAs` (allowed extensions only, 200 MB cap, name sanitised), `motion.open`. IPC handlers accept calls only from the main window. `motion:open` and `app:config` are additions to the plan's list.
+  - Token vault: the refresh token is encrypted with `safeStorage` (DPAPI) into `userData/session.bin`; if encryption is unavailable it stays in memory only. The access token never leaves the page's memory.
+  - Electron files stay CommonJS JavaScript (an exception to "convert to TS when editing", which would need a separate build step for the main process).
+  - `EDUSUITE_SMOKE=1` makes the app report its security state as JSON and quit, for checks now and in Phase 6 CI.
+- **Reason:** Keeps the player working while fixing R6 (a malicious question text can run only inside a frame with no network and no access to the app), with no `'unsafe-inline'` scripts in the app itself.
+- **Verified:** Smoke run of the built app: bridge exposes only the six named groups; `require` and `process` are undefined; sandbox/contextIsolation/webSecurity on; an outside `fetch` is blocked; the vault round-trips through DPAPI and clears; the login screen renders; the motion origin runs scripts and its outside `fetch` is blocked.
+- **Affects:** `apps/desktop/electron/*`, `apps/desktop/vite.config.js`, `apps/desktop/src/components/ScreenshotToPpt.jsx`
+- **Revisit if:** The player needs network (e.g. web fonts), or files move to a remote host (add it to `fileOrigins` in the CSP).
+
 ### DN-035 · API accepts an empty JSON body; Fastify's 4xx errors keep their status
 - **Date:** 2026-11-20
 - **Phase / area:** Phase 2 · `apps/api/src/bootstrap.ts`, exception filter
