@@ -31,3 +31,6 @@ apps/api/src/generated
 .env
 .env.*
 !.env.example
+
+# Desktop component test build output
+.test-dist

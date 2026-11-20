@@ -18,6 +18,18 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-030 · Shared UI primitives: native `<dialog>`, Hindi default labels, tests without a DOM library
+- **Date:** 2026-11-20
+- **Phase / area:** Track A · `apps/desktop/src/components/ui/`
+- **Status:** Decided by agent
+- **What was unclear:** The prompt lists the primitives and requires focus traps, `aria-live` and tests, but names no dialog library, test DOM or i18n approach for the primitives' own text ("Close", "Cancel", "Retry").
+- **Options considered:** Dialog: A) native `<dialog>` + `showModal()`. B) A headless UI library (new dependency). Tests: A) `react-dom/server` markup checks with `node:test`, plus keyboard checks in Electron. B) jsdom or Testing Library (new dependencies). Labels: A) Hindi defaults, overridable by props. B) A new i18n context now.
+- **Decision:** A for all three. Built: `Button` (primary/secondary/ghost/danger, loading, icon), `Field` + `Input`/`Select`/`Textarea` (label, hint and error wired via `aria-describedby`/`aria-invalid`), `Card`, `Table` (caption, `scope="col"`, focusable scroll region), `Modal`, `ConfirmDialog` (focus starts on Cancel), `Tabs` (WAI-ARIA, arrow keys), `EmptyState`, `ErrorState`, `Skeleton`, `ToastProvider`/`useToast` (polite and assertive live regions; errors persist), `JobProgress` (no timers; indeterminate when the server gives no progress). Every control keeps a border so Windows contrast themes still show its edge. Added the `danger-hover` token (white on it 8.3:1). The desktop app gets `tsconfig.json` (`allowJs`), `typecheck` and `test` scripts. A development-only gallery at `#ui-gallery` shows every state and is excluded from production builds.
+- **Reason:** No new dependencies. The native dialog gives focus containment, an inert background and Esc for free. Labels can move to `translations.js` when screens are migrated.
+- **Verified:** 12 component tests pass. In Electron: Enter opens the Modal, focus moves inside, Tab never leaves it, Esc closes it and focus returns to the opener; ConfirmDialog focuses Cancel; Tab shows a 2 px ink focus ring; arrow keys move between tabs; no horizontal overflow at 1280×720; the gallery stays readable under the developer's Windows contrast theme.
+- **Affects:** `apps/desktop/src/components/ui/*`, `apps/desktop/src/main.jsx`, `apps/desktop/src/index.css`, `apps/desktop/tsconfig*.json`, `apps/desktop/package.json`, `.gitignore`
+- **Revisit if:** A screen needs a combobox, date picker or other complex widget (consider a headless library then, with approval), or primitive labels need English before screens are migrated.
+
 ### DN-029 · Track A design tokens: new names, amber as fill only, system Devanagari font
 - **Date:** 2026-11-20
 - **Phase / area:** Track A · `apps/desktop/src/index.css`

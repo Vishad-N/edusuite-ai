@@ -199,6 +199,7 @@ Run these from the repo root. Node 26 is required (`.nvmrc`).
 |---|---|
 | Install everything | `npm install` |
 | Run the desktop UI in development | `npm run dev` |
+| See every UI primitive and state (development only) | `npm run dev`, then open `http://localhost:5173/#ui-gallery` |
 | Run the desktop app in Electron | `npm run electron:dev` |
 | Build the desktop UI | `npm run build` |
 | Build the Windows installer | `npm run dist:nsis` |
