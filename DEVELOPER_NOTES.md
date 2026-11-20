@@ -18,6 +18,18 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-029 · Track A design tokens: new names, amber as fill only, system Devanagari font
+- **Date:** 2026-11-20
+- **Phase / area:** Track A · `apps/desktop/src/index.css`
+- **Status:** Decided by agent
+- **What was unclear:** The prompt asks for tokens like `--color-surface`, `--color-ink`, `--color-accent`, a 12/14/16/20/24/32 type scale and radii, but redefining Tailwind's built-in names (`text-lg`, `rounded-lg`) would silently restyle every screen at once, against "screen by screen, not in one big diff". Amber also fails contrast as text on white (1.7:1).
+- **Options considered:** A) New token names that no screen uses yet, migrated one screen at a time. B) Override Tailwind's defaults globally. Font: A) system fonts (Nirmala UI ships with Windows 10/11). B) Bundle Noto Sans Devanagari (a new package, would need approval).
+- **Decision:** A for both. Colours: `surface`, `page`, `inverse`, `ink`, `muted`, `ink-inverse`, `muted-inverse`, `accent` (amber fill), `accent-hover`, `accent-strong` (amber text), `accent-subtle`, `line`, `line-strong`, `success`, `warning`, `danger` (+ `-subtle`), `focus`, `focus-inverse`. Type: `text-caption` 12, `text-label` 14, `text-body` 16, `text-title` 20, `text-heading` 24, `text-display` 32, with taller line heights for Devanagari. Radii: `rounded-control` 6 px, `rounded-card` 8 px. Spacing uses Tailwind's existing steps 1, 2, 3, 4, 6, 8. Only these changed globally: body font and background, a visible `:focus-visible` ring, reduced-motion handling, `<html lang="hi">` kept in step with the language switch.
+- **Reason:** Measured contrast (WCAG 2.2): ink/surface 17.9, muted/surface 7.6, muted/page 6.9, ink/accent 10.7, accent-strong/surface 7.1, success 5.0, warning 5.0, danger 6.5, white/danger 6.5, muted-inverse/inverse 12.0, line-strong/surface 4.8 (UI ≥ 3), focus ink/surface 17.9, focus accent/inverse 10.7. All pass.
+- **Affects:** `apps/desktop/src/index.css`, `apps/desktop/index.html`, `apps/desktop/src/App.jsx`
+- **Verified:** Rendered in Electron 45 at 1280×720: Devanagari draws with Nirmala UI and matras are clean; no horizontal page overflow. The developer's PC runs a Windows contrast theme (`forced-colors: active`), which replaces every colour; the app stays readable there because Windows supplies the colours. Screens migrated to tokens must be checked in both modes, and must not use colour alone to show state (forced colours remove it).
+- **Revisit if:** Devanagari renders poorly on the institutes' PCs (then bundle a font, with approval), or the brand changes.
+
 ### DN-027 · S3-compatible storage service
 - **Date:** 2026-11-20
 - **Phase / area:** Phase 1 · `infra/docker-compose.yml`
