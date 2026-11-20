@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
@@ -28,6 +28,12 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem("edusuite_api_key") || "");
   const [lang, setLang] = useState(() => localStorage.getItem("satyadhi_lang") || "hi");
+
+  // Keep <html lang> in step with the UI language so screen readers and
+  // line-breaking use Hindi or English rules correctly.
+  useEffect(() => {
+    document.documentElement.lang = lang === "en" ? "en" : "hi";
+  }, [lang]);
 
   // Daily Employee Authentication State (Requires login every day / each session)
   const [currentUser, setCurrentUser] = useState(() => {
