@@ -37,8 +37,27 @@ export async function createApp(env: Env, extraControllers: Type[] = []): Promis
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(env, extraControllers), adapter, {
     bufferLogs: true,
+    // We register the JSON parser ourselves below (empty bodies allowed).
+    bodyParser: false,
   });
-  if (env.NODE_ENV !== "test") app.useLogger(new PinoNestLogger(app.getHttpAdapter().getInstance().log));
+  const fastify = app.getHttpAdapter().getInstance();
+  if (env.NODE_ENV !== "test") app.useLogger(new PinoNestLogger(fastify.log));
+
+  // Action routes such as POST /users/:id/block have no body, but HTTP clients
+  // often still send "content-type: application/json". Fastify rejects that
+  // with 400 by default; treat an empty JSON body as no body instead.
+  fastify.removeContentTypeParser("application/json");
+  fastify.addContentTypeParser("application/json", { parseAs: "string" }, (_req, body, done) => {
+    const text = typeof body === "string" ? body : body.toString("utf8");
+    if (text.trim() === "") return done(null, undefined);
+    try {
+      done(null, JSON.parse(text));
+    } catch {
+      const err = new Error("Invalid JSON body") as Error & { statusCode: number };
+      err.statusCode = 400;
+      done(err, undefined);
+    }
+  });
 
   app.setGlobalPrefix("api/v1", {
     exclude: [
