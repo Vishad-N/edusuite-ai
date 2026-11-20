@@ -16,7 +16,18 @@ export const ERROR_MESSAGES = {
   SERVICE_UNAVAILABLE: { hi: "सर्वर अभी उपलब्ध नहीं है। थोड़ी देर बाद कोशिश करें।", en: "The server is not available right now. Try again shortly." },
   INTERNAL: { hi: "सर्वर में समस्या आई। कृपया फिर से कोशिश करें।", en: "Something went wrong on the server. Please try again." },
 
-  AUTH_INVALID: { hi: "ID या पासवर्ड गलत है।", en: "The ID or password is incorrect." },
+  ALREADY_EXISTS: { hi: "यह पहले से किसी और के नाम दर्ज है।", en: "This is already used by someone else." },
+  ROLE_NOT_ALLOWED: { hi: "आप यह भूमिका नहीं दे सकते।", en: "You can't give this role." },
+  CANNOT_CHANGE_SELF: {
+    hi: "आप अपने खाते की भूमिका या स्थिति खुद नहीं बदल सकते।",
+    en: "You can't change your own role or status.",
+  },
+  LAST_SUPERADMIN: {
+    hi: "संस्थान में कम से कम एक सक्रिय सुपर एडमिन होना ज़रूरी है।",
+    en: "The institute must keep at least one active super admin.",
+  },
+
+  AUTH_INVALID:{ hi: "ID या पासवर्ड गलत है।", en: "The ID or password is incorrect." },
   AUTH_LOCKED: {
     hi: "कई गलत प्रयासों के कारण खाता 15 मिनट के लिए रोका गया है।",
     en: "Too many wrong attempts. The account is locked for 15 minutes.",

@@ -18,6 +18,35 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-035 · API accepts an empty JSON body; Fastify's 4xx errors keep their status
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 2 · `apps/api/src/bootstrap.ts`, exception filter
+- **Status:** Decided by agent
+- **What was unclear:** A live check found `POST /users/:id/block` answering 400 (so nothing was blocked) whenever the client sent `content-type: application/json` with no body, which most HTTP clients do. Fastify rejects that by default. The tests used `inject` without the header and missed it. Malformed JSON was also answered with 500.
+- **Options considered:** A) Make the server treat an empty JSON body as no body. B) Require the desktop client never to send the header on body-less calls.
+- **Decision:** A. Nest's own body parser is turned off and one JSON parser is registered that accepts an empty body; malformed JSON is 400 `BAD_REQUEST`. The exception filter keeps any 4xx status that Fastify sets (bad JSON, body too large) instead of turning it into 500. A regression test sends exactly the failing request.
+- **Reason:** The server shouldn't depend on client header habits for correctness.
+- **Affects:** `apps/api/src/bootstrap.ts`, `apps/api/src/common/apiExceptionFilter.ts`, `apps/api/test/users.test.ts`
+- **Revisit if:** File uploads go through the API directly (they use presigned URLs to storage in Phase 3).
+
+### DN-034 · User management rules: rank, own-branch scope, self-protection (please review)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 2 · `apps/api/src/users`, `apps/api/src/institutes`
+- **Status:** Decided by agent (restrictive defaults; please review)
+- **What was unclear:** The plan says a branch admin manages users "in their branch" and settings "own", but not which roles they may give, whether people can change themselves, or how passwords are set.
+- **Options considered:** A) Restrictive defaults (below). B) Branch admins may create any non-super-admin role.
+- **Decision:** A.
+  - Rank: a super admin manages everyone in the institute; a branch admin manages only teachers, typists and counselors whose home branch is the admin's current branch, and can't give admin roles (`assignableRoles` in `packages/shared/users.ts`). Users a branch admin may not manage answer 404, not 403.
+  - Self: nobody changes their own role or status; editing one's own name or email is allowed. An institute always keeps one active super admin (a safety net; with the self rule it can't normally be reached).
+  - Passwords: the admin sets the password (at least 8 characters), stored as argon2id. Reset clears lockout and ends every session. There is no "change my own password" screen yet.
+  - Sessions end on block, password reset, role change and home-branch change, so new rights apply at once.
+  - No delete (DN-009); employee code and branch code can't be changed after creation; email, code and phone are unique system-wide (DN-026) and duplicates answer 409 `ALREADY_EXISTS` with the field.
+  - Institutes: everyone reads their own institute and its branches; only a super admin edits the institute (name, branding) and adds branches; a branch admin edits only their own branch's name and city. Code and AI quota aren't editable from the app.
+  - First super admin in production: `createSuperAdmin.js` one-time command (password from a hidden prompt or `SUPERADMIN_PASSWORD`, never a CLI argument); validates before writing and writes institute, branch, user and audit row in one transaction; refuses if the institute already has a super admin.
+- **Reason:** Least privilege for money- and data-handling staff; easy to relax later, hard to undo a leak.
+- **Affects:** `/api/v1/users*`, `/api/v1/institutes*`, `packages/shared/src/{users,institutes,pagination}.ts`, `apps/api/src/scripts/createSuperAdmin.ts`
+- **Revisit if:** Branch admins need to appoint other branch admins, or staff need to change their own password (add `POST /me/password`).
+
 ### DN-033 · Auth module design: opaque rotating refresh tokens, deny-by-default guards
 - **Date:** 2026-11-20
 - **Phase / area:** Phase 2 · `apps/api/src/auth`

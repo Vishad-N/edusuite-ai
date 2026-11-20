@@ -9,6 +9,10 @@ import { AuditService } from "./audit/audit.service";
 import { AuthController } from "./auth/auth.controller";
 import { AuthService } from "./auth/auth.service";
 import { AuthGuard, LOGIN_RATE_LIMITED, PermissionGuard } from "./auth/guards";
+import { UsersController } from "./users/users.controller";
+import { UsersService } from "./users/users.service";
+import { InstitutesController } from "./institutes/institutes.controller";
+import { InstitutesService } from "./institutes/institutes.service";
 
 const MINUTE_MS = 60_000;
 
@@ -32,13 +36,15 @@ export class AppModule {
           ],
         }),
       ],
-      controllers: [HealthController, AuthController, ...extraControllers],
+      controllers: [HealthController, AuthController, UsersController, InstitutesController, ...extraControllers],
       providers: [
         { provide: ENV, useValue: env },
         PrismaService,
         AuditService,
         ReadinessService,
         AuthService,
+        UsersService,
+        InstitutesService,
         // Order matters: rate limit, then who is calling, then what they may do.
         { provide: APP_GUARD, useClass: ThrottlerGuard },
         { provide: APP_GUARD, useClass: AuthGuard },

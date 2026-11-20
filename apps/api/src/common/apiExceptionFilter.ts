@@ -27,7 +27,14 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const reply = ctx.getResponse<FastifyReply>();
     const lang = pickLanguage(req.headers["accept-language"]);
 
-    const status = exception instanceof HttpException ? exception.getStatus() : 500;
+    // Fastify's own client errors (bad JSON, body too large) carry a 4xx statusCode.
+    const fastifyStatus = (exception as { statusCode?: unknown } | null)?.statusCode;
+    const status =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : typeof fastifyStatus === "number" && fastifyStatus >= 400 && fastifyStatus < 500
+          ? fastifyStatus
+          : 500;
     const code: ErrorCode = exception instanceof ApiHttpException ? exception.code : codeForStatus(status);
     const body: ApiError = { code, message: ERROR_MESSAGES[code][lang] };
     if (exception instanceof ApiHttpException && exception.details !== undefined) body.details = exception.details;

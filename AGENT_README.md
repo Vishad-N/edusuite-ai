@@ -212,6 +212,7 @@ Run these from the repo root. Node 26 is required (`.nvmrc`).
 | One-time storage setup (Garage layout, key, bucket) | `npm run stack:init` |
 | Load local demo data (one user per role; test passwords are in `apps/api/src/scripts/seed.ts`) | `npm run db:seed` |
 | API tests (use a separate `edusuite_test` database on the local stack) | `npm test -w @edusuite/api` |
+| Create an institute's first super admin (production, one time; asks for the password) | `docker compose -f infra/docker-compose.yml --env-file infra/.env exec api node dist/src/scripts/createSuperAdmin.js --institute-code IND --institute-name "…" --branch-code BKN --branch-name "…" --employee-code IND-SA-1 --email owner@example.com --name "…"` |
 | Follow stack logs / stop the stack | `npm run stack:logs` / `npm run stack:down` |
 | Apply database migrations | `npm run prisma:migrate -w @edusuite/api` (the stack's `migrate` service also runs them on start) |
 | Create a new migration (local DB) | `npm run prisma:migrate:dev -w @edusuite/api` |
