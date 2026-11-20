@@ -1,0 +1,12 @@
+# Store text with LF in the repo.
+* text=auto
+
+# Files read inside Linux containers or on macOS must keep LF on disk on Windows too.
+*.sh       text eol=lf
+*.command  text eol=lf
+*.toml     text eol=lf
+Caddyfile  text eol=lf
+Dockerfile text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+.env.example text eol=lf

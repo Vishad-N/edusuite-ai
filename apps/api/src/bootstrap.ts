@@ -1,0 +1,50 @@
+import "reflect-metadata";
+import { randomUUID } from "node:crypto";
+import { NestFactory } from "@nestjs/core";
+import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
+import { RequestMethod, type LoggerService } from "@nestjs/common";
+import type { FastifyBaseLogger } from "fastify";
+import { AppModule } from "./app.module";
+import { ApiExceptionFilter } from "./common/apiExceptionFilter";
+import type { Env } from "./config/env";
+
+/** Routes Nest's own log calls into Fastify's pino logger, so every line is JSON. */
+class PinoNestLogger implements LoggerService {
+  constructor(private readonly pino: FastifyBaseLogger) {}
+  log(message: unknown, context?: string) { this.pino.info({ context }, String(message)); }
+  error(message: unknown, _trace?: string, context?: string) { this.pino.error({ context }, String(message)); }
+  warn(message: unknown, context?: string) { this.pino.warn({ context }, String(message)); }
+  debug(message: unknown, context?: string) { this.pino.debug({ context }, String(message)); }
+  verbose(message: unknown, context?: string) { this.pino.trace({ context }, String(message)); }
+}
+
+export async function createApp(env: Env): Promise<NestFastifyApplication> {
+  const adapter = new FastifyAdapter({
+    logger:
+      env.NODE_ENV === "test"
+        ? false
+        : {
+            level: env.LOG_LEVEL,
+            // Never log credentials (AGENT_README §8).
+            redact: ["req.headers.authorization", "req.headers.cookie", 'res.headers["set-cookie"]'],
+          },
+    requestIdHeader: "x-request-id",
+    genReqId: () => randomUUID(),
+    bodyLimit: 1024 * 1024,
+  });
+
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(env), adapter, {
+    bufferLogs: true,
+  });
+  if (env.NODE_ENV !== "test") app.useLogger(new PinoNestLogger(app.getHttpAdapter().getInstance().log));
+
+  app.setGlobalPrefix("api/v1", {
+    exclude: [
+      { path: "health", method: RequestMethod.GET },
+      { path: "ready", method: RequestMethod.GET },
+    ],
+  });
+  app.useGlobalFilters(new ApiExceptionFilter());
+  app.enableShutdownHooks();
+  return app;
+}

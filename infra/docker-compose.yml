@@ -1,0 +1,110 @@
+# EduSuite stack (plan §11). Postgres, Redis and storage are never published;
+# only Caddy (profile "production") opens ports 80 and 443.
+#
+# Local:      docker compose -f infra/docker-compose.yml -f infra/docker-compose.local.yml --env-file infra/.env.local up -d
+# Production: docker compose -f infra/docker-compose.yml --env-file infra/.env --profile production up -d
+
+name: edusuite
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # S3-compatible object store (DN-027). First start needs a one-time setup:
+  # `npm run stack:init` creates the layout, imports the access key and creates the bucket.
+  garage:
+    image: dxflrs/garage:v2.1.0
+    restart: unless-stopped
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?set GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?set GARAGE_ADMIN_TOKEN}
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - garagemeta:/var/lib/garage/meta
+      - garagedata:/var/lib/garage/data
+
+  migrate:
+    image: ${API_IMAGE:-edusuite-api:local}
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    # npm workspaces install the Prisma CLI at the repo root.
+    command: ["node", "/repo/node_modules/prisma/build/index.js", "migrate", "deploy"]
+    working_dir: /repo/apps/api
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: ${API_IMAGE:-edusuite-api:local}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      HOST: 0.0.0.0
+      PORT: 3000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://garage:3900
+      S3_REGION: garage
+      S3_BUCKET: ${S3_BUCKET:?set S3_BUCKET}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
+    depends_on:
+      garage:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2
+    profiles: ["production"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  redisdata:
+  garagemeta:
+  garagedata:
+  caddydata:
+  caddyconfig:

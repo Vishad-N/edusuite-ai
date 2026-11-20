@@ -1,0 +1,327 @@
+# Developer Notes: Decision Log
+
+This file records every point where the AI agent (or a developer) was unsure and a decision was made. The rules for writing entries are in [`AGENT_README.md`](AGENT_README.md), section 4.
+
+- Newest entries go at the top of the "Decision log".
+- Never delete or rewrite old entries. Supersede them with a new one.
+- Number entries in order: DN-001, DN-002, …
+
+---
+
+## Open questions
+
+Decisions waiting for the developer. Remove a line here once its entry's status is updated.
+
+- *(none)*
+
+---
+
+## Decision log
+
+### DN-027 · S3-compatible storage service
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 1 · `infra/docker-compose.yml`
+- **Status:** Decided by developer
+- **What was unclear:** The plan says "MinIO or Garage (S3 API)", and ADR-5 warns that MinIO's community edition has changed its licence and features and should be checked at setup. The choice decides which image runs and how buckets and keys are created.
+- **Options considered:** A) Garage: small, open source (AGPL), made for self-hosting on one server; needs a one-time layout and key setup step, which a script can do. B) MinIO: the best-known option, but check its current community-edition terms and image availability first. C) SeaweedFS: Apache-licensed and simple to start, but heavier to operate.
+- **Decision:** A) Garage, for local testing and production alike, pinned to `dxflrs/garage:v2.1.0`. Its image has no shell, so the one-time setup (layout, access key, bucket) is `infra/scripts/garage-init.mjs`, which runs Garage's own CLI through `docker compose exec`. The access key and secret come from the env file and are imported, so the API and the env file always agree.
+- **Reason:** Free, made for single-server self-hosting, and avoids the MinIO licence and image risk named in ADR-5.
+- **Affects:** `infra/docker-compose.yml`, `infra/garage/garage.toml`, `infra/scripts/*`, `infra/.env.example`, the files module (Phase 3), the `/ready` storage check
+- **Revisit if:** Storage needs more than one server, or Garage stops being maintained. Bump the image tag deliberately; check its release notes first.
+
+### DN-028 · Compose layout: one base file, a local override, migrations as a one-shot service
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 1 · `infra/`
+- **Status:** Decided by agent
+- **What was unclear:** The prompt names `docker-compose.yml` + `docker-compose.local.yml` and "no code forks" between local and production, but not how to keep Caddy and published ports out of local runs, or when migrations run.
+- **Options considered:** A) Caddy behind a `production` profile; the local file publishes Postgres, Redis and the API on 127.0.0.1 only; a `migrate` service runs `prisma migrate deploy` before the API starts. B) Separate compose files per environment.
+- **Decision:** A. Env files: `infra/.env.example` → `infra/.env.local` (local) or `infra/.env` (VPS). The API image is built from the repo root with `apps/api/Dockerfile` on `node:26`, runs as the `node` user and has a health check. The worker service is added in Phase 4, when `worker.ts` exists.
+- **Reason:** Same images and files in both environments; only the env file and profile differ.
+- **Affects:** `infra/*`, `apps/api/Dockerfile`, `.dockerignore`
+- **Revisit if:** Production needs services that should never run locally (backup, uptime monitoring; Phase 6).
+
+### DN-026 · Prisma 7 schema: login IDs unique system-wide, first migration generated offline
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 1 · Prisma schema
+- **Status:** Decided by agent (please review before the migration is first applied)
+- **What was unclear:** The plan's login flow finds a user "by ID / email / phone" with no institute on the form, so the same employee code in two institutes would be ambiguous. Prisma 7 also needs a driver adapter, which the plan doesn't mention.
+- **Options considered:** Identity: A) `employee_code`, `email` and `phone` unique across the whole system. B) Unique per institute, with an institute picker on the login form. Driver: A) `@prisma/adapter-pg` (Prisma's own Postgres adapter, which needs `pg`). B) Stay on Prisma 6 without adapters.
+- **Decision:** A for both. Tables use snake_case names (`app_users`, `fee_receipts`, …) mapped from PascalCase models. Also added: `institutes.code` and `branches.code` for receipt numbers (DN-013); `user_branches` for multi-branch staff and `sessions.branch_id` (DN-015); `failed_login_count` and `locked_until` for the plan's 5-attempt lockout; `idempotency_key` with a per-institute unique index on `ai_jobs` and `fee_receipts`; cache-token columns on `ai_usage`. The `20261120000000_init` migration was generated with `prisma migrate diff` (no database needed) and has not been applied anywhere yet.
+- **Reason:** No extra login field, and it's easy to change now because no data exists. Prisma 7 is the current stable release.
+- **Affects:** `apps/api/prisma/schema.prisma`, `apps/api/prisma/migrations/20261120000000_init`, `apps/api/prisma.config.ts`
+- **Revisit if:** Two institutes need the same employee codes. Once the migration has been applied, any change must be a new migration.
+
+### DN-025 · API skeleton: NestJS 11, probes outside `/api/v1`, pino through Fastify
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 1 · `apps/api`
+- **Status:** Decided by agent
+- **What was unclear:** NestJS 12 is the latest release, but the plan names NestJS 11. The plan lists `/health` and `/ready` in the API surface without saying whether they sit under `/api/v1`. The plan names pino but no Nest integration.
+- **Options considered:** Version: A) 11 as the plan says. B) 12. Probes: A) root paths. B) under `/api/v1`. Logging: A) Fastify's built-in pino with a small Nest logger bridge. B) add `nestjs-pino`.
+- **Decision:** NestJS 11.2; `/health` and `/ready` at the root, everything else under `/api/v1`; Fastify's pino with secrets redacted and an `x-request-id` per request. `/ready` returns 503 until Postgres, Redis and storage all answer. Postgres is checked by TCP for now and moves to `SELECT 1` when Prisma is wired in. The API compiles to CommonJS (Nest decorators) and imports the ESM shared package through Node's `require(esm)`.
+- **Reason:** Follows the plan's version; probes are called by Docker, Caddy and Uptime Kuma without auth; no extra dependency.
+- **Affects:** `apps/api/*`
+- **Revisit if:** A NestJS 11 security fix stops shipping, or the probes need to be private.
+
+### DN-024 · Tests use Node's built-in test runner; TypeScript 7
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 1 · tooling
+- **Status:** Decided by agent
+- **What was unclear:** The plan requires unit and API tests but names no test framework, and AGENT_README §3 asks before adding unnamed dependencies.
+- **Options considered:** A) `node:test` (built into Node 26, no dependency). B) Vitest. C) Jest (NestJS default).
+- **Decision:** A. Shared-package tests run TypeScript directly through Node 26's type stripping (`erasableSyntaxOnly` in `tsconfig.base.json`). API tests run `node --test` against the compiled output, because NestJS decorators can't be type-stripped. TypeScript is 7.0 (the current release).
+- **Reason:** No new dependency, and one runner across all workspaces.
+- **Affects:** `packages/*/package.json` `test` scripts, `tsconfig.base.json`
+- **Revisit if:** Playwright e2e (Phase 6) or snapshot testing needs features `node:test` lacks.
+
+### DN-023 · Desktop app moved into `apps/desktop` (npm workspaces)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 1 · repo layout
+- **Status:** Decided by agent
+- **What was unclear:** AGENT_README §5 asks for the move but not where shared tool config (lint, `.nvmrc`) and the old build folders should end up.
+- **Options considered:** A) Move everything, including lint config, into `apps/desktop`. B) Move the app; keep repo-wide config (`.oxlintrc.json`, `.nvmrc`, `.gitignore`) at the root, and leave the old ignored `dist/` and `release/` folders where they are.
+- **Decision:** B. `src/`, `electron/`, `build/`, `public/`, `scripts/`, `index.html`, `vite.config.js` and `Run-On-Mac.command` moved unchanged. The desktop package is `@edusuite/desktop`; the root `package.json` declares workspaces `apps/*` and `packages/*` and forwards `dev`, `electron:dev`, `build`, `dist:nsis` and `lint`. New builds go to `apps/desktop/dist` and `apps/desktop/release`.
+- **Reason:** One lint config for every workspace; old build output is ignored and DN-019 keeps `release/` in place.
+- **Affects:** root and `apps/desktop/package.json`, `package-lock.json`, `.github/workflows/build-mac-dmg.yml`
+- **Revisit if:** The API needs different lint rules from the desktop app.
+
+### DN-022 · Node.js version: plan says 22 LTS, winget installed 26 LTS
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 1 · toolchain
+- **Status:** Decided by developer
+- **What was unclear:** The plan's stack table names "Node 22 LTS". `winget install OpenJS.NodeJS.LTS` installed Node 26.13.1, the current LTS. Node 22 reaches end of life in April 2027, about five months away.
+- **Options considered:** A) Move the plan to Node 26 LTS everywhere (PC, Docker images, CI). B) Install Node 22 on the PC to match the plan. C) Node 26 on the PC, Node 22 in Docker and CI.
+- **Decision:** A. Node 26 LTS on PCs, in Docker images (`node:26`) and in CI. This overrides "Node 22 LTS" in the architecture plan's stack table.
+- **Reason:** Node 22 leaves support in April 2027; one version everywhere avoids dev/prod differences.
+- **Affects:** `package.json` `engines`, `.nvmrc`, `infra/` Dockerfiles, `.github/workflows/*`
+- **Revisit if:** A dependency (NestJS, Prisma, Electron tooling) doesn't support Node 26.
+
+### DN-021 · TeacherDesk shows real documents; schedule and syllabus are "coming soon" (Q-18)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 3 · TeacherDesk
+- **Status:** Decided by developer
+- **What was unclear:** The plan maps TeacherDesk only to stats and documents; its schedule, faculty list and syllabus tracker have no table.
+- **Options considered:** A) Real "my documents" and counts; schedule/syllabus shown as coming soon. B) Add timetable tables.
+- **Decision:** A.
+- **Reason:** Timetables are a new product area the plan doesn't cover.
+- **Affects:** `TeacherDesk`, `GET /stats/dashboard`, `GET /documents`
+- **Revisit if:** The institute asks for timetable or syllabus tracking.
+
+### DN-020 · Mac DMG workflow runs on tags and manual runs only (Q-17)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 1 · CI
+- **Status:** Decided by developer
+- **What was unclear:** `build-mac-dmg.yml` runs on every push and PR to `main`, using macOS runner minutes.
+- **Options considered:** A) Tags + `workflow_dispatch` only. B) Leave it.
+- **Decision:** A.
+- **Reason:** Mac builds are only needed for releases.
+- **Affects:** `.github/workflows/build-mac-dmg.yml`
+- **Revisit if:** Mac becomes a primary platform.
+
+### DN-019 · `release/` stays in place, git-ignored (Q-16)
+- **Date:** 2026-11-20
+- **Phase / area:** Setup · repo
+- **Status:** Decided by developer
+- **What was unclear:** 1 GB of old installers sits in the source folder; AGENT_README says to move installers only after asking.
+- **Options considered:** A) Move it outside the repo. B) Leave it, ignored.
+- **Decision:** B. `release` was added to `.gitignore` on 2026-11-20.
+- **Reason:** It's already excluded from git, and nothing reads it.
+- **Affects:** `.gitignore`, `release/`
+- **Revisit if:** Disk space or the monorepo move makes it a problem.
+
+### DN-018 · Offline drafts deferred (Q-15)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 3 · documents
+- **Status:** Decided by developer
+- **What was unclear:** The plan mentions IndexedDB drafts while offline, but no phase includes it.
+- **Options considered:** A) Defer; show "offline, saving paused". B) Build in Phase 3.
+- **Decision:** A.
+- **Reason:** Keeps Phase 3 focused on saving and history.
+- **Affects:** `src/api/` client, save buttons on all tool screens
+- **Revisit if:** Branches report frequent internet drops.
+
+### DN-017 · Install the prompt's named skills if available (Q-14)
+- **Date:** 2026-11-20
+- **Phase / area:** Setup · agent tooling
+- **Status:** Decided by developer
+- **What was unclear:** `claude`, `web-design-guidelines` and the `ecc:*` skills named in the prompt aren't installed here.
+- **Options considered:** A) Install them before the tracks that need them. B) Proceed without them.
+- **Decision:** A when the developer has them; otherwise the agent proceeds with the installed skills and the written rules.
+- **Reason:** The skills are helpful but not required to follow the plan.
+- **Affects:** Agent workflow only
+- **Revisit if:** A skill turns out to conflict with AGENT_README rules.
+
+### DN-016 · Installer becomes one-click, per-user, in Phase 6 (Q-13)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 6 · installer
+- **Status:** Decided by developer
+- **What was unclear:** The plan wants `oneClick: true, perMachine: false`; today it's `oneClick: false` with a folder chooser.
+- **Options considered:** A) Follow the plan. B) Keep the chooser.
+- **Decision:** A, applied when Phase 6 starts.
+- **Reason:** No admin prompt on office PCs; required for silent auto-update.
+- **Affects:** `package.json` `build.nsis`
+- **Revisit if:** Institutes need a machine-wide install.
+
+### DN-015 · Branch comes from the user record, not the login form (Q-12)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 2 · auth
+- **Status:** Decided by developer
+- **What was unclear:** Staff pick any branch on the login screen, but the server must never trust a client `branchId`.
+- **Options considered:** A) Branch from the user record; staff allowed at several branches pick from a server-provided list. B) Remove the picker.
+- **Decision:** A.
+- **Reason:** Keeps the familiar picker while making the server the authority.
+- **Affects:** `LoginScreen`, `POST /auth/login`, `app_user` (needs a user-to-branches link for multi-branch staff)
+- **Revisit if:** No one works at more than one branch.
+
+### DN-014 · Schema adds the columns the ER diagram omits; documents are soft-deleted (Q-11)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 1 · Prisma schema
+- **Status:** Decided by developer
+- **What was unclear:** The ER diagram leaves out columns other rules require.
+- **Options considered:** A) Add them now and soft-delete documents. B) Hard-delete documents.
+- **Decision:** A. Add `institute_id` to `ai_job`, `ai_usage`, `question`, `file` and `fee_receipt`; `branch_id`, `student_id`, `status` and `cancel_reason` to `fee_receipt`; `created_by` and `deleted_at` to `document`.
+- **Reason:** Institute scoping, quotas and audited deletions all need these.
+- **Affects:** `prisma/schema.prisma`, the documents API
+- **Revisit if:** A document must be erased for legal reasons (add a purge job then).
+
+### DN-013 · Receipt numbers per branch per financial year; no GST yet (Q-10)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 5 · fees
+- **Status:** Decided by developer
+- **What was unclear:** The year reset, the branch code and whether receipts are GST invoices were not specified.
+- **Options considered:** A) Per branch per financial year (resets 1 April), branch code stored on `branches`, no GST fields. B) Add GST fields now.
+- **Decision:** A. Format `<INST>-<BRANCH>/<FY>/<6-digit seq>`, e.g. `IND-BKN/2026-27/000431`. The UI stops calling it a "GST receipt".
+- **Reason:** Tax treatment needs the institute's registration status, which is a business decision.
+- **Affects:** `receipt_counter`, `fee_receipt`, `branch.code`, `IdAndFeeReceipt`
+- **Revisit if:** The institute confirms GST registration.
+
+### DN-012 · Build a fixture AI mode for local tests and demos (Q-09)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 4 · AI worker
+- **Status:** Decided by developer
+- **What was unclear:** `AI_MODE=fixture` goes beyond the plan, and the prompt said to ask first.
+- **Options considered:** A) Build it. B) Mock the SDK in tests only.
+- **Decision:** A. The worker replays recorded Claude responses keyed by job type and a hash of the input. Fixture mode is refused when `NODE_ENV=production`, and the UI shows a "fixture mode" badge.
+- **Reason:** Tests and offline demos cost nothing and never call the live API.
+- **Affects:** `apps/api/src/worker.ts`, `packages/shared/ai/*`, Header badge
+- **Revisit if:** Fixtures drift from the live model's output shape.
+
+### DN-011 · TypeScript with `allowJs`; convert JSX only when editing (Q-08)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 1 · tooling
+- **Status:** Decided by developer
+- **What was unclear:** Conventions require strict TS and a `typecheck` script; the app is JSX with no `tsconfig`.
+- **Options considered:** A) `tsconfig` with `allowJs`, new code in TS, convert on edit. B) Convert everything up front.
+- **Decision:** A.
+- **Reason:** Matches AGENT_README §7 and avoids a large mixed diff.
+- **Affects:** `tsconfig*.json`, all new files
+- **Revisit if:** JS files cause repeated type gaps at module boundaries.
+
+### DN-010 · Add react-router with hash history (Q-07)
+- **Date:** 2026-11-20
+- **Phase / area:** Track B / Phase 2 · routing
+- **Status:** Decided by developer
+- **What was unclear:** Deep links, return-after-login and unsaved-changes guards need a router; the plan names none.
+- **Options considered:** A) `react-router` data router with hash history. B) TanStack Router. C) Hand-rolled hash router.
+- **Decision:** A. New dependency approved.
+- **Reason:** Widely known; hash history works with `file://` in Electron.
+- **Affects:** `App.jsx`, `Sidebar`, all tool screens
+- **Revisit if:** The app moves to a custom protocol where browser history works.
+
+### DN-009 · Branch admins manage own-branch users; block instead of delete (Q-06)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 2 · users
+- **Status:** Decided by developer
+- **What was unclear:** The plan lets Branch admins manage their branch's users, but the code blocks them; the UI has permanent delete, the API has none.
+- **Options considered:** A) Follow the plan; no delete, only block. B) Soft delete for Super admin.
+- **Decision:** A. The delete button is removed when UserManagement is wired to the API.
+- **Reason:** Keeps the audit trail intact.
+- **Affects:** `UserManagement`, `permissions.ts`, users API
+- **Revisit if:** Data-protection requests require removing a staff record.
+
+### DN-008 · Counselor gets Image Studio templates only; TeacherDesk and Dashboard access set (Q-05)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 1 · `permissions.ts`
+- **Status:** Decided by developer
+- **What was unclear:** The matrix gives Counselor Image Studio but not AI tools, while Image Studio runs `poster_copy`; TeacherDesk and Dashboard weren't in the matrix.
+- **Options considered:** A) Counselor: templates only, AI copy disabled. TeacherDesk: Super, Branch, Teacher. Dashboard: everyone. B) Counselor also gets `poster_copy`.
+- **Decision:** A.
+- **Reason:** Keeps AI spend with roles that need it.
+- **Affects:** `packages/shared/permissions.ts`, `ImageStudio`, `Sidebar`
+- **Revisit if:** Counselors need AI-written poster copy.
+
+### DN-007 · Typists don't handle fees; journey D uses a Counselor (Q-04)
+- **Date:** 2026-11-20
+- **Phase / area:** Phase 5 · fees; Track B journeys
+- **Status:** Decided by developer
+- **What was unclear:** The prompt's fee journey uses a typist, but the plan's matrix gives DTP/Typist no fee access.
+- **Options considered:** A) Keep the matrix; Counselor in journey D. B) Give Typist fee access.
+- **Decision:** A.
+- **Reason:** Money stays with accountable roles.
+- **Affects:** `permissions.ts`, e2e journey D
+- **Revisit if:** A branch has no counselor.
+
+### DN-006 · Track A applies design principles and keeps the EduSuite brand (Q-03)
+- **Date:** 2026-11-20
+- **Phase / area:** Track A · UI polish
+- **Status:** Decided by developer
+- **What was unclear:** AGENT_README golden rule 2 and the plan say "don't redesign, keep navy/amber"; the master prompt widens that for polish and offers a full re-skin.
+- **Options considered:** A) Principles only: slate ink dominant, amber as the single accent. B) Full re-skin to ivory/clay.
+- **Decision:** A. The master prompt overrides golden rule 2 for visual polish and flow only; markup structure, translations and print CSS rules still apply.
+- **Reason:** Keeps the brand staff already know.
+- **Affects:** `src/index.css` tokens, `src/components/ui/*`, every screen (one per change set)
+- **Revisit if:** The institute asks for a new brand.
+
+### DN-005 · Architecture plan moves to `docs/architecture/` (Q-02)
+- **Date:** 2026-11-20
+- **Phase / area:** Setup · repo layout
+- **Status:** Decided by developer
+- **What was unclear:** The docs pointed to `docs/architecture/edusuite-architecture.html`, but the file was at the repo root.
+- **Options considered:** A) Move the file. B) Change the docs.
+- **Decision:** A.
+- **Reason:** Matches the target layout in AGENT_README §5.
+- **Affects:** `docs/architecture/edusuite-architecture.html`
+- **Revisit if:** —
+
+### DN-004 · Git repo lives at the project root, initial commit on `main` (Q-01)
+- **Date:** 2026-11-20
+- **Phase / area:** Setup · git
+- **Status:** Decided by developer
+- **What was unclear:** The repo had no commits, no git identity, and its `.git` folder was in an empty `edusuite-ai/` subfolder.
+- **Options considered:** A) Move `.git` to the root, set identity, initial commit on `main`, then a feature branch. B) Delete and re-init.
+- **Decision:** A. Remote `origin` is `https://github.com/Vishad-N/edusuite-ai.git`.
+- **Reason:** No history to lose; keeps the configured remote.
+- **Affects:** `.git/`
+- **Revisit if:** —
+
+### DN-003 · Step 1 audit run in the project root, before a worktree exists
+- **Date:** 2026-11-20
+- **Phase / area:** Setup · Step 1 audit
+- **Status:** Decided by agent
+- **What was unclear:** `master-build-prompt.md` says to commit the docs and run in a worktree, but the repo has no commits and its `.git` folder is in an empty `edusuite-ai/` subfolder. The docs also point to `docs/architecture/edusuite-architecture.html`, while the file is at the repo root.
+- **Options considered:** A) Stop until git is fixed. B) Run the read-only audit in the project root now, using the root copy of the plan.
+- **Decision:** B. The audit changes no code; it only adds `docs/audit/*.md` and this entry.
+- **Reason:** Step 1 is analysis only, so a worktree adds nothing yet. Git setup and the doc move are open as Q-01 and Q-02.
+- **Affects:** `docs/audit/frontend-audit.md`, `docs/audit/backend-readiness.md`, `DEVELOPER_NOTES.md`
+- **Revisit if:** Q-01 or Q-02 is answered differently from the recommendation.
+
+### DN-002 · Agent instructions live in AGENT_README.md, loaded through CLAUDE.md
+- **Date:** 2026-11-20
+- **Phase / area:** Setup · agent workflow
+- **Status:** Decided by agent
+- **What was unclear:** The developer asked for a "readme" with agent instructions, but Claude Code automatically reads only `CLAUDE.md`. The existing `README.md` is the product description.
+- **Options considered:** A) Put the instructions in `README.md`. B) Put them only in `CLAUDE.md`. C) Write `AGENT_README.md` and import it from a short `CLAUDE.md`.
+- **Decision:** C. The decision log is named `DEVELOPER_NOTES.md` (no spaces, so it is easy to use in commands and links).
+- **Reason:** A separate readme that is easy for people to find, and every Claude Code session still loads it automatically. `README.md` stays the product description.
+- **Affects:** `AGENT_README.md`, `CLAUDE.md`, `DEVELOPER_NOTES.md`
+- **Revisit if:** The team uses a different AI agent that does not read `CLAUDE.md`.
+
+### DN-001 · Architecture plan adopted as the source of truth
+- **Date:** 2026-11-20
+- **Phase / area:** Setup · architecture
+- **Status:** Decided by developer
+- **What was unclear:** The app had no backend; all "AI" features were templates with timers, and login accepted any ID.
+- **Options considered:** The architecture plan's ADR-1 to ADR-5 (modular monolith, server-side AI through a queue, JSONB documents table, keep Electron, self-hosted S3-compatible storage).
+- **Decision:** Build to `docs/architecture/edusuite-architecture.html`, using the stack and the 6-phase roadmap it describes.
+- **Reason:** It reuses the whole existing frontend, runs on a single VPS, and ships a signed Windows installer that updates itself.
+- **Affects:** Whole project
+- **Revisit if:** Scale goes beyond about 50 institutes, or hosting moves off a single VPS.

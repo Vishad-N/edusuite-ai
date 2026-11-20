@@ -1,0 +1,739 @@
+<title>EduSuite Platform Architecture</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+Devanagari:wght@500;700&display=swap">
+<style>
+/* Layout: a document column (max 1120px) under a navy band that echoes the app's header; diagrams scroll inside their own frames. */
+:root{
+  --bg:#f8fafc; --surface:#ffffff; --sunk:#f1f5f9; --ink:#0f172a; --muted:#475569; --faint:#64748b; --line:#e2e8f0;
+  --accent:#f59e0b; --accent-ink:#b45309; --accent-soft:#fef3c7;
+  --red:#dc2626; --red-soft:#fee2e2; --green:#059669; --green-soft:#d1fae5; --blue:#2563eb; --blue-soft:#dbeafe;
+  --band:#0f172a; --band-ink:#e2e8f0; --band-muted:#94a3b8;
+  --node:#ffffff; --node-line:#cbd5e1; --zone:#f1f5f9; --zone-line:#94a3b8;
+  --f-body:'Inter','Noto Sans Devanagari',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b1120; --surface:#111a2e; --sunk:#0f172a; --ink:#e2e8f0; --muted:#a3b1c6; --faint:#8494ab; --line:#1e293b;
+  --accent:#fbbf24; --accent-ink:#fbbf24; --accent-soft:#3a2a0a;
+  --red:#f87171; --red-soft:#3b1414; --green:#34d399; --green-soft:#0b3326; --blue:#60a5fa; --blue-soft:#10264a;
+  --band:#020617; --band-ink:#e2e8f0; --band-muted:#94a3b8;
+  --node:#111a2e; --node-line:#334155; --zone:#0f172a; --zone-line:#475569; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1120; --surface:#111a2e; --sunk:#0f172a; --ink:#e2e8f0; --muted:#a3b1c6; --faint:#8494ab; --line:#1e293b;
+  --accent:#fbbf24; --accent-ink:#fbbf24; --accent-soft:#3a2a0a;
+  --red:#f87171; --red-soft:#3b1414; --green:#34d399; --green-soft:#0b3326; --blue:#60a5fa; --blue-soft:#10264a;
+  --band:#020617; --band-ink:#e2e8f0; --band-muted:#94a3b8;
+  --node:#111a2e; --node-line:#334155; --zone:#0f172a; --zone-line:#475569; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.band{background:var(--band);color:var(--band-ink)}
+.band .wrap{padding-block:40px 32px}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(28px,4.4vw,42px);line-height:1.15;margin:.3em 0 .4em;font-weight:800;text-wrap:balance}
+h1 span{color:var(--accent)}
+.lede{max-width:70ch;color:var(--band-muted);font-size:16px;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.chip{font-size:12px;border:1px solid #334155;color:var(--band-ink);border-radius:999px;padding:4px 10px}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:24px;padding-top:16px;border-top:1px solid #1e293b}
+nav.toc a{color:var(--band-muted);text-decoration:none;font-size:13px}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent);outline:none}
+main.wrap{padding-block:12px 64px}
+section{padding-top:44px}
+h2{font-size:24px;margin:0 0 6px;font-weight:800;text-wrap:balance;display:flex;align-items:baseline;gap:10px}
+h2 .n{font-family:var(--f-mono);font-size:13px;color:var(--accent-ink);font-weight:600}
+h3{font-size:16px;margin:24px 0 8px;font-weight:700}
+p{margin:0 0 12px;max-width:72ch}
+.sub{color:var(--muted);margin-bottom:18px}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+code{background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;min-width:0}
+.panel h3{margin-top:0}
+ul.tight{margin:0;padding-left:18px}
+ul.tight li{margin:4px 0}
+.callout{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:none}
+.callout.red{border-color:var(--red);background:var(--red-soft)}
+.scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);background:var(--sunk);font-weight:700;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.c{text-align:center}
+.yes{color:var(--green);font-weight:700}.no{color:var(--faint)}.part{color:var(--accent-ink);font-weight:600}
+.pill{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.p-ai{background:var(--blue-soft);color:var(--blue)}
+.p-crud{background:var(--sunk);color:var(--muted);border:1px solid var(--line)}
+.p-money{background:var(--green-soft);color:var(--green)}
+.map{min-width:1100px;display:block}
+.map text{font-family:var(--f-body);fill:var(--ink)}
+.map .zone{fill:var(--zone);stroke:var(--zone-line);stroke-dasharray:6 5}
+.map .node{fill:var(--node);stroke:var(--node-line)}
+.map .hot{fill:var(--node);stroke:var(--accent);stroke-width:2}
+.map .ext{fill:var(--sunk);stroke:var(--node-line);stroke-dasharray:3 3}
+.map .zl{font-size:12px;font-weight:700;letter-spacing:.08em;fill:var(--faint)}
+.map .t{font-size:14px;font-weight:700}
+.map .s{font-size:12px;fill:var(--muted)}
+.map .m{font-family:var(--f-mono);font-size:11px;fill:var(--accent-ink)}
+.map .wire{stroke:var(--faint);stroke-width:1.6;fill:none}
+.map .wire.a{stroke:var(--accent);stroke-width:2}
+.map .bus{fill:var(--accent)}
+.map .lab{font-size:11px;fill:var(--muted)}
+.map .arrow{fill:var(--faint)}
+.map .arrow-a{fill:var(--accent)}
+pre.mermaid{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;overflow-x:auto;margin:0}
+pre.block{background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font-family:var(--f-mono);font-size:12.5px;line-height:1.55;margin:0;color:var(--ink)}
+.phases{display:grid;gap:12px}
+.phase{display:grid;grid-template-columns:120px 1fr;gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+.phase .wk{font-family:var(--f-mono);font-size:13px;color:var(--accent-ink);font-weight:600}
+.phase h3{margin:0 0 4px}
+.phase p{margin:0;color:var(--muted)}
+@media (max-width:560px){.phase{grid-template-columns:1fr;gap:4px}}
+.adr{display:grid;gap:10px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+summary{cursor:pointer;font-weight:700}
+summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+details p{margin:10px 0 0}
+.k{font-size:12px;color:var(--faint)}
+footer{color:var(--faint);font-size:13px;padding-top:40px}
+</style>
+
+<header class="band">
+  <div class="wrap">
+    <div class="eyebrow">System design · v1 · November 2026</div>
+    <h1>EduSuite / Satyadhi Sharma Tech: <span>backend and platform plan</span></h1>
+    <p class="lede">The desktop app's look and screens stay as they are. This plan adds a real backend on one VPS: logins that check passwords, shared data, AI that actually runs on a server, file storage, and a signed Windows <code>.exe</code> that updates itself.</p>
+    <div class="meta">
+      <span class="chip">Electron + React 19 (reused)</span>
+      <span class="chip">NestJS · PostgreSQL · Redis</span>
+      <span class="chip">Claude API for AI</span>
+      <span class="chip">Single VPS · Docker Compose</span>
+      <span class="chip">NSIS installer + auto-update</span>
+    </div>
+    <nav class="toc" aria-label="Sections">
+      <a href="#req">Requirements</a><a href="#map">System map</a><a href="#stack">Tech stack</a><a href="#modules">Screen → module map</a>
+      <a href="#flows">Key flows</a><a href="#data">Data model</a><a href="#api">API</a><a href="#ai">AI layer</a>
+      <a href="#security">Security & roles</a><a href="#desktop">Windows app</a><a href="#vps">VPS deployment</a>
+      <a href="#repo">Repo layout</a><a href="#roadmap">Roadmap</a><a href="#tradeoffs">Decisions</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="req">
+  <h2><span class="n">01</span>Requirements and assumptions</h2>
+  <p class="sub">Today every "Generate" button waits on a timer and returns a template. Logins accept anyone, and data disappears when the app restarts. The backend has to fix those three problems first.</p>
+  <div class="grid g3">
+    <div class="panel"><h3>Functional</h3><ul class="tight">
+      <li>Staff log in with an employee ID or email and a password that is actually checked; they log in again each day</li>
+      <li>Five roles: Super admin, Branch admin, Teacher, DTP/Typist, Counselor</li>
+      <li>Multiple institutes and branches; all data is kept separate per institute</li>
+      <li>Saving and reopening work from all 14 tools, plus history</li>
+      <li>Real AI: PPT outlines, question papers, DPPs, lesson plans, notices, YouTube metadata, doubt solving, and reading Hindi MCQs from screenshots</li>
+      <li>Students, fee receipts with numbers that never repeat, ID cards</li>
+      <li>Exports to PPTX, PDF, PNG, and WhatsApp-ready text</li>
+    </ul></div>
+    <div class="panel"><h3>Non-functional</h3><ul class="tight">
+      <li>Starting scale: 1–20 institutes, up to 500 staff, about 150 using it at once</li>
+      <li>Normal screens respond in under 300 ms (p95); AI runs in the background with live progress</li>
+      <li>99.5% uptime on one VPS; lose at most 24 h of data; restore within 2 h</li>
+      <li>Hindi (Devanagari) works correctly from start to finish</li>
+      <li>Installs on Windows 10/11 without admin rights and updates itself</li>
+      <li>AI costs can be measured and capped per institute</li>
+    </ul></div>
+    <div class="panel"><h3>Constraints</h3><ul class="tight">
+      <li>Hosting is one VPS you control. Pick a provider with an Indian data centre (Mumbai or Bangalore) for low latency from Indore.</li>
+      <li>A small team (1–2 JavaScript developers), so the whole system uses one language: TypeScript</li>
+      <li>Keep the current React screens, Tailwind classes, translations, and the navy/amber look</li>
+      <li>The AI key lives only on the server, never on staff PCs</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="map">
+  <h2><span class="n">02</span>System design map</h2>
+  <p class="sub">The desktop app only talks to the server over HTTPS. Caddy is the one public entry point. Everything else runs on a private Docker network, and slow AI work goes through a queue to a separate worker process.</p>
+  <div class="scroll">
+  <svg class="map" viewBox="0 0 1200 600" role="img" aria-labelledby="mapTitle mapDesc">
+    <title id="mapTitle">EduSuite system design map</title>
+    <desc id="mapDesc">Windows desktop clients connect over HTTPS to Caddy on a VPS. Caddy routes to the API and to static update files. The API and a worker share PostgreSQL, MinIO and Redis on an internal network. The worker calls the Claude API. Nightly backups go to off-site storage.</desc>
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow" d="M0 0 L10 5 L0 10 z"/></marker>
+      <marker id="aha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow-a" d="M0 0 L10 5 L0 10 z"/></marker>
+    </defs>
+
+    <!-- Client zone -->
+    <rect class="zone" x="16" y="40" width="250" height="520" rx="12"/>
+    <text class="zl" x="32" y="64">WINDOWS PCS · STAFF</text>
+    <rect class="hot" x="32" y="80" width="218" height="66" rx="8"/>
+    <text class="t" x="46" y="104">EduSuite.exe</text>
+    <text class="s" x="46" y="124">NSIS per-user install</text>
+    <text class="m" x="46" y="139">Electron 45 · contextIsolation</text>
+    <rect class="node" x="32" y="158" width="218" height="80" rx="8"/>
+    <text class="t" x="46" y="181">React UI (reused)</text>
+    <text class="s" x="46" y="200">14 screens, Tailwind theme</text>
+    <text class="s" x="46" y="216">React Query + API client</text>
+    <text class="m" x="46" y="231">job progress via SSE</text>
+    <rect class="node" x="32" y="250" width="218" height="80" rx="8"/>
+    <text class="t" x="46" y="273">Preload / IPC bridge</text>
+    <text class="s" x="46" y="292">printToPDF, save dialog,</text>
+    <text class="s" x="46" y="308">token vault, app version</text>
+    <text class="m" x="46" y="323">no Node in renderer</text>
+    <rect class="node" x="32" y="342" width="218" height="66" rx="8"/>
+    <text class="t" x="46" y="365">Secure token store</text>
+    <text class="s" x="46" y="385">safeStorage → Windows DPAPI</text>
+    <text class="m" x="46" y="400">refresh token only</text>
+    <rect class="node" x="32" y="420" width="218" height="60" rx="8"/>
+    <text class="t" x="46" y="443">Local draft cache</text>
+    <text class="s" x="46" y="463">IndexedDB, survives offline</text>
+    <rect class="node" x="32" y="492" width="218" height="56" rx="8"/>
+    <text class="t" x="46" y="515">electron-updater</text>
+    <text class="s" x="46" y="534">checks feed on start + every 4 h</text>
+
+    <!-- VPS zone -->
+    <rect class="zone" x="300" y="40" width="690" height="530" rx="12"/>
+    <text class="zl" x="316" y="64">VPS · UBUNTU 24.04 · DOCKER COMPOSE · 4 vCPU / 8 GB</text>
+
+    <rect class="hot" x="320" y="200" width="160" height="130" rx="8"/>
+    <text class="t" x="334" y="224">Caddy</text>
+    <text class="s" x="334" y="243">Reverse proxy, auto TLS</text>
+    <text class="s" x="334" y="259">rate limit, gzip</text>
+    <text class="m" x="334" y="281">api.yourdomain</text>
+    <text class="m" x="334" y="297">files.yourdomain</text>
+    <text class="m" x="334" y="313">updates.yourdomain</text>
+
+    <rect class="node" x="320" y="410" width="160" height="80" rx="8"/>
+    <text class="t" x="334" y="433">Update feed</text>
+    <text class="s" x="334" y="452">Setup-x.y.z.exe,</text>
+    <text class="s" x="334" y="468">latest.yml, blockmap</text>
+    <text class="m" x="334" y="483">static files</text>
+
+    <rect class="hot" x="510" y="80" width="220" height="210" rx="8"/>
+    <text class="t" x="524" y="104">API service</text>
+    <text class="m" x="524" y="121">NestJS + Fastify · Node 22</text>
+    <text class="s" x="524" y="144">• Auth · sessions · RBAC guard</text>
+    <text class="s" x="524" y="163">• Institutes · branches · users</text>
+    <text class="s" x="524" y="182">• Documents (all 14 tools)</text>
+    <text class="s" x="524" y="201">• Students · fees · receipts</text>
+    <text class="s" x="524" y="220">• Files (presigned URLs)</text>
+    <text class="s" x="524" y="239">• AI jobs: create · SSE progress</text>
+    <text class="s" x="524" y="258">• Audit log · usage · health</text>
+    <text class="m" x="524" y="280">OpenAPI at /docs</text>
+
+    <rect class="hot" x="510" y="340" width="220" height="190" rx="8"/>
+    <text class="t" x="524" y="364">Worker</text>
+    <text class="m" x="524" y="381">same codebase · BullMQ</text>
+    <text class="s" x="524" y="404">• AI text jobs (PPT, paper, DPP…)</text>
+    <text class="s" x="524" y="423">• Screenshot → MCQ (vision)</text>
+    <text class="s" x="524" y="442">• PPTX build (pptxgenjs)</text>
+    <text class="s" x="524" y="461">• Usage metering, quotas</text>
+    <text class="s" x="524" y="480">• Retries, cleanup, cron</text>
+    <text class="m" x="524" y="510">concurrency 4</text>
+
+    <rect class="bus" x="744" y="96" width="6" height="374" rx="3"/>
+    <text class="lab" text-anchor="middle" transform="translate(763 382) rotate(-90)">private network</text>
+
+    <rect class="node" x="770" y="80" width="200" height="72" rx="8"/>
+    <text class="t" x="784" y="104">PostgreSQL 17</text>
+    <text class="s" x="784" y="123">users, documents, fees,</text>
+    <text class="s" x="784" y="139">jobs, audit (Prisma)</text>
+    <rect class="node" x="770" y="172" width="200" height="72" rx="8"/>
+    <text class="t" x="784" y="196">MinIO (S3 API)</text>
+    <text class="s" x="784" y="215">screenshots, PPTX, PDFs,</text>
+    <text class="s" x="784" y="231">logos, ID photos</text>
+    <rect class="node" x="770" y="264" width="200" height="72" rx="8"/>
+    <text class="t" x="784" y="288">Redis 7</text>
+    <text class="s" x="784" y="307">BullMQ queues, job progress</text>
+    <text class="s" x="784" y="323">pub/sub, rate-limit counters</text>
+    <rect class="node" x="770" y="400" width="200" height="88" rx="8"/>
+    <text class="t" x="784" y="424">Backup job</text>
+    <text class="s" x="784" y="443">nightly pg_dump + MinIO</text>
+    <text class="s" x="784" y="459">restic, encrypted</text>
+    <text class="m" x="784" y="478">7d · 4w · 6m kept</text>
+
+    <!-- External -->
+    <text class="zl" x="1020" y="64">EXTERNAL</text>
+    <rect class="ext" x="1020" y="80" width="164" height="76" rx="8"/>
+    <text class="t" x="1034" y="104">Error tracking</text>
+    <text class="s" x="1034" y="123">Sentry (API + app)</text>
+    <text class="s" x="1034" y="139">+ uptime monitor</text>
+    <rect class="ext" x="1020" y="300" width="164" height="76" rx="8"/>
+    <text class="t" x="1034" y="324">Off-site storage</text>
+    <text class="s" x="1034" y="343">S3-compatible bucket</text>
+    <text class="s" x="1034" y="359">different provider</text>
+    <rect class="hot" x="1020" y="440" width="164" height="76" rx="8"/>
+    <text class="t" x="1034" y="464">Claude API</text>
+    <text class="m" x="1034" y="483">claude-opus-5-5</text>
+    <text class="s" x="1034" y="500">text + vision, JSON</text>
+
+    <!-- Wires -->
+    <path class="wire a" d="M250 265 H316" marker-end="url(#aha)"/>
+    <text class="lab" x="258" y="256">HTTPS · JWT</text>
+    <path class="wire" d="M480 265 C495 265 495 185 506 185" marker-end="url(#ah)"/>
+    <path class="wire" d="M400 330 V406" marker-end="url(#ah)"/>
+    <path class="wire" d="M730 185 H744"/>
+    <path class="wire" d="M730 435 H744"/>
+    <path class="wire" d="M750 116 H766" marker-end="url(#ah)"/>
+    <path class="wire" d="M750 208 H766" marker-end="url(#ah)"/>
+    <path class="wire" d="M750 300 H766" marker-end="url(#ah)"/>
+    <path class="wire" d="M750 444 H766" marker-end="url(#ah)"/>
+    <path class="wire a" d="M620 530 V552 H1002 V478 H1016" marker-end="url(#aha)"/>
+    <text class="lab" x="790" y="546">AI requests (server key only)</text>
+    <path class="wire" d="M970 444 H1008 V338 H1016" marker-end="url(#ah)"/>
+    <path class="wire" d="M620 80 V52 H1102 V76" stroke-dasharray="4 4" marker-end="url(#ah)"/>
+    <text class="lab" x="800" y="47">errors, traces</text>
+    <path class="wire" d="M250 520 H290 V450 H316" marker-end="url(#ah)"/>
+    <text class="lab" x="306" y="512">update download</text>
+  </svg>
+  </div>
+  <p class="k" style="margin-top:8px">Amber outline = the components this plan builds or changes. Dashed = outside the VPS. Postgres, Redis and MinIO are never exposed to the internet.</p>
+</section>
+
+<section id="stack">
+  <h2><span class="n">03</span>Recommended tech stack</h2>
+  <p class="sub">TypeScript runs end to end, so the desktop app, API and worker share validation schemas, role rules and the existing PPTX generator.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Layer</th><th>Choice</th><th>Why</th><th>Considered instead</th></tr></thead>
+    <tbody>
+      <tr><td>Desktop shell</td><td><b>Electron 45</b> (keep) + electron-builder NSIS + electron-updater</td><td>Reuses 100% of today's UI. The NSIS installer is already configured. Delta updates come from the blockmap.</td><td>Tauri: smaller installer, but means a rewrite of the native layer and a second language (Rust)</td></tr>
+      <tr><td>UI</td><td><b>React 19 + Vite + Tailwind 4</b> (keep), add <b>TanStack Query</b></td><td>Caching, retries and loading states for server data, without rewriting any component</td><td>Redux Toolkit: more boilerplate for data that mostly comes from the server</td></tr>
+      <tr><td>Shared code</td><td><b>Zod</b> schemas in <code>packages/shared</code></td><td>One definition checks forms in the app, requests in the API and AI output in the worker</td><td>Separate DTO classes: they drift apart</td></tr>
+      <tr><td>API</td><td><b>NestJS 11</b> on the Fastify adapter, Node 22 LTS</td><td>Modules map 1:1 to app features. Guards give clean role checks. OpenAPI docs are built in.</td><td>Plain Express or Fastify: lighter, but you hand-build the structure a 1–2 person team needs</td></tr>
+      <tr><td>Database</td><td><b>PostgreSQL 17</b> + <b>Prisma</b></td><td>Transactions for fee receipts, JSONB for flexible tool documents, safe migrations</td><td>MongoDB: weaker guarantees for money and receipt numbering</td></tr>
+      <tr><td>Queue / cache</td><td><b>Redis 7</b> + <b>BullMQ</b></td><td>AI jobs take 5–60 s; the queue gives retries, concurrency limits and progress events</td><td>Calling AI inside the HTTP request: timeouts, and no way to retry</td></tr>
+      <tr><td>File storage</td><td><b>MinIO</b> or <b>Garage</b> (S3 API) on the VPS</td><td>Presigned uploads. Moving to cloud S3/R2 later only changes configuration.</td><td>Plain disk folder: simpler, but you write your own access control and links</td></tr>
+      <tr><td>AI</td><td><b>Claude API</b> via <code>@anthropic-ai/sdk</code>, default <code>claude-opus-5-5</code></td><td>Strong Hindi, vision for screenshot MCQs, and structured JSON output that matches the zod schemas</td><td>Per-feature model choice stays in configuration, so you can trade cost for quality later</td></tr>
+      <tr><td>PDF / print</td><td>Electron <code>webContents.printToPDF</code> on the PC</td><td>Reuses the existing print CSS and costs nothing on the server</td><td>Headless Chromium on the server: adds about 1 GB RAM per render</td></tr>
+      <tr><td>Edge</td><td><b>Caddy 2</b></td><td>Automatic Let's Encrypt certificates, simple config, also serves the update feed</td><td>Nginx + certbot: works, but more moving parts</td></tr>
+      <tr><td>Ops</td><td>Docker Compose, GitHub Actions, Sentry, Uptime Kuma, restic</td><td>A one-command deploy that one person can run and restore</td><td>Kubernetes: far too much for one VPS</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="modules">
+  <h2><span class="n">04</span>Every screen, mapped to the backend</h2>
+  <p class="sub">The components keep their markup and Tailwind classes. Only the data source changes: <code>sampleData.js</code> imports and <code>setTimeout</code> fakes are swapped for API hooks.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Screen (src/components)</th><th>Today</th><th>Backend module</th><th>Stored in</th><th>Kind</th></tr></thead>
+    <tbody>
+      <tr><td>LoginScreen</td><td>Accepts any ID, master passwords</td><td><code>auth</code></td><td>users, sessions</td><td><span class="pill p-crud">auth</span></td></tr>
+      <tr><td>UserManagement</td><td>localStorage list</td><td><code>users</code></td><td>users, audit_logs</td><td><span class="pill p-crud">CRUD</span></td></tr>
+      <tr><td>Header switcher · SettingsModal</td><td>In-memory institutes; AI key kept on the PC</td><td><code>institutes</code></td><td>institutes, branches</td><td><span class="pill p-crud">CRUD</span></td></tr>
+      <tr><td>Dashboard · TeacherDesk</td><td>Static cards</td><td><code>stats</code>, <code>documents</code></td><td>aggregates, recent docs</td><td><span class="pill p-crud">read</span></td></tr>
+      <tr><td>ScreenshotToPpt</td><td>Fake 4-stage progress bar</td><td><code>files</code> + job <code>mcq_extract</code> → <code>pptx_build</code></td><td>files, questions, documents</td><td><span class="pill p-ai">AI vision</span></td></tr>
+      <tr><td>PptMaker</td><td>Preset match or generic outline</td><td>job <code>ppt_outline</code> → <code>pptx_build</code></td><td>documents, files</td><td><span class="pill p-ai">AI text</span></td></tr>
+      <tr><td>QuestionPaperMaker</td><td>Sample paper</td><td>job <code>paper_generate</code> + question bank</td><td>documents, questions</td><td><span class="pill p-ai">AI text</span></td></tr>
+      <tr><td>NotebookDppMaker</td><td>Sample DPP</td><td>job <code>dpp_generate</code></td><td>documents, questions</td><td><span class="pill p-ai">AI text</span></td></tr>
+      <tr><td>LessonPlanner</td><td>Sample plan</td><td>job <code>lesson_plan</code></td><td>documents</td><td><span class="pill p-ai">AI text</span></td></tr>
+      <tr><td>BookCreator</td><td>Sample book</td><td>job <code>book_chapter</code></td><td>documents</td><td><span class="pill p-ai">AI text</span></td></tr>
+      <tr><td>DoubtSolver</td><td>700 ms delay</td><td>job <code>doubt_solve</code> (text or photo)</td><td>documents</td><td><span class="pill p-ai">AI text + vision</span></td></tr>
+      <tr><td>YouTubeStudio</td><td>String templates</td><td>job <code>youtube_meta</code></td><td>documents</td><td><span class="pill p-ai">AI text</span></td></tr>
+      <tr><td>NoticeHub</td><td>Sample notices</td><td>job <code>notice_draft</code></td><td>documents (type notice)</td><td><span class="pill p-ai">AI text</span></td></tr>
+      <tr><td>ImageStudio</td><td>Canvas templates</td><td><code>files</code> (logos) + job <code>poster_copy</code></td><td>files, documents</td><td><span class="pill p-ai">AI copy</span></td></tr>
+      <tr><td>IdAndFeeReceipt</td><td>Form only, nothing saved</td><td><code>students</code>, <code>fees</code></td><td>students, fee_receipts</td><td><span class="pill p-money">money</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><b>Image Studio note:</b> Claude writes text and reads images but does not draw them. Posters keep the current canvas templates, and the AI writes the headline and copy. If you later want generated pictures, add an image-provider adapter behind the same job interface.</div>
+</section>
+
+<section id="flows">
+  <h2><span class="n">05</span>Key flows</h2>
+  <h3>Daily login</h3>
+  <p>The current "log in each day" behaviour is kept, but now it is enforced on the server: refresh sessions expire at 23:59 IST.</p>
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as Staff member
+  participant D as Desktop app
+  participant A as API
+  participant P as PostgreSQL
+  U->>D: Employee ID + password + branch
+  D->>A: POST /auth/login (deviceId)
+  A->>P: Find user by ID / email / phone
+  A->>A: Check status is active, verify argon2id hash
+  A->>P: Create session (hashed refresh token, expires 23:59 IST)
+  A->>P: Write audit log entry "login"
+  A-->>D: Access token (15 min) + refresh token + profile + permissions
+  D->>D: Encrypt refresh token with safeStorage (DPAPI)
+  D-->>U: Dashboard, sidebar filtered by permissions
+  Note over D,A: On 401 the client calls POST /auth/refresh once (rotating token), then retries
+</pre>
+
+  <h3>AI generation (Screenshot → PPT, the most complex one)</h3>
+  <p>Every AI tool follows this same shape. The existing progress bar (<code>scanProgress</code>, <code>scanStageText</code>) is driven by real server events instead of timers.</p>
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor T as Teacher
+  participant D as Desktop app
+  participant A as API
+  participant S as MinIO
+  participant Q as Redis / BullMQ
+  participant W as Worker
+  participant C as Claude API
+  T->>D: Drop 20 screenshots
+  D->>D: Resize to max 1600 px (fewer tokens)
+  D->>A: POST /files/presign (20 files)
+  A-->>D: Upload URLs
+  D->>S: PUT images
+  D->>A: POST /ai/jobs type=mcq_extract
+  A->>A: Check role, institute quota
+  A->>Q: Enqueue job
+  A-->>D: 202 jobId
+  D->>A: GET /ai/jobs/jobId/events (SSE)
+  W->>Q: Take job
+  loop Each screenshot
+    W->>S: Read image
+    W->>C: Image + MCQ JSON schema
+    C-->>W: Question, options A-D, answer, trick
+    W->>Q: Publish progress 5 of 20
+    Q-->>A: Progress event
+    A-->>D: SSE progress
+  end
+  W->>W: Validate with zod, record token usage
+  W-->>A: Job done, documentId
+  A-->>D: SSE done
+  T->>D: Review and edit, click Export PPTX
+  D->>A: POST /documents/id/export format=pptx
+  A->>Q: Enqueue pptx_build
+  W->>S: Save .pptx
+  A-->>D: Presigned download link
+  D->>D: Native save dialog, file saved
+</pre>
+
+  <h3>Install and update on Windows</h3>
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant G as GitHub Actions
+  participant V as VPS update feed
+  participant D as Installed app
+  actor U as Staff member
+  G->>G: Tag v1.4.0, Windows runner builds + signs Setup.exe
+  G->>V: Upload Setup-1.4.0.exe, blockmap, latest.yml
+  U->>V: First install: download page, run Setup.exe
+  Note over U: Per-user install, no admin prompt, desktop shortcut
+  D->>V: On launch and every 4 h: read latest.yml
+  V-->>D: Newer version available
+  D->>V: Download only changed blocks
+  D-->>U: Banner says update ready, installs on next restart
+</pre>
+</section>
+
+<section id="data">
+  <h2><span class="n">06</span>Data model</h2>
+  <p class="sub">Every business table has an <code>institute_id</code>, and every query is scoped by it. That is the multi-tenant boundary. The 11 template-style tools share one <code>documents</code> table. Money and the question bank get strict tables of their own.</p>
+<pre class="mermaid">
+erDiagram
+  INSTITUTE ||--o{ BRANCH : has
+  INSTITUTE ||--o{ APP_USER : employs
+  BRANCH ||--o{ APP_USER : "works at"
+  APP_USER ||--o{ SESSION : opens
+  INSTITUTE ||--o{ DOCUMENT : owns
+  APP_USER ||--o{ DOCUMENT : creates
+  DOCUMENT ||--o{ FILE : attaches
+  APP_USER ||--o{ AI_JOB : starts
+  AI_JOB ||--o| DOCUMENT : produces
+  AI_JOB ||--o{ AI_USAGE : records
+  INSTITUTE ||--o{ QUESTION : "question bank"
+  BRANCH ||--o{ STUDENT : enrolls
+  STUDENT ||--o{ FEE_RECEIPT : pays
+  BRANCH ||--o{ RECEIPT_COUNTER : numbers
+  APP_USER ||--o{ AUDIT_LOG : triggers
+  INSTITUTE {
+    uuid id PK
+    text name
+    jsonb branding
+    int ai_monthly_token_quota
+  }
+  APP_USER {
+    uuid id PK
+    uuid institute_id FK
+    uuid branch_id FK
+    text employee_code
+    text email
+    text password_hash
+    enum role
+    enum status
+  }
+  SESSION {
+    uuid id PK
+    uuid user_id FK
+    text refresh_hash
+    text device_id
+    timestamptz expires_at
+  }
+  DOCUMENT {
+    uuid id PK
+    uuid institute_id FK
+    enum type
+    text title
+    jsonb content
+    int schema_version
+    timestamptz updated_at
+  }
+  AI_JOB {
+    uuid id PK
+    enum type
+    enum status
+    jsonb input
+    text error
+  }
+  AI_USAGE {
+    uuid id PK
+    text model
+    int input_tokens
+    int output_tokens
+    numeric cost_usd
+  }
+  QUESTION {
+    uuid id PK
+    text subject
+    text body_hi
+    jsonb options
+    text answer
+    text trick
+  }
+  FEE_RECEIPT {
+    uuid id PK
+    text receipt_no UK
+    numeric amount
+    enum mode
+    date paid_on
+    uuid issued_by FK
+  }
+  FILE {
+    uuid id PK
+    text bucket_key
+    text mime
+    int bytes
+  }
+</pre>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="panel"><h3>Why one documents table</h3><p>PPT, paper, DPP, lesson, book, notice, YouTube and doubt are all "a titled thing with structured content". Storing <code>content</code> as JSONB, checked by a per-type zod schema with a <code>schema_version</code>, means adding a new tool needs no migration. Revisit this if you ever need to search inside one type's fields.</p></div>
+    <div class="panel"><h3>Receipt numbering</h3><p>Receipt numbers like <code>IND-BKN/2026-27/000431</code> come from <code>receipt_counters</code>, read with <code>SELECT … FOR UPDATE</code> inside the same transaction that inserts the receipt. There are never gaps or duplicates. Receipts are never deleted, only cancelled with a reason, and the cancellation is written to the audit log.</p></div>
+  </div>
+</section>
+
+<section id="api">
+  <h2><span class="n">07</span>API surface</h2>
+  <p class="sub">REST under <code>/api/v1</code>, JSON only, with an OpenAPI spec generated from the zod schemas. Every route goes through an auth guard, a permission guard and an institute-scope check.</p>
+<pre class="block">AUTH        POST /auth/login · POST /auth/refresh · POST /auth/logout · GET /me
+USERS       GET /users · POST /users · PATCH /users/:id · POST /users/:id/block · POST /users/:id/reset-password
+INSTITUTES  GET /institutes · PATCH /institutes/:id · GET|POST /institutes/:id/branches
+DOCUMENTS   GET /documents?type=ppt&amp;q=&amp;cursor= · POST /documents · GET|PATCH|DELETE /documents/:id
+            POST /documents/:id/export   {format: pptx | html-motion}
+AI JOBS     POST /ai/jobs {type, input} → 202 {jobId} · GET /ai/jobs/:id · GET /ai/jobs/:id/events (SSE)
+            POST /ai/jobs/:id/cancel
+FILES       POST /files/presign {name, mime, bytes} · GET /files/:id (302 → presigned URL)
+QUESTIONS   GET /questions?subject=&amp;topic= · POST /questions/bulk
+STUDENTS    GET|POST /students · PATCH /students/:id · GET /students/:id/id-card
+FEES        POST /fee-receipts · GET /fee-receipts?studentId= · POST /fee-receipts/:id/cancel
+ADMIN       GET /audit-logs · GET /usage?month=2026-11 · GET /stats/dashboard
+SYSTEM      GET /health (liveness) · GET /ready (db + redis + storage)</pre>
+  <div class="grid g3" style="margin-top:16px">
+    <div class="panel"><h3>Errors</h3><p>One error shape everywhere: <code>{code, message, details}</code>, with Hindi and English messages chosen by <code>Accept-Language</code>, so the UI can show them without changes.</p></div>
+    <div class="panel"><h3>Pagination</h3><p>Lists use cursors (<code>?cursor=</code>) ordered by <code>updated_at, id</code>, which stays stable while staff are adding records.</p></div>
+    <div class="panel"><h3>Idempotency</h3><p><code>POST /fee-receipts</code> and <code>POST /ai/jobs</code> accept an <code>Idempotency-Key</code> header, so a double click or a network retry never creates two receipts or pays for two AI runs.</p></div>
+  </div>
+</section>
+
+<section id="ai">
+  <h2><span class="n">08</span>AI layer</h2>
+  <p class="sub">All AI runs in the worker through one job registry. Each job type is a small file defining its input schema, prompt, output schema and post-processing step.</p>
+  <div class="grid g2">
+    <div class="panel"><h3>How a job type is defined</h3>
+<pre class="block">// packages/shared/ai/jobs/paperGenerate.ts
+export const paperGenerate = defineJob({
+  type: "paper_generate",
+  input:  z.object({ subject, grade, topics, mcq: z.number(), short, long, lang }),
+  output: QuestionPaperSchema,          // same schema the UI renders
+  model:  cfg("AI_MODEL_PAPER", "claude-opus-5-5"),
+  effort: "medium",
+  system: PAPER_SYSTEM_PROMPT,          // stable → prompt-cached
+  user:   (i) => buildPaperPrompt(i),
+  after:  saveAsDocument("paper"),
+});</pre></div>
+    <div class="panel"><h3>Rules every job follows</h3><ul class="tight">
+      <li><b>Structured output:</b> the response format is the job's JSON schema, and zod validates it again before saving</li>
+      <li><b>Streaming</b> for long outputs (books, papers) so requests never time out</li>
+      <li><b>Refusals:</b> check <code>stop_reason</code> and show the teacher a clear message instead of a broken document</li>
+      <li><b>Retries:</b> BullMQ retries 3 times with backoff on 429/5xx; it never retries a 400</li>
+      <li><b>Prompt caching</b> on the stable system prompt and institute style guide</li>
+      <li><b>Metering:</b> every call writes tokens and cost to <code>ai_usage</code>; the API refuses new jobs once the institute's monthly quota is used up</li>
+      <li><b>Hindi first:</b> prompts state the output language; Devanagari is checked in tests</li>
+    </ul></div>
+  </div>
+  <div class="callout"><b>Cost guide at the default model</b> (Opus 5.5: $4 input / $20 output per million tokens). One PPT outline uses about 2k tokens in and 4k out, roughly $0.09. One screenshot MCQ is about 2k in and 0.5k out, roughly $0.02, so a 20-screenshot set costs about $0.40. Each job type can be moved to a cheaper model in configuration whenever you decide quality allows it.</div>
+</section>
+
+<section id="security">
+  <h2><span class="n">09</span>Security and roles</h2>
+  <div class="callout red"><b>Problems in today's build that this plan removes:</b> any unknown ID logs in, and an ID containing "super" becomes super admin; shared master passwords work on every account; passwords are stored in plain text; <code>webSecurity: false</code> in Electron; the AI key is kept in the PC's localStorage; all data is lost on restart.</div>
+  <div class="grid g2">
+    <div class="panel"><h3>Controls</h3><ul class="tight">
+      <li>Passwords hashed with argon2id. Accounts lock after 5 wrong attempts for 15 minutes. No master passwords.</li>
+      <li>Short-lived access JWT (15 min) plus a rotating refresh token. Reusing an old refresh token ends every session for that user.</li>
+      <li>Super admin can see and revoke each device session</li>
+      <li>Every write is checked against the user's institute and branch on the server, never trusted from the client</li>
+      <li>Caddy rate limits, request size limits, and type and size checks on uploads</li>
+      <li>Electron: <code>webSecurity</code> on, <code>sandbox: true</code>, strict CSP, preload exposes only named functions</li>
+      <li>Secrets live in the VPS <code>.env</code> (chmod 600). Only ports 80/443 are open, plus SSH by key only.</li>
+      <li>Audit log for logins, user changes, receipts, deletions and exports</li>
+    </ul></div>
+    <div class="panel" style="padding:0;overflow:hidden"><div class="scroll" style="border:0;border-radius:0">
+      <table>
+        <thead><tr><th>Permission</th><th>Super</th><th>Branch</th><th>Teacher</th><th>DTP</th><th>Counselor</th></tr></thead>
+        <tbody>
+          <tr><td>Manage users and roles</td><td class="c yes">✓</td><td class="c part">branch</td><td class="c no">–</td><td class="c no">–</td><td class="c no">–</td></tr>
+          <tr><td>Institute and branch settings</td><td class="c yes">✓</td><td class="c part">own</td><td class="c no">–</td><td class="c no">–</td><td class="c no">–</td></tr>
+          <tr><td>AI content tools</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">–</td></tr>
+          <tr><td>Screenshot → PPT</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">–</td></tr>
+          <tr><td>Notices and broadcasts</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">–</td><td class="c yes">✓</td></tr>
+          <tr><td>Students, fees, ID cards</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">–</td><td class="c no">–</td><td class="c yes">✓</td></tr>
+          <tr><td>Cancel a receipt</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">–</td><td class="c no">–</td><td class="c no">–</td></tr>
+          <tr><td>Image Studio</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+          <tr><td>AI usage and audit log</td><td class="c yes">✓</td><td class="c part">branch</td><td class="c no">–</td><td class="c no">–</td><td class="c no">–</td></tr>
+        </tbody>
+      </table>
+    </div></div>
+  </div>
+  <p class="k" style="margin-top:8px">The matrix lives in <code>packages/shared/permissions.ts</code>. The API guard and the Sidebar both read it, so the menu and the server can never disagree.</p>
+</section>
+
+<section id="desktop">
+  <h2><span class="n">10</span>Windows app and installer</h2>
+  <div class="grid g2">
+    <div class="panel"><h3>What staff experience</h3><ul class="tight">
+      <li>Download <code>Satyadhi-Sharma-Tech-Setup-1.0.0.exe</code> from <code>yourdomain/download</code></li>
+      <li>Double-click. It installs per user, with no admin prompt, and adds Start menu and desktop shortcuts.</li>
+      <li>The first launch opens the existing login screen; the server address is built in</li>
+      <li>Updates download quietly and install on the next restart. There is nothing to reinstall.</li>
+      <li>If the internet drops, open drafts stay in IndexedDB and sync when the connection returns. AI needs to be online.</li>
+    </ul></div>
+    <div class="panel"><h3>electron-builder changes</h3>
+<pre class="block">"nsis": { "oneClick": true, "perMachine": false,
+          "createDesktopShortcut": true, "deleteAppDataOnUninstall": false },
+"publish": [{ "provider": "generic",
+              "url": "https://updates.yourdomain/win" }],
+"win": { "target": "nsis", "icon": "build/icon.ico",
+         "signtoolOptions": { "publisherName": "Satyadhi Sharma Tech" } }</pre></div>
+  </div>
+  <div class="callout"><b>Code signing matters for a smooth install.</b> An unsigned <code>.exe</code> shows Windows SmartScreen's "Windows protected your PC" warning, which stops most staff. Buy an OV code-signing certificate, or use Microsoft's Azure Trusted Signing if your business is eligible, and sign in the CI build. Prices and eligibility change, so check them before buying.</div>
+  <h3>Electron main process changes</h3>
+  <ul class="tight">
+    <li>Remove <code>webSecurity: false</code>; add <code>sandbox: true</code> and a CSP that only allows <code>api.</code> and <code>files.</code> on your domain</li>
+    <li>IPC handlers: <code>auth:getToken/setToken</code> (safeStorage), <code>print:toPdf</code>, <code>file:saveAs</code>, <code>app:version</code>, <code>update:status</code></li>
+    <li>Load only the bundled <code>dist/index.html</code> in production; the localhost fallback is for development builds only</li>
+    <li>Single-instance lock, so a second double-click focuses the open window</li>
+  </ul>
+</section>
+
+<section id="vps">
+  <h2><span class="n">11</span>VPS deployment</h2>
+  <div class="grid g2">
+    <div class="panel"><h3>Server</h3><ul class="tight">
+      <li>Start with 4 vCPU, 8 GB RAM, 160 GB NVMe in an Indian region</li>
+      <li>Ubuntu 24.04, non-root deploy user, SSH by key only, ufw (22/80/443), fail2ban, unattended upgrades</li>
+      <li>DNS: <code>api.</code>, <code>files.</code>, <code>updates.</code> and the download page all point at the VPS; Caddy fetches the certificates</li>
+      <li>Rough memory use: Postgres 2 GB, Redis 512 MB, MinIO 512 MB, API 512 MB, worker 1 GB, which leaves headroom</li>
+    </ul></div>
+    <div class="panel"><h3>docker-compose.yml services</h3>
+<pre class="block">caddy      ports 80,443 · Caddyfile · /srv/updates
+api        ghcr.io/you/edusuite-api:${TAG}   cmd: node dist/main
+worker     ghcr.io/you/edusuite-api:${TAG}   cmd: node dist/worker
+postgres   postgres:17   volume pgdata   (no public port)
+redis      redis:7       appendonly yes  (no public port)
+minio      minio/minio   volume objects  (no public port)
+backup     restic + cron → off-site bucket, 02:30 IST
+uptime     uptime-kuma   (behind Caddy basic auth)</pre></div>
+  </div>
+  <h3>CI/CD with GitHub Actions</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Trigger</th><th>Steps</th></tr></thead>
+    <tbody>
+      <tr><td>Pull request</td><td>oxlint, typecheck, unit tests, API tests against a temporary Postgres</td></tr>
+      <tr><td>Merge to <code>main</code></td><td>Build the API image, push to GHCR, SSH to the VPS, run <code>prisma migrate deploy</code>, then <code>docker compose up -d api worker</code>; health check, and roll back to the previous tag if it fails</td></tr>
+      <tr><td>Tag <code>v*</code></td><td>Windows runner: <code>vite build</code>, <code>electron-builder --win</code>, sign, upload exe, blockmap and <code>latest.yml</code> to <code>/srv/updates/win</code>. The existing mac workflow stays.</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Backups and monitoring</h3>
+  <ul class="tight">
+    <li>Nightly encrypted restic snapshot of the Postgres dump and MinIO data to a bucket with a different provider; keep 7 daily, 4 weekly, 6 monthly</li>
+    <li>Do a restore drill once a month on a throwaway VPS. A backup you have never restored is untested.</li>
+    <li>Sentry in the API, worker and Electron (crash reports). Uptime Kuma checks <code>/ready</code> every minute and alerts on WhatsApp or Telegram.</li>
+    <li>Structured JSON logs (pino) with a request ID that follows each job from the API into the worker</li>
+  </ul>
+</section>
+
+<section id="repo">
+  <h2><span class="n">12</span>Repository layout</h2>
+  <p class="sub">One monorepo with npm workspaces. The current app moves into <code>apps/desktop</code> unchanged, then gets wired to the API one screen at a time.</p>
+<pre class="block">edusuite/
+├─ apps/
+│  ├─ desktop/            ← today's project (src/, electron/, build/, public/)
+│  │  └─ src/api/         client.ts (fetch + refresh), hooks/useAiJob.ts, queries/*
+│  └─ api/                NestJS: src/modules/{auth,users,institutes,documents,
+│                         files,students,fees,ai,audit,stats}, src/worker.ts
+├─ packages/
+│  └─ shared/             zod schemas, permissions.ts, ai/jobs/*, pptxGenerator.ts
+├─ infra/                 docker-compose.yml, Caddyfile, backup/, .env.example
+└─ .github/workflows/     ci.yml, deploy-api.yml, release-desktop.yml, build-mac-dmg.yml</pre>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="panel"><h3>Frontend wiring pattern</h3>
+<pre class="block">// before (ScreenshotToPpt.jsx)
+setTimeout(() => setScanProgress(55), 1200)
+
+// after: same state, real events
+const job = useAiJob("mcq_extract");
+job.start({ fileIds });
+// job.progress → setScanProgress
+// job.stage    → setScanStageText (Hindi from server)
+// job.result   → setQuestions</pre></div>
+    <div class="panel"><h3>What stays exactly as is</h3><ul class="tight">
+      <li>All Tailwind classes, the navy/amber palette, Header and Sidebar layout</li>
+      <li><code>translations.js</code> (hi/en) and the language switch</li>
+      <li>Print CSS for papers and books</li>
+      <li>pptxgenjs slide design; it moves to <code>packages/shared</code> so the worker builds the same slides</li>
+      <li>Confetti, motion HTML player, logo assets</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="roadmap">
+  <h2><span class="n">13</span>Roadmap</h2>
+  <p class="sub">About 12 weeks for two developers, or about 20 for one. Each phase ends with something staff can use.</p>
+  <div class="phases">
+    <div class="phase"><div class="wk">Week 1</div><div><h3>Foundation</h3><p>Monorepo, shared package, NestJS skeleton, Prisma schema, Compose on the VPS, Caddy with TLS, CI pipeline, Sentry.</p></div></div>
+    <div class="phase"><div class="wk">Weeks 2–3</div><div><h3>Real login, users and institutes</h3><p>Auth, sessions, permission matrix, audit log. Wire LoginScreen, UserManagement, Header and SettingsModal. Remove master passwords and the API key field. Harden Electron.</p></div></div>
+    <div class="phase"><div class="wk">Weeks 4–5</div><div><h3>Save everything</h3><p>Documents and files APIs, presigned uploads, React Query hooks. All 14 screens save, reopen and list history. Dashboard and Teacher Desk show real data.</p></div></div>
+    <div class="phase"><div class="wk">Weeks 6–8</div><div><h3>Real AI</h3><p>Redis, BullMQ worker, job registry, SSE progress, usage metering and quotas. Ship in this order: PPT, question paper, Screenshot → MCQ, DPP, lesson, doubt, YouTube, notice, book, poster copy.</p></div></div>
+    <div class="phase"><div class="wk">Weeks 9–10</div><div><h3>Office: students and fees</h3><p>Students, receipt counters, fee receipts with idempotency, ID cards with photo upload, notices.</p></div></div>
+    <div class="phase"><div class="wk">Weeks 11–12</div><div><h3>Ship to institutes</h3><p>Signed NSIS installer, auto-update feed, download page, backups and restore drill, load test (150 users), pilot at one branch, then roll out.</p></div></div>
+  </div>
+</section>
+
+<section id="tradeoffs">
+  <h2><span class="n">14</span>Key decisions and trade-offs</h2>
+  <div class="adr">
+    <details open><summary>ADR-1 · Modular monolith, not microservices</summary><p>One API codebase with clear modules, plus a worker process from the same code. <b>Gain:</b> one deploy, one database, easy debugging for a small team. <b>Cost:</b> modules share a process, so a bad memory leak affects all of them. <b>Revisit</b> when a single module needs to scale on its own (most likely AI).</p></details>
+    <details><summary>ADR-2 · AI runs only on the server, through a queue</summary><p><b>Gain:</b> the key never leaves the VPS, you get quotas and cost tracking per institute, retries, and the UI never freezes. <b>Cost:</b> Redis and a worker to run, plus SSE plumbing. Calling AI from each PC was rejected because anyone could pull the key out of the app.</p></details>
+    <details><summary>ADR-3 · JSONB documents table for the template tools</summary><p><b>Gain:</b> new tools ship without migrations, and the content shape matches the React state already in the components. <b>Cost:</b> the database can't enforce fields inside <code>content</code>; zod schemas with <code>schema_version</code> do that instead. Fees and questions stay as strict relational tables.</p></details>
+    <details><summary>ADR-4 · Keep Electron</summary><p><b>Gain:</b> zero UI rewrite, printToPDF, safeStorage, and the NSIS config is already done. <b>Cost:</b> an installer of about 100 MB and higher memory use than Tauri. That is acceptable for office PCs.</p></details>
+    <details><summary>ADR-5 · Self-hosted S3-compatible storage</summary><p><b>Gain:</b> everything stays on your VPS, and the app code uses the standard S3 API. <b>Cost:</b> disk fills with screenshots, so add a lifecycle rule that deletes raw uploads after 30 days. MinIO's community edition has changed licence and features recently, so check it at setup; Garage or SeaweedFS are drop-in alternatives.</p></details>
+  </div>
+  <h3>What to revisit as you grow</h3>
+  <ul class="tight">
+    <li><b>More than about 50 institutes, or the worker saturating the CPU:</b> move the worker to a second VPS (it only needs Redis, Postgres and storage addresses)</li>
+    <li><b>Need under 1 h data loss:</b> turn on Postgres WAL archiving, or move to a managed Postgres</li>
+    <li><b>Slow installer downloads:</b> put the update feed behind a CDN</li>
+    <li><b>Tenant isolation audits:</b> add Postgres row-level security on <code>institute_id</code> as a second layer under the app checks</li>
+    <li><b>Parents or students as users:</b> add a separate web portal against the same API, with its own role set</li>
+  </ul>
+</section>
+
+<footer>Based on a read of the edusuite-ai codebase (14 React screens, Electron 45, pptxgenjs). Model prices are from November 2026 Anthropic pricing and should be rechecked before budgeting.</footer>
+</main>

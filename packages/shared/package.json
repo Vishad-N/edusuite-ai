@@ -1,0 +1,26 @@
+{
+  "name": "@edusuite/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Code shared by the desktop app, API and worker: zod schemas, permissions, AI job definitions",
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test \"src/**/*.test.ts\"",
+    "lint": "oxlint -c ../../.oxlintrc.json src"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  }
+}

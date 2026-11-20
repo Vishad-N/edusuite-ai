@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  # The desktop app's Electron binary isn't needed for lint, typecheck or tests.
+  ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+jobs:
+  checks:
+    name: Lint, typecheck, unit and API tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Desktop app still builds
+        run: npm run build
+
+  migrations:
+    name: Migrations apply to a fresh Postgres
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --workspace=@edusuite/api --workspace=@edusuite/shared --no-audit --no-fund
+      - name: Schema is valid
+        run: npm run prisma:validate -w @edusuite/api
+      - name: Migrations apply cleanly
+        run: npm run prisma:migrate -w @edusuite/api
+      - name: Schema and migrations agree (no un-migrated changes)
+        working-directory: apps/api
+        run: npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code

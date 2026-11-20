@@ -1,0 +1,30 @@
+{
+  "name": "edusuite",
+  "private": true,
+  "description": "EduSuite / Satyadhi Sharma Tech monorepo: desktop app, API and shared code",
+  "engines": {
+    "node": ">=26"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @edusuite/desktop",
+    "electron:dev": "npm run electron:dev -w @edusuite/desktop",
+    "build": "npm run build -w @edusuite/desktop",
+    "dist:nsis": "npm run dist:nsis -w @edusuite/desktop",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "stack:env": "node infra/scripts/local-env.mjs",
+    "stack:up": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.local.yml --env-file infra/.env.local up -d --build",
+    "stack:init": "node infra/scripts/garage-init.mjs",
+    "stack:down": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.local.yml --env-file infra/.env.local down",
+    "stack:logs": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.local.yml --env-file infra/.env.local logs -f --tail=100"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
+}
