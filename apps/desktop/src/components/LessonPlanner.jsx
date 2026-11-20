@@ -12,6 +12,7 @@ import {
   FileCheck,
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import { Button, PageHeader } from "./ui/index.ts";
 
 export default function LessonPlanner({ activeInstitute }) {
   const [subject, setSubject] = useState("Physics");
@@ -81,43 +82,25 @@ export default function LessonPlanner({ activeInstitute }) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <BookOpen className="w-5 h-5" />
-            </span>
-            <h2 className="text-xl font-bold text-white">
-              Lesson Plan & Teacher Notes AI
-            </h2>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              Pedagogy
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Classroom syllabus schedule, learning goals, activities aur homework
-            timeline banayein.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleCopy}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
-          >
-            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-indigo-400" />}
-            <span>{copied ? "Plan Copied!" : "Copy Lesson Plan"}</span>
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/20 transition transform active:scale-95"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Print Lesson Plan</span>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={<BookOpen className="size-6" />}
+        title="Lesson Plan & Teacher Notes AI"
+        badge="Pedagogy"
+        description="Classroom syllabus schedule, learning goals, activities aur homework timeline banayein."
+        actions={
+          <>
+            <Button
+              icon={copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+              onClick={handleCopy}
+            >
+              {copied ? "Plan Copied!" : "Copy Lesson Plan"}
+            </Button>
+            <Button variant="primary" icon={<Printer className="size-4" />} onClick={() => window.print()}>
+              Print Lesson Plan
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Input Panel */}

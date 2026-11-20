@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { sampleNotices } from "../data/sampleData";
 import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { Button, PageHeader } from "./ui/index.ts";
 
 export default function NoticeHub({ activeInstitute }) {
   const [selectedNoticeIdx, setSelectedNoticeIdx] = useState(0);
@@ -36,43 +37,26 @@ export default function NoticeHub({ activeInstitute }) {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <MessageSquareShare className="w-5 h-5" />
-            </span>
-            <h2 className="text-xl font-bold text-white">
-              Notice & WhatsApp Circulars
-            </h2>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              Parent Broadcast
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Fee reminders, PTM notices, holidays aur exam datesheets ke liye
-            ready-to-send messages.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleCopy}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 transition transform active:scale-95"
-          >
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            <span>{copied ? "Copied to Clipboard!" : "Copy for WhatsApp"}</span>
-          </button>
-          <button
-            onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Print Official Notice</span>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={<MessageSquareShare className="size-6" />}
+        title="Notice & WhatsApp Circulars"
+        badge="Parent Broadcast"
+        description="Fee reminders, PTM notices, holidays aur exam datesheets ke liye ready-to-send messages."
+        actions={
+          <>
+            <Button icon={<Printer className="size-4" />} onClick={handlePrint}>
+              Print Official Notice
+            </Button>
+            <Button
+              variant="primary"
+              icon={copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+              onClick={handleCopy}
+            >
+              {copied ? "Copied to Clipboard!" : "Copy for WhatsApp"}
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Preset Selector */}

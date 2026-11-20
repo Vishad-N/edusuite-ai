@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { Button, PageHeader } from "./ui/index.ts";
 
 export default function IdAndFeeReceipt({ activeInstitute }) {
   const [activeTab, setActiveTab] = useState("id-card"); // "id-card" | "receipt"
@@ -35,35 +36,18 @@ export default function IdAndFeeReceipt({ activeInstitute }) {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              <CreditCard className="w-5 h-5" />
-            </span>
-            <h2 className="text-xl font-bold text-white">
-              Student ID Card & Fee Receipt Generator
-            </h2>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              Administration
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            नये प्रवेश पर छात्र का बारकोड युक्त स्मार्ट ID Card एवं अधिकृत GST फीस रसीद जारी करें।
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md transition transform active:scale-95"
-          >
-            <Printer className="w-4 h-4" />
-            <span>{activeTab === "id-card" ? "ID कार्ड प्रिंट करें" : "फीस रसीद प्रिंट करें"}</span>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={<CreditCard className="size-6" />}
+        title="Student ID Card & Fee Receipt Generator"
+        badge="Administration"
+        // DN-013: not a GST receipt until the institute confirms GST registration.
+        description="नये प्रवेश पर छात्र का बारकोड युक्त स्मार्ट ID Card एवं अधिकृत फीस रसीद जारी करें।"
+        actions={
+          <Button variant="primary" icon={<Printer className="size-4" />} onClick={handlePrint}>
+            {activeTab === "id-card" ? "ID कार्ड प्रिंट करें" : "फीस रसीद प्रिंट करें"}
+          </Button>
+        }
+      />
 
       {/* Switcher */}
       <div className="flex items-center gap-2">
