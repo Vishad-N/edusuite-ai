@@ -1,0 +1,20 @@
+// Shared UI primitives (Track A, DN-030). Screens import from here.
+export { Button, Spinner } from "./Button.tsx";
+export type { ButtonProps, ButtonVariant, ButtonSize } from "./Button.tsx";
+export { Field, Input, Select, Textarea } from "./Field.tsx";
+export type { FieldProps, InputProps, SelectProps, TextareaProps } from "./Field.tsx";
+export { Card, CardHeader, CardTitle, CardBody, CardFooter } from "./Card.tsx";
+export { Table, THead, TBody, TR, TH, TD } from "./Table.tsx";
+export { Modal } from "./Modal.tsx";
+export type { ModalProps } from "./Modal.tsx";
+export { ConfirmDialog } from "./ConfirmDialog.tsx";
+export type { ConfirmDialogProps } from "./ConfirmDialog.tsx";
+export { Tabs } from "./Tabs.tsx";
+export type { TabItem, TabsProps } from "./Tabs.tsx";
+export { EmptyState, ErrorState, Skeleton } from "./States.tsx";
+export { ToastProvider } from "./Toast.tsx";
+export { useToast } from "./toastContext.ts";
+export type { ToastInput, ToastTone } from "./toastContext.ts";
+export { JobProgress } from "./JobProgress.tsx";
+export type { JobProgressProps, JobStatus } from "./JobProgress.tsx";
+export { cn } from "./cn.ts";
