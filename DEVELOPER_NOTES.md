@@ -18,6 +18,17 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-031 · Shared `PageHeader` fixes the four invisible tool-screen titles
+- **Date:** 2026-11-20
+- **Phase / area:** Track A · NoticeHub, IdAndFeeReceipt, LessonPlanner, ImageStudio
+- **Status:** Decided by agent
+- **What was unclear:** The audit (frontend §1.6) found these four titles in `text-white` on a light page. Patching each in place would leave four slightly different headers; a new primitive is a small addition to the UI kit.
+- **Options considered:** A) A shared `PageHeader` (h1, icon, neutral badge, description, actions) used by all four. B) Change only the colour classes in each file.
+- **Decision:** A. The title is the screen's `h1`; actions sit on the right with secondary first and primary last. The wrapper is a `<div>`, because the print CSS hides `<header>`. Only the header blocks changed; screen text and behaviour stayed the same, except "GST" was dropped from the receipt description (DN-013). The rest of each screen keeps its older dark panels until that screen is migrated.
+- **Reason:** One consistent title row across tool screens, as Track B asks, with no print change.
+- **Affects:** `apps/desktop/src/components/ui/PageHeader.tsx`, the four screens' header blocks
+- **Revisit if:** A tool screen needs secondary navigation (breadcrumbs, tabs) in its title row.
+
 ### DN-030 · Shared UI primitives: native `<dialog>`, Hindi default labels, tests without a DOM library
 - **Date:** 2026-11-20
 - **Phase / area:** Track A · `apps/desktop/src/components/ui/`

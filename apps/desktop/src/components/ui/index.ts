@@ -17,4 +17,6 @@ export { useToast } from "./toastContext.ts";
 export type { ToastInput, ToastTone } from "./toastContext.ts";
 export { JobProgress } from "./JobProgress.tsx";
 export type { JobProgressProps, JobStatus } from "./JobProgress.tsx";
+export { PageHeader } from "./PageHeader.tsx";
+export type { PageHeaderProps } from "./PageHeader.tsx";
 export { cn } from "./cn.ts";

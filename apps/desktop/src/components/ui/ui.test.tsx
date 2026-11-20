@@ -12,6 +12,7 @@ import {
   Field,
   Input,
   JobProgress,
+  PageHeader,
   Select,
   Skeleton,
   Table,
@@ -128,6 +129,14 @@ test("JobProgress reports real progress and an indeterminate state", () => {
   assert.match(done, /aria-valuenow="100"/);
   const failed = html(<JobProgress status="failed" error="AI ने मना कर दिया" onRetry={() => {}} />);
   assert.match(failed, /role="alert"[^>]*>AI ने मना कर दिया/);
+});
+
+test("PageHeader renders one visible h1 and is not a <header> (print CSS hides those)", () => {
+  const out = html(<PageHeader title="Notice & WhatsApp Circulars" description="d" actions={<Button>Print</Button>} />);
+  assert.equal((out.match(/<h1/g) ?? []).length, 1);
+  assert.match(out, /<h1 class="[^"]*text-ink/);
+  assert.doesNotMatch(out, /<header/);
+  assert.doesNotMatch(out, /text-white/);
 });
 
 test("no primitive drives progress from a timer (golden rule 5)", () => {

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { Button, PageHeader } from "./ui/index.ts";
 
 export default function ImageStudio({ activeInstitute }) {
   const [category, setCategory] = useState("admission");
@@ -87,43 +88,25 @@ export default function ImageStudio({ activeInstitute }) {
 
   return (
     <div className="space-y-6">
-      {/* Top Title */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
-              <ImageIcon className="w-5 h-5" />
-            </span>
-            <h2 className="text-xl font-bold text-white">
-              AI Image & Poster Studio
-            </h2>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
-              High Resolution
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Coaching admissions, science diagrams, topper banners aur events ke
-            liye custom graphics generate karein.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={copyPromptText}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
-          >
-            {copiedPrompt ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-sky-400" />}
-            <span>{copiedPrompt ? "Prompt Copied!" : "Copy AI Prompt"}</span>
-          </button>
-          <button
-            onClick={handleDownloadCard}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-purple-500/20 transition transform active:scale-95"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export Graphic</span>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={<ImageIcon className="size-6" />}
+        title="AI Image & Poster Studio"
+        badge="High Resolution"
+        description="Coaching admissions, science diagrams, topper banners aur events ke liye custom graphics generate karein."
+        actions={
+          <>
+            <Button
+              icon={copiedPrompt ? <Check className="size-4" /> : <Copy className="size-4" />}
+              onClick={copyPromptText}
+            >
+              {copiedPrompt ? "Prompt Copied!" : "Copy AI Prompt"}
+            </Button>
+            <Button variant="primary" icon={<Download className="size-4" />} onClick={handleDownloadCard}>
+              Export Graphic
+            </Button>
+          </>
+        }
+      />
 
       {/* Category Tabs */}
       <div className="flex flex-wrap gap-2">
