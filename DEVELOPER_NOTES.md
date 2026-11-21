@@ -18,6 +18,22 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-044 · DPP / notebook / OMR saves through DocumentBar; DPP questions are teacher-written
+- **Date:** 2026-11-21
+- **Phase / area:** Phase 3 · `apps/desktop/src/components/NotebookDppMaker.jsx`
+- **Status:** Decided by agent
+- **What was unclear:** The DPP sheet always printed five built-in sample questions, which couldn't be edited, and its "Update Material Template" button only played confetti and showed an English `alert()`. The sheet also carried a fake "[QR] Scan for Video Solution · Satyadhi Sharma Mobile App" block and a fixed "Max Marks: 20 | Time: 25 Mins".
+- **Options considered / Decision:**
+  - Same pattern as DN-041 to DN-043. A new sheet starts with one empty question and empty topic, subject and batch. The sample questions and the confetti button are gone.
+  - DPP question editor: text and an optional hint per question, add (up to 200, the schema limit) and delete. Hints are for the teacher and are not printed, as before. A note says AI questions come in the next phase.
+  - The sheet type (DPP, notebook, OMR) and the OMR size are saved, so a reopened document comes back as the same kind of sheet. Topic, subject and batch fields now show for every sheet type (the notebook page shows the topic); before, they showed only for DPP.
+  - Printed sheet: the fake QR block is removed (there is no video-solution link to point to); the fixed marks and time became the question count; the batch shows in full instead of only its first word; the date line no longer hard-codes 2026. OMR bubbles lost their hover effect, since they aren't clickable.
+  - Settings and editor use the shared primitives and are `no-print`; the sheet-type switcher uses `Button` with `aria-pressed`.
+- **Reason:** Saved sheets are the teacher's own questions, and nothing on the printout claims a feature that doesn't exist.
+- **Verified:** End-to-end in the real Electron app against Docker: no sample text on open; topic, subject, batch, two questions and a hint typed; switching to OMR 100 shows 100 bubbles; save shows "saved"; New clears without asking; reopening from History comes back as OMR 100 with topic and batch, and the DPP tab shows both questions and the hint; an unsaved change then New asks first, and "रुकें" keeps the work.
+- **Affects:** `NotebookDppMaker.jsx`
+- **Revisit if:** Phase 4 adds a `dpp` AI job, or institutes want a real QR code to a video solution.
+
 ### DN-043 · Screenshot → MCQ saves sets with real screenshot uploads; teachers type the questions until Phase 4
 - **Date:** 2026-11-21
 - **Phase / area:** Phase 3 · `apps/desktop/src/components/ScreenshotToPpt.jsx`
