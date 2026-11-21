@@ -18,6 +18,24 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-043 · Screenshot → MCQ saves sets with real screenshot uploads; teachers type the questions until Phase 4
+- **Date:** 2026-11-21
+- **Phase / area:** Phase 3 · `apps/desktop/src/components/ScreenshotToPpt.jsx`
+- **Status:** Decided by agent
+- **What was unclear:** Every "AI" step on this screen was fake. Uploading a screenshot pasted a built-in sample question's text and answer under it, timers played a pretend OCR scan, and a "10 demo screenshots" batch loaded made-up questions. How should this become real saved work while AI reading of screenshots waits for Phase 4?
+- **Options considered / Decision:**
+  - Each chosen screenshot becomes a question with empty text and answer "A", and the screen goes straight to the review editor, where the teacher types the question, four options, the correct answer and the trick. The sample questions, demo batch, scan timers, the "run AI detector" button, the "auto Devanagari OCR" badge and the confetti are gone. The header says AI reading comes in the next phase.
+  - Screenshots upload through the files API (DN-040) one by one, as soon as they are chosen. Each card shows "sending to server…", or an error with a "send again" button; a failed upload also shows a toast. The saved question keeps `screenshotFileId`. Saving before an upload finishes saves the question without its image; when the upload completes the set shows "unsaved changes" again, so nothing is silently lost.
+  - The picker accepts PNG, JPEG and WebP only (what the API accepts; SVG data URLs from the old demo are gone).
+  - Reopening a saved set shows the text at once, then fetches each screenshot through `GET /files/:id/url`, downloads it (bucket CORS allows GET) and keeps it as a data URL, so the PPTX and motion exports still embed it. A screenshot that can't be fetched is marked "screenshot didn't load".
+  - Saved shape is `McqSetContentSchema` unchanged; `qNum` is saved from the list order. Subject and exam tag are new inputs in the settings box; they were saved before but had no control. New sets start with empty titles instead of sample text.
+  - The dark banner became the shared `PageHeader`; the rest of the screen keeps its older styling until it is migrated. A PPTX failure shows an inline message instead of `alert()`.
+- **Correction to DN-042:** its "unsaved edit then नया asks first" check actually clicked the sidebar's "नया" badge, so it tested the leave-screen guard, not the New button. The e2e scripts now click the exact button; re-run on 2026-11-21 against the question paper screen, the New button asks first and "रुकें" keeps the edit.
+- **Reason:** Saved MCQ sets hold the teacher's real questions and images, and nothing pretends to be AI.
+- **Verified:** End-to-end in the real Electron app against Docker and Garage: no demo or AI text on open; a real PNG chosen through the file input uploads with no error and opens the editor; typed question, options and answer B save; New clears the screen without asking; reopening from History restores the text, answer B and the screenshot fetched back from storage, and shows "saved"; an unsaved edit then a sidebar click asks first, and "रुकें" keeps the edit.
+- **Affects:** `ScreenshotToPpt.jsx`
+- **Revisit if:** Phase 4 adds the `screenshot_mcq` AI job (uploads then start a job that fills the fields), or sets grow large enough that fetching every screenshot on open is slow (then load them lazily).
+
 ### DN-042 · QuestionPaperMaker saves through DocumentBar; teachers write the questions until Phase 4
 - **Date:** 2026-11-21
 - **Phase / area:** Phase 3 · `apps/desktop/src/components/QuestionPaperMaker.jsx`
