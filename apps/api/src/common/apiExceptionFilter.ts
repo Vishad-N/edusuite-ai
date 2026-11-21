@@ -12,6 +12,7 @@ function codeForStatus(status: number): ErrorCode {
     case HttpStatus.CONFLICT: return "CONFLICT";
     case HttpStatus.TOO_MANY_REQUESTS: return "TOO_MANY_REQUESTS";
     case HttpStatus.SERVICE_UNAVAILABLE: return "SERVICE_UNAVAILABLE";
+    case HttpStatus.PAYLOAD_TOO_LARGE: return "DOCUMENT_TOO_LARGE";
     default: return status >= 500 ? "INTERNAL" : "BAD_REQUEST";
   }
 }

@@ -4,3 +4,4 @@ export * from "./auth.ts";
 export * from "./pagination.ts";
 export * from "./users.ts";
 export * from "./institutes.ts";
+export * from "./documents.ts";

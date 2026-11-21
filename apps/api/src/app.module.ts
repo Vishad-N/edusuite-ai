@@ -13,6 +13,8 @@ import { UsersController } from "./users/users.controller";
 import { UsersService } from "./users/users.service";
 import { InstitutesController } from "./institutes/institutes.controller";
 import { InstitutesService } from "./institutes/institutes.service";
+import { DocumentsController } from "./documents/documents.controller";
+import { DocumentsService } from "./documents/documents.service";
 
 const MINUTE_MS = 60_000;
 
@@ -36,7 +38,7 @@ export class AppModule {
           ],
         }),
       ],
-      controllers: [HealthController, AuthController, UsersController, InstitutesController, ...extraControllers],
+      controllers: [HealthController, AuthController, UsersController, InstitutesController, DocumentsController, ...extraControllers],
       providers: [
         { provide: ENV, useValue: env },
         PrismaService,
@@ -45,6 +47,7 @@ export class AppModule {
         AuthService,
         UsersService,
         InstitutesService,
+        DocumentsService,
         // Order matters: rate limit, then who is calling, then what they may do.
         { provide: APP_GUARD, useClass: ThrottlerGuard },
         { provide: APP_GUARD, useClass: AuthGuard },

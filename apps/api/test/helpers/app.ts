@@ -15,7 +15,7 @@ export type TestApp = {
   /** Logs in and returns the access token. */
   token: (identifier: string, password?: string) => Promise<string>;
   call: (
-    method: "GET" | "POST" | "PATCH",
+    method: "GET" | "POST" | "PATCH" | "DELETE",
     url: string,
     token?: string,
     payload?: object,
