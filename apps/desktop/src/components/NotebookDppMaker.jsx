@@ -1,190 +1,151 @@
 import React, { useState } from "react";
-import {
-  FileSpreadsheet,
-  Printer,
-  Copy,
-  Check,
-  Sparkles,
-  Download,
-  BookOpen,
-  CheckCircle2,
-  QrCode,
-  CheckSquare,
-  Award,
-  Layers,
-} from "lucide-react";
-import confetti from "canvas-confetti";
+import { FileSpreadsheet, Printer, Plus, Trash2 } from "lucide-react";
 import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { DocumentBar } from "./DocumentBar.tsx";
+import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
+
+const TEMPLATES = [
+  { id: "dpp", label: "📝 डेली प्रैक्टिस पेपर (DPP)" },
+  { id: "notebook", label: "📓 छात्र क्लास नोटबुक पेज" },
+  { id: "omr", label: "⭕ 50/100 प्रश्नों की OMR शीट" },
+];
+
+const blankQuestion = () => ({ q: "", hint: "" });
 
 export default function NotebookDppMaker({ activeInstitute }) {
   const [templateType, setTemplateType] = useState("dpp"); // "dpp" | "notebook" | "omr"
-  const [dppSubject, setDppSubject] = useState("गणित एवं तर्कशक्ति (Quantitative Aptitude)");
-  const [dppTopic, setDppTopic] = useState("प्रतिशत एवं लाभ-हानि (Percentage & Profit-Loss) DPP #14");
-  const [targetBatch, setTargetBatch] = useState("MPPSC Pre + Vyapam Target 2026");
+  const [dppSubject, setDppSubject] = useState("");
+  const [dppTopic, setDppTopic] = useState("");
+  const [targetBatch, setTargetBatch] = useState("");
   const [omrQuestionsCount, setOmrQuestionsCount] = useState(50); // 50 or 100
+  const [questions, setQuestions] = useState(() => [blankQuestion()]);
+  const [docTitle, setDocTitle] = useState("");
 
-  const sampleDppQuestions = [
-    {
-      q: "यदि किसी वस्तु के मूल्य में 20% की वृद्धि की जाती है, तो उसकी खपत में कितने प्रतिशत की कमी करनी होगी ताकि कुल खर्च अपरिवर्तित रहे?",
-      hint: "Shortcut: [r / (100 + r)] × 100",
-    },
-    {
-      q: "एक दुकानदार 12 वस्तुओं को ₹10 में खरीदकर 10 वस्तुओं को ₹12 में बेचता है। उसका लाभ प्रतिशत ज्ञात कीजिए।",
-      hint: "Cross multiplication method: (144 - 100) / 100 = 44%",
-    },
-    {
-      q: "A और B मिलकर किसी कार्य को 15 दिन में पूरा करते हैं। यदि B अकेला उस कार्य को 20 दिन में कर सकता है, तो A अकेला कितने दिन में करेगा?",
-      hint: "LCM Method: Total work = 60 units",
-    },
-    {
-      q: "मध्य प्रदेश के किस जिले में सर्वाधिक वन क्षेत्र पाया जाता है? (MP GK स्पेशल प्रश्न)",
-      hint: "बालाघाट जिला (Balaghat District)",
-    },
-    {
-      q: "5 अंकों की वह सबसे छोटी संख्या ज्ञात कीजिए जो 12, 15 तथा 18 से पूर्णतः विभाज्य हो।",
-      hint: "LCM of (12, 15, 18) = 180",
-    },
-  ];
-
-  const handlePrint = () => {
-    window.print();
+  // What gets saved (shape: DppContentSchema in packages/shared/documents.ts).
+  const documentContent = {
+    templateType,
+    subject: dppSubject,
+    topic: dppTopic,
+    targetBatch,
+    omrQuestionsCount,
+    questions: questions.map((item) => ({ q: item.q, ...(item.hint.trim() && { hint: item.hint }) })),
   };
+
+  const setQuestion = (index, next) => setQuestions((all) => all.map((item, i) => (i === index ? next : item)));
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-teal-50 text-teal-600 border border-teal-200">
-              <FileSpreadsheet className="w-5 h-5" />
-            </span>
-            <h2 className="text-xl font-bold text-slate-900">
-              डेली DPP, स्टूडेंट नोटबुक & OMR स्टूडियो
-            </h2>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 border border-teal-200">
-              डेली प्रैक्टिस मटेरियल
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            क्लास में बांटने के लिए 10-प्रश्नों की DPP शीट, कॉर्नेल नोटबुक एवं ऑफलाइन टेस्ट के लिए 50/100 OMR शीट्स बनाएं।
-          </p>
-        </div>
+      <PageHeader
+        icon={<FileSpreadsheet className="size-6" />}
+        title="डेली DPP, स्टूडेंट नोटबुक & OMR स्टूडियो"
+        badge="डेली प्रैक्टिस मटेरियल"
+        description="क्लास में बाँटने के लिए DPP शीट, कॉर्नेल नोटबुक पेज और ऑफ़लाइन टेस्ट के लिए 50/100 प्रश्नों की OMR शीट बनाएँ, सेव करें और बाद में फिर से खोलें।"
+        actions={
+          <Button variant="primary" icon={<Printer className="size-4" />} onClick={() => window.print()}>
+            शीट प्रिंट करें (PDF)
+          </Button>
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-md transition transform active:scale-95"
-          >
-            <Printer className="w-4 h-4" />
-            <span>शीट प्रिंट करें (PDF)</span>
-          </button>
-        </div>
-      </div>
+      <DocumentBar
+        type="dpp"
+        title={docTitle}
+        onTitleChange={setDocTitle}
+        content={documentContent}
+        onOpen={(content) => {
+          setTemplateType(content.templateType);
+          setDppSubject(content.subject);
+          setDppTopic(content.topic);
+          setTargetBatch(content.targetBatch ?? "");
+          setOmrQuestionsCount(content.omrQuestionsCount ?? 50);
+          setQuestions(
+            content.questions.length > 0 ? content.questions.map((item) => ({ q: item.q, hint: item.hint ?? "" })) : [blankQuestion()],
+          );
+        }}
+        onNew={() => {
+          setTemplateType("dpp");
+          setDppSubject("");
+          setDppTopic("");
+          setTargetBatch("");
+          setOmrQuestionsCount(50);
+          setQuestions([blankQuestion()]);
+          setDocTitle("");
+        }}
+      />
 
       {/* Switcher: DPP vs Notebook vs OMR */}
-      <div className="flex items-center gap-2">
-        {[
-          { id: "dpp", label: "📝 डेली प्रैक्टिस पेपर (DPP)", icon: "DPP" },
-          { id: "notebook", label: "📓 छात्र क्लास नोटबुक पेज", icon: "Notes" },
-          { id: "omr", label: "⭕ 50/100 प्रश्नों की OMR शीट", icon: "OMR" },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTemplateType(t.id)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-              templateType === t.id
-                ? "bg-teal-600 text-white shadow-sm"
-                : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
-            }`}
-          >
+      <div role="group" aria-label="शीट का प्रकार" className="flex flex-wrap items-center gap-2 no-print">
+        {TEMPLATES.map((t) => (
+          <Button key={t.id} variant={templateType === t.id ? "primary" : "secondary"} aria-pressed={templateType === t.id} onClick={() => setTemplateType(t.id)}>
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Form Controls */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              शीट सेटिंग्स
-            </h3>
-
-            {templateType === "dpp" && (
-              <>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    DPP टॉपिक एवं नंबर
-                  </label>
-                  <input
-                    type="text"
-                    value={dppTopic}
-                    onChange={(e) => setDppTopic(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-500 focus:bg-white transition"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    विषय (Subject)
-                  </label>
-                  <input
-                    type="text"
-                    value={dppSubject}
-                    onChange={(e) => setDppSubject(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-500 focus:bg-white transition"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    लक्षित बैच
-                  </label>
-                  <input
-                    type="text"
-                    value={targetBatch}
-                    onChange={(e) => setTargetBatch(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-500 focus:bg-white transition"
-                  />
-                </div>
-              </>
-            )}
-
+        <div className="lg:col-span-4 space-y-4 no-print">
+          <div className="space-y-4 rounded-card border border-line bg-surface p-4 text-ink">
+            <h3 className="text-label font-semibold">शीट सेटिंग्स</h3>
+            <Field label="टॉपिक एवं नंबर">
+              <Input value={dppTopic} onChange={(e) => setDppTopic(e.target.value)} placeholder="उदा. प्रतिशत एवं लाभ-हानि DPP #14" />
+            </Field>
+            <Field label="विषय">
+              <Input value={dppSubject} onChange={(e) => setDppSubject(e.target.value)} placeholder="उदा. गणित एवं तर्कशक्ति" />
+            </Field>
+            <Field label="लक्षित बैच">
+              <Input value={targetBatch} onChange={(e) => setTargetBatch(e.target.value)} placeholder="उदा. MPPSC Pre 2026" />
+            </Field>
             {templateType === "omr" && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">
-                  प्रश्नों की संख्या (OMR Size)
-                </label>
-                <select
-                  value={omrQuestionsCount}
-                  onChange={(e) => setOmrQuestionsCount(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-500 focus:bg-white transition"
-                >
+              <Field label="प्रश्नों की संख्या (OMR)">
+                <Select value={omrQuestionsCount} onChange={(e) => setOmrQuestionsCount(Number(e.target.value))}>
+                  {[50, 100].includes(omrQuestionsCount) ? null : <option value={omrQuestionsCount}>{omrQuestionsCount} प्रश्न</option>}
                   <option value={50}>50 प्रश्न (क्लास टेस्ट / क्विज)</option>
                   <option value={100}>100 प्रश्न (फुल मॉक टेस्ट)</option>
-                </select>
-              </div>
+                </Select>
+              </Field>
             )}
-
             {templateType === "notebook" && (
-              <p className="text-xs text-slate-500 leading-relaxed">
-                कॉर्नेल नोट-टेकिंग फॉर्मेट छात्रों को क्लास में व्यवस्थित नोट्स लेने
-                एवं रिवीजन के लिए प्रमाणित लेआउट देता है।
+              <p className="text-caption text-muted">
+                कॉर्नेल नोट-टेकिंग फॉर्मेट छात्रों को क्लास में व्यवस्थित नोट्स लेने एवं रिवीजन के लिए लेआउट देता है।
               </p>
             )}
-
-            <button
-              onClick={() => {
-                confetti({ particleCount: 30, spread: 50, origin: { y: 0.8 } });
-                alert("Material template updated and ready to print!");
-              }}
-              className="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2 transition"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Update Material Template</span>
-            </button>
           </div>
+
+          {templateType === "dpp" && (
+            <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
+              <h3 className="text-label font-semibold">DPP के प्रश्न</h3>
+              <p className="text-caption text-muted">प्रश्न खुद लिखें। AI से प्रश्न अगले चरण में आएँगे।</p>
+              <ol className="space-y-3">
+                {questions.map((item, index) => (
+                  <li key={index} className="space-y-2 rounded-control border border-line p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-label font-semibold">प्रश्न {index + 1}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={<Trash2 className="size-4" />}
+                        aria-label={`प्रश्न ${index + 1} हटाएँ`}
+                        disabled={questions.length <= 1}
+                        onClick={() => setQuestions((all) => all.filter((_, i) => i !== index))}
+                      >
+                        हटाएँ
+                      </Button>
+                    </div>
+                    <Field label={`प्रश्न ${index + 1} का पाठ`}>
+                      <Textarea rows={2} value={item.q} onChange={(e) => setQuestion(index, { ...item, q: e.target.value })} />
+                    </Field>
+                    <Field label="संकेत / शॉर्टकट (वैकल्पिक)" hint="शिक्षक के लिए; शीट पर प्रिंट नहीं होता">
+                      <Input value={item.hint} onChange={(e) => setQuestion(index, { ...item, hint: e.target.value })} />
+                    </Field>
+                  </li>
+                ))}
+              </ol>
+              <Button size="sm" icon={<Plus className="size-4" />} disabled={questions.length >= 200} onClick={() => setQuestions((all) => [...all, blankQuestion()])}>
+                नया प्रश्न
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Right Printable Canvas */}
@@ -194,25 +155,20 @@ export default function NotebookDppMaker({ activeInstitute }) {
             <div className="flex items-center gap-3">
               <img
                 src={activeInstitute?.logo || SATYADHI_LOGO}
-                alt="Logo"
+                alt=""
                 className="w-11 h-11 rounded-full object-contain bg-amber-300 ring-2 ring-amber-400 shadow"
               />
               <div>
-                <h2 className="text-base font-black uppercase text-slate-950 tracking-wider">
-                  {activeInstitute.name}
-                </h2>
+                <h2 className="text-base font-black uppercase text-slate-950 tracking-wider">{activeInstitute.name}</h2>
                 <p className="text-[11px] text-slate-600 font-medium">
-                  {activeInstitute.city} • Dedicated Student Practice Portal
+                  {activeInstitute.city}
+                  {dppSubject && ` • ${dppSubject}`}
                 </p>
               </div>
             </div>
 
             <div className="text-right text-[10px] font-bold uppercase text-slate-700 border border-slate-300 px-2.5 py-1 rounded">
-              {templateType === "dpp"
-                ? "DAILY PRACTICE PAPER"
-                : templateType === "omr"
-                ? "OMR ANSWER SHEET"
-                : "STUDENT CLASS NOTEBOOK"}
+              {templateType === "dpp" ? "DAILY PRACTICE PAPER" : templateType === "omr" ? "OMR ANSWER SHEET" : "STUDENT CLASS NOTEBOOK"}
             </div>
           </div>
 
@@ -225,10 +181,10 @@ export default function NotebookDppMaker({ activeInstitute }) {
               <span className="text-slate-500">Roll No:</span> ____________
             </div>
             <div>
-              <span className="text-slate-500">Batch:</span> {targetBatch.split(" ")[0]}
+              <span className="text-slate-500">Batch:</span> {targetBatch || "____________"}
             </div>
             <div>
-              <span className="text-slate-500">Date:</span> ___/___/2026
+              <span className="text-slate-500">Date:</span> ___/___/______
             </div>
           </div>
 
@@ -236,49 +192,26 @@ export default function NotebookDppMaker({ activeInstitute }) {
           {templateType === "dpp" && (
             <div className="space-y-4">
               <div className="bg-amber-50 p-2.5 rounded border border-amber-200 flex items-center justify-between text-xs font-bold text-amber-900">
-                <span>{dppTopic}</span>
-                <span>Max Marks: 20 | Time: 25 Mins</span>
+                <span>{dppTopic || "DPP"}</span>
+                <span>प्रश्न: {questions.length}</span>
               </div>
 
               <div className="space-y-4">
-                {sampleDppQuestions.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-lg border border-slate-200 space-y-2 text-xs"
-                  >
-                    <div className="font-semibold text-slate-900">
+                {questions.map((item, idx) => (
+                  <div key={idx} className="p-3 rounded-lg border border-slate-200 space-y-2 text-xs">
+                    <div className="font-semibold text-slate-900 whitespace-pre-wrap">
                       Q{idx + 1}. {item.q}
                     </div>
-
                     {/* Rough work space */}
-                    <div className="h-14 border border-dashed border-slate-300 rounded bg-slate-50 flex items-center justify-center text-[10px] text-slate-400">
+                    <div className="h-14 border border-dashed border-slate-300 rounded bg-slate-50 flex items-center justify-center text-[10px] text-slate-500">
                       [Space for Rough Work / Calculation]
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Bottom Faculty & QR Code */}
-              <div className="pt-4 border-t-2 border-slate-300 flex items-center justify-between text-xs text-slate-600">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 border border-slate-300 rounded bg-slate-100 flex items-center justify-center text-[10px] text-slate-500">
-                    [QR]
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-800 text-[11px]">
-                      Scan for Video Solution
-                    </p>
-                    <p className="text-[10px] text-slate-500">
-                      Satyadhi Sharma Mobile App
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="font-bold border-t border-slate-400 pt-1">
-                    Faculty Signature
-                  </div>
-                </div>
+              <div className="pt-4 border-t-2 border-slate-300 flex items-center justify-end text-xs text-slate-600">
+                <div className="font-bold border-t border-slate-400 pt-1">Faculty Signature</div>
               </div>
             </div>
           )}
@@ -293,18 +226,13 @@ export default function NotebookDppMaker({ activeInstitute }) {
               {/* 50 or 100 Bubbles Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                 {Array.from({ length: omrQuestionsCount }).map((_, qIdx) => (
-                  <div
-                    key={qIdx}
-                    className="flex items-center justify-between p-1.5 rounded bg-slate-50 border border-slate-200 text-[11px]"
-                  >
-                    <span className="font-bold text-slate-800 w-6">
-                      {qIdx + 1}.
-                    </span>
+                  <div key={qIdx} className="flex items-center justify-between p-1.5 rounded bg-slate-50 border border-slate-200 text-[11px]">
+                    <span className="font-bold text-slate-800 w-6">{qIdx + 1}.</span>
                     <div className="flex items-center gap-1">
                       {["A", "B", "C", "D"].map((opt) => (
                         <div
                           key={opt}
-                          className="w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center text-[9px] font-bold text-slate-700 hover:bg-slate-900 hover:text-white cursor-pointer select-none"
+                          className="w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center text-[9px] font-bold text-slate-700 select-none"
                         >
                           {opt}
                         </div>
@@ -324,13 +252,12 @@ export default function NotebookDppMaker({ activeInstitute }) {
           {/* VIEW C: CORNELL NOTEBOOK PAGE */}
           {templateType === "notebook" && (
             <div className="space-y-4">
+              {dppTopic && <div className="text-xs font-bold text-slate-800">Topic: {dppTopic}</div>}
               <div className="grid grid-cols-12 gap-3 min-h-[380px]">
                 {/* Cue column */}
                 <div className="col-span-4 border-r-2 border-slate-300 pr-2 space-y-4">
-                  <div className="text-xs font-bold uppercase text-slate-700 border-b border-slate-200 pb-1">
-                    Cues / Keywords / Dates
-                  </div>
-                  <div className="space-y-6 pt-2 text-[11px] text-slate-400">
+                  <div className="text-xs font-bold uppercase text-slate-700 border-b border-slate-200 pb-1">Cues / Keywords / Dates</div>
+                  <div className="space-y-6 pt-2 text-[11px] text-slate-500">
                     <p>• Key Concept 1</p>
                     <p>• Formula / Law</p>
                     <p>• High-Yield Question</p>
@@ -340,16 +267,11 @@ export default function NotebookDppMaker({ activeInstitute }) {
 
                 {/* Notes Column */}
                 <div className="col-span-8 space-y-4">
-                  <div className="text-xs font-bold uppercase text-slate-700 border-b border-slate-200 pb-1">
-                    Class Notes & Lecture Explanations
-                  </div>
+                  <div className="text-xs font-bold uppercase text-slate-700 border-b border-slate-200 pb-1">Class Notes & Lecture Explanations</div>
                   {/* Ruled lines */}
                   <div className="space-y-5 pt-1">
                     {Array.from({ length: 8 }).map((_, l) => (
-                      <div
-                        key={l}
-                        className="border-b border-slate-200 h-4"
-                      ></div>
+                      <div key={l} className="border-b border-slate-200 h-4"></div>
                     ))}
                   </div>
                 </div>
@@ -357,10 +279,8 @@ export default function NotebookDppMaker({ activeInstitute }) {
 
               {/* Summary Block */}
               <div className="border-t-2 border-slate-800 pt-3">
-                <div className="text-xs font-bold uppercase text-slate-800 mb-1">
-                  Summary / 1-Minute Revision Capsule:
-                </div>
-                <div className="h-16 border border-dashed border-slate-300 rounded bg-slate-50 p-2 text-[11px] text-slate-400">
+                <div className="text-xs font-bold uppercase text-slate-800 mb-1">Summary / 1-Minute Revision Capsule:</div>
+                <div className="h-16 border border-dashed border-slate-300 rounded bg-slate-50 p-2 text-[11px] text-slate-500">
                   Write the core 2-line takeaway of today's lecture here...
                 </div>
               </div>
