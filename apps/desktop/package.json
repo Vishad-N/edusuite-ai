@@ -20,7 +20,7 @@
     "dist:nsis": "vite build && electron-builder --win nsis",
     "dist:mac": "vite build && electron-builder --mac dmg zip",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "tsc -p tsconfig.test.json && node --test \".test-dist/**/*.test.js\""
+    "test": "tsc -p tsconfig.test.json && node --test \".test-dist/**/*.test.js\" \"electron/*.test.cjs\""
   },
   "build": {
     "appId": "com.satyadhisharma.tech",
