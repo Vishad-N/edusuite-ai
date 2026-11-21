@@ -18,6 +18,23 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-041 · Shared DocumentBar for save/open/history; PptMaker is the first wired screen
+- **Date:** 2026-11-21
+- **Phase / area:** Phase 3 · `apps/desktop/src/{api/documents.ts,components/DocumentBar.tsx,components/PptMaker.jsx}`
+- **Status:** Decided by agent
+- **What was unclear:** Track B asks for one consistent "save → history" flow on every tool screen and unsaved-changes guards, but not where the bar sits, how "unsaved" is detected, or what to do with screens whose "Generate" is still a fake until Phase 4.
+- **Options considered / Decision:**
+  - One `DocumentBar` under each screen's `PageHeader`: title, status ("अभी सेव नहीं हुआ" / "बिना सेव किए बदलाव" / "सेव हो गया · time", announced politely), New, History, Save. A screen gives it its content (in its type's schema shape) plus `onOpen` and `onNew`.
+  - Unsaved changes: compare the screen's current title+content with the last saved or opened state. After New or Open, the screen's next render becomes the baseline, so small differences in how a screen rebuilds content don't show as false "unsaved".
+  - Leaving with unsaved changes asks first (react-router `useBlocker` for in-app navigation; also before New or Open). A stale save (409) offers "open the latest" or "save as a new copy".
+  - History modal: title search, "only mine", newest first, load more, open, and delete (creator or admin) with a confirmation that says it can't be reopened here.
+  - Upload helper (`uploadFile`): presign → PUT straight to storage → complete; used by the screens that take images.
+  - PptMaker: no `sampleData.js`; a new deck starts blank. Its "Generate" button became "स्लाइड ढाँचा बनाएँ" (make an outline template) with a note that AI content comes in the next phase; the fake 900 ms "AI" delay and confetti are gone (golden rule 5). A small slide editor (tag, title, points one per line, exam tip, add/delete slide) was added so a saved deck is real work, not a template.
+- **Reason:** One flow for every screen, honest about what isn't built yet, and no silent loss of work.
+- **Verified:** End-to-end in the real Electron app against Docker: new screen "not saved" → edit "unsaved" → save "saved · 01:52 pm"; leaving after saving doesn't prompt; reopening from History restores the edited slide and shows "saved"; an unsaved edit then a sidebar click asks first, and "रुकें" keeps the page and the edit.
+- **Affects:** the 13 other tool screens as they're wired (one change set each)
+- **Revisit if:** Staff want autosave, or browser-level close (closing the window) should also ask.
+
 ### DN-040 · Files API: presign → upload → verify, public storage address, Garage quirks
 - **Date:** 2026-11-21
 - **Phase / area:** Phase 3 · `apps/api/src/files`, `packages/shared/src/files.ts`, `infra/*`

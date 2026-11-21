@@ -3,142 +3,83 @@ import {
   Presentation,
   Download,
   Sparkles,
-  Layers,
   ChevronLeft,
   ChevronRight,
   Plus,
   Trash2,
   Check,
   RefreshCw,
-  Copy,
   Sliders,
-  Palette,
-  FileCheck,
 } from "lucide-react";
-import confetti from "canvas-confetti";
 import { generatePptxFile } from "../utils/pptxGenerator";
-import { presentationPresets } from "../data/sampleData";
+import { DocumentBar } from "./DocumentBar.tsx";
+import { Button, Field, Input, PageHeader, Textarea } from "./ui/index.ts";
+
+/** A blank deck: one title slide to start from (no sample content, Phase 3). */
+function blankPresentation(topic, grade, subject) {
+  return {
+    title: topic,
+    subtitle: "",
+    grade,
+    subject,
+    slides: [{ tag: "परिचय", title: topic || "नई प्रस्तुति", points: ["यहाँ मुख्य बिंदु लिखें"], takeaway: "" }],
+  };
+}
 
 export default function PptMaker({ activeInstitute, onNavigate }) {
-  const [topic, setTopic] = useState("Photosynthesis & Light Reactions in Plants");
-  const [grade, setGrade] = useState("Class 10 / 11");
-  const [subject, setSubject] = useState("Biology / Science");
-  const [slidesCount, setSlidesCount] = useState(5);
+  const [topic, setTopic] = useState("");
+  const [grade, setGrade] = useState("Class 9 & 10");
+  const [subject, setSubject] = useState("");
   const [theme, setTheme] = useState("navy");
-  const [isGenerating, setIsGenerating] = useState(false);
+  const isGenerating = false;
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [docTitle, setDocTitle] = useState("");
 
   // Active presentation data
-  const [presentation, setPresentation] = useState({
-    title: "Photosynthesis & Light Reactions in Plants",
-    subtitle: "Complete Conceptual Guide for CBSE & NEET",
-    grade: "Class 10 / 11",
-    subject: "Biology / Science",
-    instituteName: activeInstitute.name,
-    slides: presentationPresets[0].slides,
-  });
+  const [presentation, setPresentation] = useState(() => blankPresentation("", "Class 9 & 10", ""));
 
-  const handleGenerate = () => {
-    setIsGenerating(true);
-    setTimeout(() => {
-      // Find matching preset or generate dynamic structure
-      const found = presentationPresets.find(
-        (p) => p.title.toLowerCase().includes(topic.toLowerCase()) || topic.toLowerCase().includes(p.subject.toLowerCase())
-      );
-
-      if (found) {
-        setPresentation({
-          ...found,
-          instituteName: activeInstitute.name,
-          grade,
-          subject,
-        });
-      } else {
-        // Dynamic generation based on user prompt
-        setPresentation({
-          title: topic,
-          subtitle: `Comprehensive Study Lecture for ${grade} (${subject})`,
-          grade,
-          subject,
-          instituteName: activeInstitute.name,
-          slides: [
-            {
-              tag: "Introduction",
-              title: `Core Fundamentals of ${topic}`,
-              points: [
-                `Understanding the essential principles and definitions of ${topic}.`,
-                `Fundamental equations and experimental observations governing this topic.`,
-                `Key standard terminology and prerequisite concepts for exams.`,
-                `Real-world scientific and daily-life applications.`,
-              ],
-              takeaway: "Ensure you memorize key definitions and core scientific terms for board exams.",
-            },
-            {
-              tag: "Deep Dive",
-              title: `Mechanism & Detailed Derivations`,
-              points: [
-                `Step-by-step breakdown of how the process operates under standard conditions.`,
-                `Comparative analysis of active vs passive factors influencing outcomes.`,
-                `Mathematical formulas and graphical representation of trends.`,
-                `Diagnostic check questions commonly encountered in competitive tests.`,
-              ],
-              takeaway: "Master the step-by-step sequential flow; teachers often award step-marking here.",
-            },
-            {
-              tag: "Advanced Insights",
-              title: `High-Yield Concepts & Common Traps`,
-              points: [
-                `Frequent misinterpretations by students and how to avoid them.`,
-                `Exceptions to standard rules and special corner cases.`,
-                `Previous Year Questions (PYQs) patterns observed in last 5 years.`,
-                `Shortcut mnemonic techniques to recall complex sequences.`,
-              ],
-              takeaway: "Focus on the exceptions—they make up over 40% of MCQ trick questions.",
-            },
-            {
-              tag: "Summary & Practice",
-              title: `Revision Capsule & Next Steps`,
-              points: [
-                `Comprehensive summary table contrasting all primary sub-topics.`,
-                `Homework problem set assigned for self-evaluation.`,
-                `Quick 2-minute formula cheat sheet.`,
-                `Q&A and student doubt-clearing session overview.`,
-              ],
-              takeaway: "Practice numerical problems and past 3 years questions before next class.",
-            },
-          ],
-        });
-      }
-
-      setIsGenerating(false);
-      setCurrentSlideIndex(0);
-
-      // Trigger celebratory confetti
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.7 },
-      });
-    }, 900);
+  // What gets saved (shape: PptContentSchema in packages/shared/documents.ts).
+  const documentContent = {
+    title: presentation.title,
+    ...(presentation.subtitle && { subtitle: presentation.subtitle }),
+    grade,
+    subject,
+    theme,
+    slides: presentation.slides.map((s) => ({
+      ...(s.tag && { tag: s.tag }),
+      title: s.title,
+      points: s.points,
+      ...(s.takeaway && { takeaway: s.takeaway }),
+    })),
   };
 
+  // Real AI outlines arrive in Phase 4 (job ppt_outline). Until then this builds an
+  // editable outline template from the topic, immediately and labelled as a template.
+  const handleGenerate = () => {
+    const t = topic.trim() || "नई प्रस्तुति";
+    setPresentation({
+      title: t,
+      subtitle: subject ? `${grade} · ${subject}` : grade,
+      grade,
+      subject,
+      slides: [
+        { tag: "परिचय", title: t, points: ["विषय का परिचय", "मुख्य परिभाषाएँ", "परीक्षा में महत्व"], takeaway: "" },
+        { tag: "मुख्य अवधारणा", title: "मुख्य बिंदु", points: ["बिंदु 1", "बिंदु 2", "बिंदु 3"], takeaway: "" },
+        { tag: "उदाहरण", title: "उदाहरण और प्रश्न", points: ["उदाहरण 1", "पिछले वर्षों का प्रश्न"], takeaway: "" },
+        { tag: "सारांश", title: "सारांश", points: ["याद रखने योग्य बातें"], takeaway: "" },
+      ],
+    });
+    if (!docTitle.trim()) setDocTitle(t);
+    setCurrentSlideIndex(0);
+  };
+
+  const [exportError, setExportError] = useState("");
   const handleDownloadPptx = async () => {
+    setExportError("");
     try {
-      await generatePptxFile(
-        {
-          ...presentation,
-          instituteName: activeInstitute.name,
-        },
-        theme
-      );
-      confetti({
-        particleCount: 40,
-        spread: 45,
-        origin: { y: 0.8 },
-      });
-    } catch (err) {
-      console.error("PPTX Generation Error:", err);
-      alert("Failed to export PPTX. Please check console.");
+      await generatePptxFile({ ...presentation, instituteName: activeInstitute.name }, theme);
+    } catch {
+      setExportError("PPTX फ़ाइल नहीं बन सकी। फिर से कोशिश करें।");
     }
   };
 
@@ -154,36 +95,52 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-200">
-              <Presentation className="w-5 h-5" />
-            </span>
-            <h2 className="text-xl font-bold text-slate-900">
-              डिजिटल लेक्चर PPT मेकर (.PPTX)
-            </h2>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
-              PowerPoint Ready
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            किसी भी विषय पर क्लासरूम स्मार्ट-बोर्ड के लिए पूर्णतः तैयार और एडिटेबल .PPTX प्रेजेंटेशन बनाएं।
-          </p>
-        </div>
+      <PageHeader
+        icon={<Presentation className="size-6" />}
+        title="डिजिटल लेक्चर PPT मेकर (.PPTX)"
+        badge="PowerPoint"
+        description="किसी भी विषय पर स्मार्ट-बोर्ड के लिए .PPTX प्रेजेंटेशन बनाएँ, सेव करें और बाद में फिर से खोलें।"
+        actions={
+          <Button variant="primary" icon={<Download className="size-4" />} onClick={handleDownloadPptx}>
+            .PPTX डाउनलोड करें
+          </Button>
+        }
+      />
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleDownloadPptx}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition transform active:scale-95"
-          >
-            <Download className="w-4 h-4" />
-            <span>.PPTX फाइल डाउनलोड करें</span>
-          </button>
-        </div>
-      </div>
+      <DocumentBar
+        type="ppt"
+        title={docTitle}
+        onTitleChange={setDocTitle}
+        content={documentContent}
+        onOpen={(content) => {
+          setPresentation({
+            title: content.title,
+            subtitle: content.subtitle ?? "",
+            grade: content.grade ?? grade,
+            subject: content.subject ?? subject,
+            slides: content.slides.map((s) => ({ tag: s.tag ?? "", title: s.title, points: s.points, takeaway: s.takeaway ?? "" })),
+          });
+          setTopic(content.title);
+          if (content.grade) setGrade(content.grade);
+          if (content.subject !== undefined) setSubject(content.subject);
+          if (content.theme) setTheme(content.theme);
+          setCurrentSlideIndex(0);
+        }}
+        onNew={() => {
+          setTopic("");
+          setSubject("");
+          setTheme("navy");
+          setDocTitle("");
+          setPresentation(blankPresentation("", grade, ""));
+          setCurrentSlideIndex(0);
+        }}
+      />
+
+      {exportError && (
+        <p role="alert" className="rounded-control border border-danger bg-danger-subtle p-3 text-label text-danger">
+          {exportError}
+        </p>
+      )}
 
       {/* Screenshot to PPT Callout Banner */}
       {onNavigate && (
@@ -329,15 +286,18 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
               {isGenerating ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>AI Creating Slides & Content...</span>
+                  <span>बन रहा है…</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>Generate AI Presentation</span>
+                  <span>स्लाइड ढाँचा बनाएँ</span>
                 </>
               )}
             </button>
+            <p className="text-caption text-muted">
+              अभी यह विषय से एक खाली ढाँचा बनाता है, जिसे आप दाईं ओर बदल सकते हैं। AI से पूरी सामग्री बनाने की सुविधा अगले चरण में आएगी।
+            </p>
           </div>
         </div>
 
@@ -500,8 +460,66 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
               </button>
             ))}
           </div>
+
+          <SlideEditor
+            slide={currentSlide}
+            index={currentSlideIndex}
+            count={presentation.slides.length}
+            onChange={(next) =>
+              setPresentation((p) => ({ ...p, slides: p.slides.map((s, i) => (i === currentSlideIndex ? next : s)) }))
+            }
+            onAdd={() => {
+              setPresentation((p) => {
+                const slides = [...p.slides];
+                slides.splice(currentSlideIndex + 1, 0, { tag: "", title: "नई स्लाइड", points: [""], takeaway: "" });
+                return { ...p, slides };
+              });
+              setCurrentSlideIndex((i) => i + 1);
+            }}
+            onDelete={() => {
+              setPresentation((p) => ({ ...p, slides: p.slides.filter((_, i) => i !== currentSlideIndex) }));
+              setCurrentSlideIndex((i) => Math.max(0, i - 1));
+            }}
+          />
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Edits the slide shown in the preview: title, points (one per line), exam tip. */
+function SlideEditor({ slide, index, count, onChange, onAdd, onDelete }) {
+  return (
+    <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink no-print">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-label font-semibold">स्लाइड {index + 1} बदलें</h3>
+        <div className="flex gap-2">
+          <Button size="sm" icon={<Plus className="size-4" />} onClick={onAdd}>
+            नई स्लाइड
+          </Button>
+          <Button size="sm" variant="ghost" icon={<Trash2 className="size-4" />} onClick={onDelete} disabled={count <= 1}>
+            स्लाइड हटाएँ
+          </Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <Field label="टैग" className="md:col-span-1">
+          <Input value={slide.tag ?? ""} onChange={(e) => onChange({ ...slide, tag: e.target.value })} />
+        </Field>
+        <Field label="स्लाइड का शीर्षक" className="md:col-span-2">
+          <Input value={slide.title} onChange={(e) => onChange({ ...slide, title: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="मुख्य बिंदु" hint="हर लाइन एक बिंदु">
+        <Textarea
+          rows={5}
+          value={slide.points.join("\n")}
+          onChange={(e) => onChange({ ...slide, points: e.target.value.split("\n") })}
+        />
+      </Field>
+      <Field label="परीक्षा टिप (वैकल्पिक)">
+        <Input value={slide.takeaway ?? ""} onChange={(e) => onChange({ ...slide, takeaway: e.target.value })} />
+      </Field>
     </div>
   );
 }

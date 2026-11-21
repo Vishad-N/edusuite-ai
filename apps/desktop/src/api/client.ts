@@ -123,6 +123,7 @@ export function createApiClient(options: ApiClientOptions) {
     get: <T>(path: string) => request<T>("GET", path),
     post: <T>(path: string, body?: unknown) => request<T>("POST", path, body),
     patch: <T>(path: string, body?: unknown) => request<T>("PATCH", path, body),
+    delete: <T = void>(path: string) => request<T>("DELETE", path),
 
     async login(input: Omit<LoginRequest, "deviceId">): Promise<LoginResponse> {
       const res = await send("POST", "/auth/login", { ...input, deviceId: options.deviceId }, null);
