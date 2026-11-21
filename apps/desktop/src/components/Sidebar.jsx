@@ -18,10 +18,13 @@ import {
   Crown,
 } from "lucide-react";
 
-export default function Sidebar({ activeTab, setActiveTab, t, lang, currentUser }) {
-  const isSuperAdmin = currentUser?.role === "superadmin" || currentUser?.canManageUsers;
-
-  const navGroups = [
+/**
+ * Left navigation. Shows only the screens the user's role may open
+ * (`allowedScreens` comes from packages/shared/permissions.ts, the same list
+ * the API's permission guard uses).
+ */
+export default function Sidebar({ activeTab, setActiveTab, t, allowedScreens }) {
+  const allNavGroups = [
     {
       group: t.grpDashboard,
       items: [
@@ -31,16 +34,12 @@ export default function Sidebar({ activeTab, setActiveTab, t, lang, currentUser 
           icon: LayoutDashboard,
           badge: "Home",
         },
-        ...(isSuperAdmin
-          ? [
-              {
-                id: "users",
-                label: "यूजर व स्टाफ प्रबंधन",
-                icon: Crown,
-                badge: "Admin",
-              },
-            ]
-          : []),
+        {
+          id: "users",
+          label: t.navUsers || "यूजर व स्टाफ प्रबंधन",
+          icon: Crown,
+          badge: "Admin",
+        },
         {
           id: "teacher_desk",
           label: t.navTeacherDesk || "शिक्षक पोर्टल (Faculty Desk)",
@@ -132,13 +131,18 @@ export default function Sidebar({ activeTab, setActiveTab, t, lang, currentUser 
     },
   ];
 
+  const allowed = new Set(allowedScreens);
+  const navGroups = allNavGroups
+    .map((grp) => ({ ...grp, items: grp.items.filter((item) => allowed.has(item.id)) }))
+    .filter((grp) => grp.items.length > 0);
+
   return (
     <aside className="w-64 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 select-none overflow-y-auto shadow-sm">
       {/* Navigation Links */}
-      <div className="p-3 space-y-4">
+      <nav aria-label={t.navLabel || "मुख्य मेनू"} className="p-3 space-y-4">
         {navGroups.map((grp, gIdx) => (
-          <div key={gIdx} className="space-y-1">
-            <div className="px-3 py-1 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+          <div key={gIdx} role="group" aria-label={grp.group} className="space-y-1">
+            <div className="px-3 py-1 text-[11px] font-bold text-slate-600 uppercase tracking-wider" aria-hidden="true">
               {grp.group}
             </div>
 
@@ -148,6 +152,8 @@ export default function Sidebar({ activeTab, setActiveTab, t, lang, currentUser 
               return (
                 <button
                   key={item.id}
+                  type="button"
+                  aria-current={isActive ? "page" : undefined}
                   onClick={() => setActiveTab(item.id)}
                   className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-all group ${
                     isActive
@@ -181,7 +187,7 @@ export default function Sidebar({ activeTab, setActiveTab, t, lang, currentUser 
             })}
           </div>
         ))}
-      </div>
+      </nav>
 
       {/* Bottom Profile / Institute Info */}
       <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2 shrink-0">

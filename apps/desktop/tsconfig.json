@@ -4,11 +4,23 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "lib": ["es2024", "dom", "dom.iterable"],
-    "types": ["vite/client", "node"],
+    "lib": [
+      "es2024",
+      "dom",
+      "dom.iterable"
+    ],
+    "types": [
+      "vite/client",
+      "node"
+    ],
     "allowJs": true,
     "checkJs": false,
-    "noEmit": true
+    "noEmit": true,
+    "customConditions": [
+      "source"
+    ]
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

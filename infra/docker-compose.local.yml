@@ -17,5 +17,7 @@ services:
       NODE_ENV: development
       # No proxy locally: the API is reached directly on 127.0.0.1.
       TRUST_PROXY: "false"
+      # The desktop app (file://) plus the Vite dev server in a browser.
+      CORS_ORIGINS: "null,http://localhost:5173"
     ports:
       - "127.0.0.1:3000:3000"

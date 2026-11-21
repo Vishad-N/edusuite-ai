@@ -29,9 +29,9 @@ export function EmptyState({ title, description, action, icon, className }: Empt
 export type ErrorStateProps = {
   title: ReactNode;
   /** The translated message from the API's { code, message } error. */
-  message?: ReactNode;
+  message?: ReactNode | undefined;
   /** Error code, shown small so support can look it up. */
-  code?: string;
+  code?: string | undefined;
   onRetry?: () => void;
   retryLabel?: string;
   className?: string;

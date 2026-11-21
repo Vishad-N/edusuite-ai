@@ -12,11 +12,31 @@ This file records every point where the AI agent (or a developer) was unsure and
 
 Decisions waiting for the developer. Remove a line here once its entry's status is updated.
 
-- *(none)*
+- DN-037 · Multi-branch staff: how should they pick a branch at login? (Today everyone works at their home branch.)
 
 ---
 
 ## Decision log
+
+### DN-037 · Desktop wired to the API: client, session, router, CORS; branch picker postponed
+- **Date:** 2026-11-21
+- **Phase / area:** Phase 2 · `apps/desktop/src/{api,App.tsx}`, LoginScreen, Header, Sidebar, SettingsModal, UserManagement
+- **Status:** Decided by agent; one part open (branch picker, below)
+- **What was unclear:** How the renderer talks to the API (tokens, refresh races, errors), how routing and permissions meet the existing screens, how the `file://` app passes CORS, and how DN-015's branch picker fits a login form that doesn't yet know the user.
+- **Options considered / Decision:**
+  - Packages: `react-router` 8.5 (approved in DN-010; hash router, so deep links work under `file://`) and `@tanstack/react-query` 5 (named in the plan).
+  - API client (`src/api/client.ts`): access token in memory only; refresh token in the DPAPI vault (memory only in a plain browser); a 401 triggers one refresh and a retry, and concurrent 401s share one refresh so the token is never rotated twice (which the server would treat as theft). Every failure is an `ApiError` with the server's code and translated message; `Accept-Language` follows the UI language. A stable `deviceId` per install is kept in `localStorage`.
+  - Session (`src/api/session.tsx`): resumes the day's session from the vault at start; when the server ends it (23:59 IST, revoked, blocked) the user goes to login with the reason shown, and returns to the screen they were on after logging in.
+  - Routing: `/login`, `/` (dashboard) and `/:screen`; a screen the role may not open redirects to the dashboard, using the same `visibleScreens` list as the Sidebar and the API guard. Existing screens get the same props as before through an adapter (`activeInstitute` filled from `GET /institutes/:id`, `currentUser` from `/me`), so none of them changed.
+  - Converted to TypeScript because they were rewritten: `App`, `LoginScreen`, `Header`, `SettingsModal`, `UserManagement`. Removed: `employeeAccounts.js`, the master passwords, the "super" ID trick, demo one-click logins and default-password hints, the stored Gemini API key, plain-text password display, user delete, the fake institute switcher and the fake window buttons in the header (Electron draws real ones). The header is now the window's drag area.
+  - Shared package: the desktop imports `@edusuite/shared`'s TypeScript source through a `source` export condition (Vite `resolve.conditions`, `customConditions` in tsconfig, `node --conditions=source` in tests), so no separate build step.
+  - CORS: the packaged app loads from `file://` and sends `Origin: null`. The API now reads `CORS_ORIGINS` (default `null`; local adds `http://localhost:5173`). Allowing `null` is acceptable because the API uses Bearer tokens, never cookies; a foreign page has no token to send.
+  - Labels on the rewritten screens are Hindi only for now; English comes with the per-screen `translations.js` work.
+  - **Open:** DN-015's branch picker. The login form doesn't know the user's branches until after the password is checked, and the API has no "switch branch" call. For now every login uses the home branch; staff with extra branches can't choose. Options: A) a second step after login when the user has more than one branch (needs a small `POST /auth/switch-branch` that issues a new session). B) Keep home-branch only. Recommendation: A, as its own change set.
+- **Reason:** Completes Phase 2's definition of done without changing any tool screen, and keeps every rule on the server.
+- **Verified:** End-to-end in the real Electron app against the Docker stack: wrong password shows the server's Hindi message; a deep link (`#/ppt`) returns after login; the super admin sees 14 menu items, the settings button and the real institute and branch; the users page loads from the API with no password column or delete; settings load the institute and have no API-key field; the session resumes after an app restart and logout clears the vault; a teacher sees 12 menu items, no users item, no settings, and `#/users` bounces to the dashboard.
+- **Affects:** `apps/desktop/src/*`, `apps/desktop/{vite.config.js,tsconfig*.json,package.json}`, `apps/api/src/{bootstrap.ts,config/env.ts}`, `infra/docker-compose.local.yml`
+- **Revisit if:** The API moves to cookie auth (then `null` must not be an allowed CORS origin), or multi-branch staff are common (do the branch picker).
 
 ### DN-036 · Electron hardening: sandbox, meta CSP, isolated motion-player origin, DPAPI token vault
 - **Date:** 2026-11-20

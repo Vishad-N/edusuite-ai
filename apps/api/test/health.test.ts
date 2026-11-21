@@ -53,6 +53,20 @@ test("an unreachable database reports down, not up", async () => {
   await other.close();
 });
 
+test("CORS allows the desktop app's file:// origin and refuses others", async () => {
+  const preflight = (origin: string) =>
+    app.inject({
+      method: "OPTIONS",
+      url: "/api/v1/me",
+      headers: { origin, "access-control-request-method": "GET", "access-control-request-headers": "authorization" },
+    });
+  const desktop = await preflight("null");
+  assert.equal(desktop.headers["access-control-allow-origin"], "null");
+  assert.match(String(desktop.headers["access-control-allow-headers"]), /authorization/);
+  const stranger = await preflight("https://evil.example");
+  assert.equal(stranger.headers["access-control-allow-origin"], undefined);
+});
+
 test("production refuses to start without service URLs", () => {
   assert.throws(() => loadEnv({ NODE_ENV: "production" }), /DATABASE_URL, REDIS_URL, S3_ENDPOINT/);
 });

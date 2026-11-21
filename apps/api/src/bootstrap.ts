@@ -59,6 +59,16 @@ export async function createApp(env: Env, extraControllers: Type[] = []): Promis
     }
   });
 
+  // The desktop app (file://, "Origin: null") and, locally, the Vite dev server call
+  // the API from a page. Auth is a Bearer token, never a cookie, so no credentials mode.
+  app.enableCors({
+    origin: env.CORS_ORIGINS,
+    methods: ["GET", "POST", "PATCH", "DELETE"],
+    allowedHeaders: ["authorization", "content-type", "accept-language", "accept", "idempotency-key", "x-request-id"],
+    credentials: false,
+    maxAge: 600,
+  });
+
   app.setGlobalPrefix("api/v1", {
     exclude: [
       { path: "health", method: RequestMethod.GET },

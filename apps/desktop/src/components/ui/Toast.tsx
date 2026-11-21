@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import { cn } from "./cn.ts";
 import { ToastContext, type ToastInput, type ToastTone } from "./toastContext.ts";
 
-type ToastItem = Required<Pick<ToastInput, "tone" | "title">> & { id: number; description?: string };
+type ToastItem = { id: number; tone: ToastTone; title: string; description?: string };
 
 /** Success and info toasts close themselves; errors stay until dismissed. */
 const AUTO_DISMISS_MS = 6000;

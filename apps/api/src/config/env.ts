@@ -23,6 +23,19 @@ const EnvSchema = z
       .transform((v) => v === "true"),
     /** Login attempts allowed per IP per minute (plan §09). */
     LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(10),
+    /**
+     * Origins allowed to call the API from a page (CORS), comma-separated.
+     * The packaged desktop app loads from file:// and sends "Origin: null" (DN-037).
+     */
+    CORS_ORIGINS: z
+      .string()
+      .default("null")
+      .transform((v) =>
+        v
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      ),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== "production") return;
