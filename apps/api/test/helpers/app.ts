@@ -1,5 +1,5 @@
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
-import type { Type } from "@nestjs/common";
+import type { Provider, Type } from "@nestjs/common";
 import type { PrismaClient } from "../../src/generated/prisma/client";
 import { createApp } from "../../src/bootstrap";
 import { loadEnv } from "../../src/config/env";
@@ -24,7 +24,7 @@ export type TestApp = {
 };
 
 /** Fresh database with fixtures, and an app instance wired to it. */
-export async function startTestApp(extraControllers: Type[] = []): Promise<TestApp> {
+export async function startTestApp(extraControllers: Type[] = [], overrides: Provider[] = []): Promise<TestApp> {
   const db = await prepareTestDatabase(testDatabaseUrl()!);
   const fx = await createFixtures(db);
   const app = await createApp(
@@ -35,6 +35,7 @@ export async function startTestApp(extraControllers: Type[] = []): Promise<TestA
       LOGIN_RATE_LIMIT: "1000",
     }),
     extraControllers,
+    overrides,
   );
   await app.init();
   await app.getHttpAdapter().getInstance().ready();

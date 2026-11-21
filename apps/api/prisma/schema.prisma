@@ -236,15 +236,19 @@ model Document {
 }
 
 model File {
-  id           String   @id @default(uuid()) @db.Uuid
-  instituteId  String   @map("institute_id") @db.Uuid
-  uploadedById String   @map("uploaded_by") @db.Uuid
-  documentId   String?  @map("document_id") @db.Uuid
+  id           String    @id @default(uuid()) @db.Uuid
+  instituteId  String    @map("institute_id") @db.Uuid
+  uploadedById String    @map("uploaded_by") @db.Uuid
+  documentId   String?   @map("document_id") @db.Uuid
   /// Random key in the bucket; never derived from the file name (AGENT_README §8).
-  bucketKey    String   @unique @map("bucket_key")
+  bucketKey    String    @unique @map("bucket_key")
+  /// Original file name, cleaned; used only as the download name, never as a path.
+  name         String    @default("file")
   mime         String
   bytes        Int
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  /// Set once the upload is verified (size and file signature). Null = presigned but not finished.
+  uploadedAt   DateTime? @map("uploaded_at") @db.Timestamptz
 
   institute  Institute  @relation(fields: [instituteId], references: [id])
   uploadedBy AppUser    @relation(fields: [uploadedById], references: [id])

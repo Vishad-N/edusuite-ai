@@ -31,6 +31,15 @@ export const ERROR_MESSAGES = {
     en: "Someone else changed this document in the meantime. Open the latest version and make your change again.",
   },
   DOCUMENT_TOO_LARGE: { hi: "यह दस्तावेज़ सेव करने के लिए बहुत बड़ा है।", en: "This document is too large to save." },
+  FILE_NOT_UPLOADED: { hi: "फ़ाइल अभी अपलोड नहीं हुई है।", en: "The file hasn't been uploaded yet." },
+  FILE_SIZE_MISMATCH: {
+    hi: "अपलोड पूरा नहीं हुआ (फ़ाइल का आकार मेल नहीं खाता)। फिर से अपलोड करें।",
+    en: "The upload didn't finish (the size doesn't match). Please upload again.",
+  },
+  FILE_TYPE_MISMATCH: {
+    hi: "यह फ़ाइल वैसी नहीं है जैसी बताई गई। केवल PNG, JPG, WebP या PDF अपलोड करें।",
+    en: "This file isn't the type it claims to be. Upload only PNG, JPG, WebP or PDF.",
+  },
 
   AUTH_INVALID: { hi: "ID या पासवर्ड गलत है।", en: "The ID or password is incorrect." },
   AUTH_LOCKED: {
