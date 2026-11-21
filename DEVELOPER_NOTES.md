@@ -18,6 +18,22 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-042 · QuestionPaperMaker saves through DocumentBar; teachers write the questions until Phase 4
+- **Date:** 2026-11-21
+- **Phase / area:** Phase 3 · `apps/desktop/src/components/QuestionPaperMaker.jsx`
+- **Status:** Decided by agent
+- **What was unclear:** The screen's "Generate Test Paper" filled in the same fake chemistry questions for every subject after an 800 ms delay, and there was no way to edit a question, so a saved paper would only hold that fake text.
+- **Options considered / Decision:**
+  - Same pattern as PptMaker (DN-041): no `sampleData.js`; a new paper starts with one empty section. The button became "पेपर ढाँचा बनाएँ": it lays out the usual three sections (3 MCQs, 2 short, 1 long) with empty questions, and a note says AI questions come in the next phase. The fake delay and confetti are gone.
+  - A section editor was added: pick a section, rename it, add or delete sections (up to 20, the schema limit); per question: text, options one per line (empty means not an MCQ), answer, delete; "new question" and "new MCQ" buttons.
+  - Saved shape is `PaperContentSchema` unchanged. Option lines that are empty or only a letter ("A) ") aren't saved; an empty answer isn't saved. The unused `difficulty` state was dropped (not in the schema, no control on screen).
+  - The settings panel moved to the shared `Field`/`Input`/`Select` primitives; this also fixes the "Max Marks" and "Time Allowed" labels, which were light grey on white. Labels are Hindi. A reopened paper whose class or marks isn't in the dropdown list still shows its own value.
+  - The settings and editor column is `no-print`, so printing gives only the paper. The general instructions no longer claim fixed marks per section.
+- **Reason:** Saved papers are the teacher's real work, and nothing pretends to be AI.
+- **Verified:** End-to-end in the real Electron app against Docker: no sample text on open; template gives 3 sections; a typed MCQ shows in the preview; save shows "saved"; leaving after saving doesn't prompt; coming back starts blank; reopening from History restores the question, options, answer, subject and all 3 sections and shows "saved"; an unsaved edit then "नया" asks first, and "रुकें" keeps the edit.
+- **Affects:** `QuestionPaperMaker.jsx`
+- **Revisit if:** Phase 4 adds `question_paper` AI jobs (the button then starts a job and fills the questions).
+
 ### DN-041 · Shared DocumentBar for save/open/history; PptMaker is the first wired screen
 - **Date:** 2026-11-21
 - **Phase / area:** Phase 3 · `apps/desktop/src/{api/documents.ts,components/DocumentBar.tsx,components/PptMaker.jsx}`
