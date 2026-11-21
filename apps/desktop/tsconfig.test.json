@@ -9,5 +9,8 @@
     "rootDir": "src",
     "allowJs": false
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"]
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ]
 }

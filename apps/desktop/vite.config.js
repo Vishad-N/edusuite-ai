@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module'
-import { defineConfig } from 'vite'
+import { defaultClientConditions, defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -37,4 +37,6 @@ function contentSecurityPolicy() {
 export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss(), contentSecurityPolicy()],
+  // Use @edusuite/shared's TypeScript source directly (no separate build step).
+  resolve: { conditions: ['source', ...defaultClientConditions] },
 })
