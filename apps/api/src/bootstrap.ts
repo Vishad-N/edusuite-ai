@@ -30,7 +30,8 @@ export async function createApp(env: Env, extraControllers: Type[] = []): Promis
           },
     requestIdHeader: "x-request-id",
     genReqId: () => randomUUID(),
-    bodyLimit: 1024 * 1024,
+    // Saved documents may be up to 2 MB of JSON (MAX_DOCUMENT_BYTES); leave headroom.
+    bodyLimit: 3 * 1024 * 1024,
     // Behind Caddy, use X-Forwarded-For so rate limits and audit IPs are the real client's.
     trustProxy: env.TRUST_PROXY,
   });

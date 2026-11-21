@@ -18,6 +18,35 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-039 · S3 client for presigned uploads: AWS SDK v3
+- **Date:** 2026-11-21
+- **Phase / area:** Phase 3 · files API
+- **Status:** Decided by developer
+- **What was unclear:** The plan names "S3 API / presigned uploads" but no package (AGENT_README §3).
+- **Options considered:** A) `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`. B) Hand-written S3 Signature V4 signing with `node:crypto`.
+- **Decision:** A. Only the S3 modules are installed; they talk to Garage through its S3 endpoint.
+- **Reason:** The official client; avoids maintaining security-sensitive signing code.
+- **Affects:** `apps/api` files module (next Phase 3 change set)
+- **Revisit if:** The package size becomes a problem in the API image.
+
+### DN-038 · Documents API: per-type content schemas, branch visibility, compare-and-set saves
+- **Date:** 2026-11-21
+- **Phase / area:** Phase 3 · `apps/api/src/documents`, `packages/shared/src/documents.ts`
+- **Status:** Decided by agent (please review the content shapes before screens start saving)
+- **What was unclear:** The plan gives the table and routes, but not the shape of each type's `content` (a format staff will save), who sees whose documents, who may edit them, or what happens when two people save the same one.
+- **Options considered / Decision:**
+  - Content: one zod schema per type (`ppt`, `mcq_set`, `paper`, `dpp`, `lesson`, `book`, `doubt`, `youtube`, `notice`, `poster`) that mirrors the state each screen already holds, so wiring a screen doesn't change its data. Each type has a version (all 1 today) stored in `schema_version`; later changes bump it and keep reading old versions. Content is limited to 2 MB of JSON; the API's body limit is 3 MB and any 413 answers `DOCUMENT_TOO_LARGE`.
+  - Permission: a type needs the permission of the screen that makes it (`DOCUMENT_PERMISSIONS`): AI content for most, `ai.screenshot_ppt` for MCQ sets, `notices` for notices, `image_studio` for posters. The route allows any signed-in user and the service checks the type's permission on every call.
+  - Visibility: a super admin sees the whole institute; everyone else sees documents saved at their current branch, by anyone. Other branches and institutes answer 404.
+  - Editing: the creator, a super admin or a branch admin may edit or delete.
+  - Concurrent saves: every update sends the `updatedAt` it started from; the write is a compare-and-set, and a stale one answers 409 `DOCUMENT_CHANGED` with the newer time, instead of silently overwriting.
+  - History: lists return summaries only (no content), newest first, cursor-paged, filterable by title and "mine".
+  - Delete is soft (DN-014); create, update and delete are audited (field names only).
+  - Screenshots inside an MCQ set are referenced by `screenshotFileId` once the files API exists.
+- **Reason:** Matches ADR-3 (JSONB + zod + schema_version) and keeps staff work safe from accidental overwrites.
+- **Affects:** `/api/v1/documents*`, `packages/shared/src/documents.ts`, `apps/api/src/{bootstrap.ts,common/*}`
+- **Revisit if:** Teachers shouldn't see each other's work in the same branch (then default to "mine"), or a type needs fields the schema rejects.
+
 ### DN-037 · Desktop wired to the API: client, session, router, CORS; branch picker postponed
 - **Date:** 2026-11-21
 - **Phase / area:** Phase 2 · `apps/desktop/src/{api,App.tsx}`, LoginScreen, Header, Sidebar, SettingsModal, UserManagement

@@ -26,8 +26,13 @@ export const ERROR_MESSAGES = {
     hi: "संस्थान में कम से कम एक सक्रिय सुपर एडमिन होना ज़रूरी है।",
     en: "The institute must keep at least one active super admin.",
   },
+  DOCUMENT_CHANGED: {
+    hi: "किसी और ने इसी बीच यह दस्तावेज़ बदल दिया है। नया संस्करण खोलकर फिर से बदलाव करें।",
+    en: "Someone else changed this document in the meantime. Open the latest version and make your change again.",
+  },
+  DOCUMENT_TOO_LARGE: { hi: "यह दस्तावेज़ सेव करने के लिए बहुत बड़ा है।", en: "This document is too large to save." },
 
-  AUTH_INVALID:{ hi: "ID या पासवर्ड गलत है।", en: "The ID or password is incorrect." },
+  AUTH_INVALID: { hi: "ID या पासवर्ड गलत है।", en: "The ID or password is incorrect." },
   AUTH_LOCKED: {
     hi: "कई गलत प्रयासों के कारण खाता 15 मिनट के लिए रोका गया है।",
     en: "Too many wrong attempts. The account is locked for 15 minutes.",
