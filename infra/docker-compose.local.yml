@@ -19,5 +19,7 @@ services:
       TRUST_PROXY: "false"
       # The desktop app (file://) plus the Vite dev server in a browser.
       CORS_ORIGINS: "null,http://localhost:5173"
+      # Garage is published on 127.0.0.1:3900 locally.
+      S3_PUBLIC_ENDPOINT: http://localhost:3900
     ports:
       - "127.0.0.1:3000:3000"

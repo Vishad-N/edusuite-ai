@@ -1,4 +1,4 @@
-import { type DynamicModule, Module, type Type } from "@nestjs/common";
+import { type DynamicModule, Module, type Provider, type Type } from "@nestjs/common";
 import { APP_GUARD, Reflector } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { ENV, type Env } from "./config/env";
@@ -15,13 +15,19 @@ import { InstitutesController } from "./institutes/institutes.controller";
 import { InstitutesService } from "./institutes/institutes.service";
 import { DocumentsController } from "./documents/documents.controller";
 import { DocumentsService } from "./documents/documents.service";
+import { FilesController } from "./files/files.controller";
+import { FilesService } from "./files/files.service";
+import { S3Storage, STORAGE } from "./files/storage";
 
 const MINUTE_MS = 60_000;
 
 @Module({})
 export class AppModule {
-  /** `extraControllers` lets tests mount probe routes; production passes none. */
-  static forRoot(env: Env, extraControllers: Type[] = []): DynamicModule {
+  /**
+   * `extraControllers` lets tests mount probe routes and `overrides` swap a
+   * provider (e.g. in-memory storage); production passes neither.
+   */
+  static forRoot(env: Env, extraControllers: Type[] = [], overrides: Provider[] = []): DynamicModule {
     const reflector = new Reflector();
     return {
       module: AppModule,
@@ -38,7 +44,15 @@ export class AppModule {
           ],
         }),
       ],
-      controllers: [HealthController, AuthController, UsersController, InstitutesController, DocumentsController, ...extraControllers],
+      controllers: [
+        HealthController,
+        AuthController,
+        UsersController,
+        InstitutesController,
+        DocumentsController,
+        FilesController,
+        ...extraControllers,
+      ],
       providers: [
         { provide: ENV, useValue: env },
         PrismaService,
@@ -48,10 +62,16 @@ export class AppModule {
         UsersService,
         InstitutesService,
         DocumentsService,
+        FilesService,
+        // Replaceable by `overrides` (Nest keeps the first provider for a token, so drop the default).
+        ...(overrides.some((p) => typeof p === "object" && "provide" in p && p.provide === STORAGE)
+          ? []
+          : [{ provide: STORAGE, useClass: S3Storage }]),
         // Order matters: rate limit, then who is calling, then what they may do.
         { provide: APP_GUARD, useClass: ThrottlerGuard },
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_GUARD, useClass: PermissionGuard },
+        ...overrides,
       ],
     };
   }

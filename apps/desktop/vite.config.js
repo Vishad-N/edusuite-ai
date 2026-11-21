@@ -22,6 +22,8 @@ function contentSecurityPolicy() {
     transformIndexHtml(html) {
       const csp = buildAppCsp({
         apiOrigin: resolveApiOrigin(process.env.EDUSUITE_API_URL, 'http://localhost:3000'),
+        // Presigned uploads go straight to storage, and images load from it (DN-040).
+        fileOrigins: [resolveApiOrigin(process.env.EDUSUITE_FILES_URL, 'http://localhost:3900')],
         dev,
         forMeta: true,
       })

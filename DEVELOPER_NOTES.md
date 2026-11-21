@@ -18,6 +18,26 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-040 · Files API: presign → upload → verify, public storage address, Garage quirks
+- **Date:** 2026-11-21
+- **Phase / area:** Phase 3 · `apps/api/src/files`, `packages/shared/src/files.ts`, `infra/*`
+- **Status:** Decided by agent
+- **What was unclear:** The plan says "presigned uploads" and `GET /files/:id` (302), but not how an upload is confirmed, how the type is really checked, which address links are signed for (the API reaches Garage as `garage:3900`, which the desktop can't), or how the `file://` app passes storage CORS.
+- **Options considered / Decision:**
+  - Flow: `POST /files/presign {name, mime, bytes}` creates the record and returns a 10-minute PUT link with content type and length signed in; the app uploads straight to storage; `POST /files/:id/complete` (uploader only) checks the real size and the first bytes (PNG, JPEG, WebP, PDF signatures). A mismatch deletes the object and the record and answers `FILE_SIZE_MISMATCH` or `FILE_TYPE_MISMATCH`. Only completed files can be read.
+  - Types and sizes: PNG, JPEG, WebP up to 10 MB; PDF up to 25 MB. SVG is refused (it can carry script).
+  - Keys: `<instituteId>/<random uuid>.<ext>`, never from the file name; the cleaned name is kept only for the download name.
+  - Reading: any signed-in user of the same institute (other institutes get 404). `GET /files/:id` redirects (302) to a 5-minute signed link; `GET /files/:id/url` returns the link as JSON for `<img>` tags, which can't send the login token.
+  - Addresses: the API uses `S3_ENDPOINT` for its own calls and signs links for `S3_PUBLIC_ENDPOINT` (`http://localhost:3900` locally, `https://${FILES_DOMAIN}` on the VPS, where Caddy proxies to Garage). The desktop CSP allows that origin for uploads and images (`EDUSUITE_FILES_URL`).
+  - CORS on the bucket is set by the API at startup from `CORS_ORIGINS`, one rule per origin (Garage echoes a rule's whole origin list, which browsers reject).
+  - AWS SDK checksums are limited to "when required": the SDK's default put a CRC32 of an empty body into every presigned PUT link, so every real upload failed with `InvalidDigest` against Garage.
+  - Migration `20261121000000_files_upload_state` adds `files.name` and `files.uploaded_at`.
+  - Tests use an in-memory storage fake (CI has no Garage); a live check ran the whole flow against real Garage.
+- **Reason:** Uploads never pass through the API, and nothing unverified can be used.
+- **Verified:** Live against Garage: preflight from `Origin: null` gets exactly `null`; signed PUT 200; complete 200 with the Hindi name; download bytes match; a PUT with a different content type is refused (403, signature); HTML disguised as PNG is rejected at complete.
+- **Affects:** `/api/v1/files*`, `apps/api/src/{files,config/env.ts,app.module.ts,bootstrap.ts}`, `apps/api/prisma/*`, `infra/{docker-compose*.yml,Caddyfile,.env.example}`, `apps/desktop/vite.config.js`
+- **Revisit if:** Abandoned presigns pile up (add a cleanup job and Garage lifecycle rule, ADR-5), or files need branch-level privacy.
+
 ### DN-039 · S3 client for presigned uploads: AWS SDK v3
 - **Date:** 2026-11-21
 - **Phase / area:** Phase 3 · files API

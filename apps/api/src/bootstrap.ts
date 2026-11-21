@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { randomUUID } from "node:crypto";
 import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
-import { RequestMethod, type LoggerService, type Type } from "@nestjs/common";
+import { RequestMethod, type LoggerService, type Provider, type Type } from "@nestjs/common";
 import type { FastifyBaseLogger } from "fastify";
 import { AppModule } from "./app.module";
 import { ApiExceptionFilter } from "./common/apiExceptionFilter";
@@ -18,7 +18,7 @@ class PinoNestLogger implements LoggerService {
   verbose(message: unknown, context?: string) { this.pino.trace({ context }, String(message)); }
 }
 
-export async function createApp(env: Env, extraControllers: Type[] = []): Promise<NestFastifyApplication> {
+export async function createApp(env: Env, extraControllers: Type[] = [], overrides: Provider[] = []): Promise<NestFastifyApplication> {
   const adapter = new FastifyAdapter({
     logger:
       env.NODE_ENV === "test"
@@ -36,7 +36,7 @@ export async function createApp(env: Env, extraControllers: Type[] = []): Promis
     trustProxy: env.TRUST_PROXY,
   });
 
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(env, extraControllers), adapter, {
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(env, extraControllers, overrides), adapter, {
     bufferLogs: true,
     // We register the JSON parser ourselves below (empty bodies allowed).
     bodyParser: false,
