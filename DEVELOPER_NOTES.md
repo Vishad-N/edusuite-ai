@@ -18,6 +18,22 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-045 · LessonPlanner saves through DocumentBar; teachers write the plan until Phase 4
+- **Date:** 2026-11-21
+- **Phase / area:** Phase 3 · `apps/desktop/src/components/LessonPlanner.jsx`
+- **Status:** Decided by agent
+- **What was unclear:** The screen always showed one built-in English physics plan (Faraday's laws, 5 days). Its form fields changed nothing on the plan, and "Update Lesson Blueprint" only played confetti and showed an English `alert()` claiming the AI had updated it. Its panels were light text on dark slate, unlike the migrated screens.
+- **Options considered / Decision:**
+  - Same pattern as DN-041 to DN-044. A new plan starts blank: empty chapter, subject and class, no objectives, one empty day. The sample plan, the confetti button and the alert are gone.
+  - "दिन-वार ढाँचा बनाएँ" (make a day-by-day outline) creates one empty day per chosen teaching day (3, 5 or 8). If any day already has a topic, activity or homework written, it asks first, because it replaces them. A note says AI lesson plans come in the next phase.
+  - Editors: objectives in a textarea, one per line (empty lines aren't saved); a day editor (pick a day; day label, topic, activities, homework; add a day up to 365, or delete one). The plan on the right now shows what the teacher typed.
+  - Saved shape is `LessonContentSchema` unchanged. A reopened plan whose number of days isn't 3, 5 or 8 still shows its own value.
+  - The whole screen moved to tokens and the shared primitives (light surfaces, Hindi labels); the form column is `no-print`.
+- **Reason:** A saved plan is the teacher's own work; nothing claims the AI did something it didn't.
+- **Verified:** End-to-end in the real Electron app against Docker: no sample text on open; a 3-day outline gives 3 days and fills the document title from the chapter; objectives and day 2 typed show in the plan; save shows "saved"; New clears without asking; reopening from History restores 3 days, the duration, both objectives and day 2's topic, activities and homework, and shows "saved"; re-running the outline over written days asks first, and cancelling keeps them; an unsaved edit then New asks first, and "रुकें" keeps it.
+- **Affects:** `LessonPlanner.jsx`
+- **Revisit if:** Phase 4 adds the `lesson_plan` AI job (the outline button then starts a job and fills the days).
+
 ### DN-044 · DPP / notebook / OMR saves through DocumentBar; DPP questions are teacher-written
 - **Date:** 2026-11-21
 - **Phase / area:** Phase 3 · `apps/desktop/src/components/NotebookDppMaker.jsx`
