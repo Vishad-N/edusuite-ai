@@ -3,39 +3,34 @@ import {
   Presentation,
   Image as ImageIcon,
   FileQuestion,
-  BookOpen,
   MessageSquareShare,
-  Sparkles,
   ArrowRight,
-  Download,
   CheckCircle2,
   Clock,
-  TrendingUp,
   FileText,
-  Zap,
   BookMarked,
   Video,
   FileSpreadsheet,
   CreditCard,
   Lightbulb,
-  Users,
-  Radio,
-  BookCheck,
-  Calendar,
   Camera,
   GraduationCap,
 } from "lucide-react";
+import { visibleScreens } from "@edusuite/shared";
 import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { useSignedInUser } from "../api/session.tsx";
+import { useDashboardStats } from "../api/stats.ts";
+import { ApiError } from "../api/client.ts";
+import { RecentDocuments } from "./RecentDocuments.tsx";
+import { ErrorState, Skeleton } from "./ui/index.ts";
 
-export default function Dashboard({
-  activeInstitute,
-  onNavigate,
-  onDownloadSamplePpt,
-  t,
-  lang,
-  currentUser,
-}) {
-  const quickTools = [
+export default function Dashboard({ activeInstitute, onNavigate, t, currentUser }) {
+  const user = useSignedInUser();
+  const allowed = new Set(visibleScreens(user.role));
+  const stats = useDashboardStats();
+  const wholeInstitute = user.role === "superadmin";
+
+  const allTools = [
     {
       id: "ocr_ppt",
       title: t.toolScreenshotPptTitle || "स्क्रीनशॉट से स्मार्टबोर्ड PPT मेकर (Bulk OCR)",
@@ -127,6 +122,8 @@ export default function Dashboard({
       color: "text-orange-600 bg-orange-50 border-orange-200",
     },
   ];
+  // Only the tools this role may open (the same list as the Sidebar).
+  const quickTools = allTools.filter((tool) => allowed.has(tool.id));
 
   return (
     <div className="space-y-6">
@@ -136,7 +133,7 @@ export default function Dashboard({
           <div className="flex items-center gap-5">
             <img
               src={activeInstitute?.logo || SATYADHI_LOGO}
-              alt="Satyadhi Sharma Logo"
+              alt=""
               className="w-20 h-20 md:w-24 md:h-24 rounded-full object-contain bg-amber-300 ring-4 ring-amber-400/80 shadow-2xl shrink-0"
             />
             <div className="space-y-1.5">
@@ -152,35 +149,43 @@ export default function Dashboard({
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-            <button
-              onClick={() => onNavigate("teacher_desk")}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-black text-xs shadow-md transition transform active:scale-95"
-            >
-              <GraduationCap className="w-4 h-4 text-amber-600" />
-              <span>👨‍🏫 शिक्षक पोर्टल</span>
-            </button>
-            <button
-              onClick={() => onNavigate("ocr_ppt")}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-lg shadow-amber-400/20 transition transform active:scale-95"
-            >
-              <Camera className="w-4 h-4 text-slate-950" />
-              <span>📸 स्क्रीनशॉट से PPT</span>
-            </button>
-            <button
-              onClick={() => onNavigate("youtube")}
-              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition transform active:scale-95"
-            >
-              <Video className="w-4 h-4" />
-              <span>{t.btnMakeThumbnail}</span>
-            </button>
-            <button
-              onClick={() => onNavigate("book")}
-              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-extrabold transition shadow-md"
-            >
-              <BookMarked className="w-4 h-4 text-slate-950" />
-              <span>{t.btnNewBook}</span>
-            </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 shrink-0">
+            {allowed.has("teacher_desk") && (
+              <button
+                onClick={() => onNavigate("teacher_desk")}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-black text-xs shadow-md transition transform active:scale-95"
+              >
+                <GraduationCap className="w-4 h-4 text-amber-600" />
+                <span>👨‍🏫 शिक्षक पोर्टल</span>
+              </button>
+            )}
+            {allowed.has("ocr_ppt") && (
+              <button
+                onClick={() => onNavigate("ocr_ppt")}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-lg shadow-amber-400/20 transition transform active:scale-95"
+              >
+                <Camera className="w-4 h-4 text-slate-950" />
+                <span>📸 स्क्रीनशॉट से PPT</span>
+              </button>
+            )}
+            {allowed.has("youtube") && (
+              <button
+                onClick={() => onNavigate("youtube")}
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-rose-700 hover:bg-rose-600 text-white font-bold text-xs shadow-md transition transform active:scale-95"
+              >
+                <Video className="w-4 h-4" />
+                <span>{t.btnMakeThumbnail}</span>
+              </button>
+            )}
+            {allowed.has("book") && (
+              <button
+                onClick={() => onNavigate("book")}
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-extrabold transition shadow-md"
+              >
+                <BookMarked className="w-4 h-4 text-slate-950" />
+                <span>{t.btnNewBook}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -210,70 +215,52 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* Real Coaching Statistics Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: t.statBatches, value: t.statBatchesVal, detail: t.statBatchesDet, icon: Users, color: "text-blue-600 bg-blue-50" },
-          { label: t.statLive, value: t.statLiveVal, detail: t.statLiveDet, icon: Radio, color: "text-rose-600 bg-rose-50" },
-          { label: t.statDpp, value: t.statDppVal, detail: t.statDppDet, icon: FileSpreadsheet, color: "text-teal-600 bg-teal-50" },
-          { label: t.statBooks, value: t.statBooksVal, detail: t.statBooksDet, icon: BookCheck, color: "text-amber-600 bg-amber-50" },
-        ].map((stat, idx) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={idx}
-              className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-slate-500 font-semibold">
-                  {stat.label}
-                </span>
-                <span className={`p-2 rounded-xl ${stat.color}`}>
-                  <Icon className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-                {stat.value}
-              </div>
-              <div className="text-[11px] text-slate-500 mt-1 font-medium">
-                {stat.detail}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Today's Live YouTube Schedule Banner */}
-      <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-            <Radio className="w-5 h-5 animate-pulse" />
+      {/* Saved work, counted by the server (GET /stats/dashboard, DN-051) */}
+      {stats.isPending ? (
+        <Skeleton lines={3} />
+      ) : stats.isError ? (
+        <ErrorState
+          title="आँकड़े लोड नहीं हुए"
+          message={stats.error instanceof ApiError ? stats.error.message : undefined}
+          onRetry={() => void stats.refetch()}
+        />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              {
+                label: "सेव किए गए दस्तावेज़",
+                value: stats.data.totals.total,
+                detail: wholeInstitute ? "पूरे संस्थान में" : "आपकी शाखा में",
+                icon: FileText,
+              },
+              { label: "मेरे दस्तावेज़", value: stats.data.totals.mine, detail: "आपके बनाए हुए", icon: CheckCircle2 },
+              { label: "पिछले 7 दिन", value: stats.data.totals.last7Days, detail: "नए बने या बदले गए", icon: Clock },
+            ].map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <div key={stat.label} className="rounded-card border border-line bg-surface p-4 text-ink">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-label font-semibold text-muted">{stat.label}</span>
+                    <Icon className="size-4 text-muted" aria-hidden="true" />
+                  </div>
+                  <div className="text-heading font-black">{stat.value.toLocaleString("hi-IN")}</div>
+                  <div className="mt-1 text-caption text-muted">{stat.detail}</div>
+                </div>
+              );
+            })}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-900">
-                {t.todayLiveTitle}
-              </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-600 text-white uppercase">
-                LIVE
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {t.todayLiveSub}
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onNavigate("youtube")}
-            className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1.5"
-          >
-            <span>{t.btnSetThumbnail}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+          <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
+            <h2 className="text-label font-semibold">हाल के दस्तावेज़</h2>
+            <RecentDocuments
+              items={stats.data.recent}
+              emptyTitle="अभी कुछ सेव नहीं हुआ"
+              emptyDescription="किसी भी टूल में काम करके “सेव करें” दबाएँ; वह यहाँ दिखेगा।"
+            />
+          </div>
+        </>
+      )}
 
       {/* Main Tools Grid */}
       <div>

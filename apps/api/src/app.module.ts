@@ -18,6 +18,8 @@ import { DocumentsService } from "./documents/documents.service";
 import { FilesController } from "./files/files.controller";
 import { FilesService } from "./files/files.service";
 import { S3Storage, STORAGE } from "./files/storage";
+import { StatsController } from "./stats/stats.controller";
+import { StatsService } from "./stats/stats.service";
 
 const MINUTE_MS = 60_000;
 
@@ -51,6 +53,7 @@ export class AppModule {
         InstitutesController,
         DocumentsController,
         FilesController,
+        StatsController,
         ...extraControllers,
       ],
       providers: [
@@ -63,6 +66,7 @@ export class AppModule {
         InstitutesService,
         DocumentsService,
         FilesService,
+        StatsService,
         // Replaceable by `overrides` (Nest keeps the first provider for a token, so drop the default).
         ...(overrides.some((p) => typeof p === "object" && "provide" in p && p.provide === STORAGE)
           ? []

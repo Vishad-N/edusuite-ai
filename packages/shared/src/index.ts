@@ -6,3 +6,4 @@ export * from "./users.ts";
 export * from "./institutes.ts";
 export * from "./documents.ts";
 export * from "./files.ts";
+export * from "./stats.ts";

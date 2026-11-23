@@ -29,9 +29,7 @@ import TeacherDesk from "./components/TeacherDesk";
 import UserManagement from "./components/UserManagement.tsx";
 import LoginScreen from "./components/LoginScreen.tsx";
 import SettingsModal from "./components/SettingsModal.tsx";
-import { presentationPresets } from "./data/sampleData";
 import { translations } from "./data/translations";
-import { generatePptxFile } from "./utils/pptxGenerator";
 import { useSession, useSignedInUser } from "./api/session.tsx";
 import { Skeleton } from "./components/ui/index.ts";
 
@@ -42,7 +40,6 @@ export type ScreenProps = {
   t: (typeof translations)["hi"];
   lang: "hi" | "en";
   currentUser: LegacyUser;
-  onDownloadSamplePpt: () => Promise<void>;
 };
 
 // Screens are still JSX without prop types; they receive ScreenProps.
@@ -185,9 +182,6 @@ function AppShell() {
     t,
     lang,
     currentUser,
-    onDownloadSamplePpt: async () => {
-      await generatePptxFile({ ...presentationPresets[0], instituteName: activeInstitute.name }, "navy");
-    },
   };
 
   return (

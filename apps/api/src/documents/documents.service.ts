@@ -24,7 +24,7 @@ import { scopeWhere } from "../auth/scope";
 type Ctx = { ip?: string | undefined };
 type FullDocument = DocumentSummary & { content: unknown };
 
-const summarySelect = {
+export const summarySelect = {
   id: true,
   type: true,
   title: true,
@@ -35,7 +35,7 @@ const summarySelect = {
   createdBy: { select: { id: true, displayName: true } },
 } as const;
 
-type SummaryRow = {
+export type SummaryRow = {
   id: string;
   type: DocumentType;
   title: string;
@@ -46,7 +46,7 @@ type SummaryRow = {
   createdBy: { id: string; displayName: string };
 };
 
-function toSummary(row: SummaryRow): DocumentSummary {
+export function toSummary(row: SummaryRow): DocumentSummary {
   return {
     id: row.id,
     type: row.type,
