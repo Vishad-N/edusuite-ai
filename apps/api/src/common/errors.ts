@@ -66,6 +66,23 @@ export const ERROR_MESSAGES = {
     hi: "यह AI सुविधा अभी उपलब्ध नहीं है।",
     en: "This AI feature isn't available yet.",
   },
+  RECEIPT_OVER_BALANCE: {
+    hi: "रसीद की राशि बकाया से ज़्यादा है। पहले छात्र की कुल फ़ीस जाँचें।",
+    en: "The receipt is more than the balance due. Check the student's total fee first.",
+  },
+  RECEIPT_DATE_INVALID: {
+    hi: "रसीद की तारीख आज की या पिछले 7 दिनों में से होनी चाहिए।",
+    en: "The receipt date must be today or within the last 7 days.",
+  },
+  RECEIPT_ALREADY_CANCELLED: { hi: "यह रसीद पहले ही रद्द हो चुकी है।", en: "This receipt is already cancelled." },
+  FEE_BELOW_PAID: {
+    hi: "कुल फ़ीस जमा हो चुकी राशि से कम नहीं हो सकती।",
+    en: "The total fee can't be less than what has already been paid.",
+  },
+  FEE_CHANGE_NOT_ALLOWED: {
+    hi: "छात्र जुड़ने के बाद कुल फ़ीस केवल एडमिन बदल सकते हैं।",
+    en: "Only admins can change the total fee after a student is added.",
+  },
   AI_INPUT_FILE_INVALID: {
     hi: "यह फ़ाइल उपयोग नहीं हो सकती। सही प्रकार और आकार की फ़ाइल चुनें और अपलोड पूरा होने दें।",
     en: "This file can't be used. Choose a file of the right type and size and let the upload finish.",

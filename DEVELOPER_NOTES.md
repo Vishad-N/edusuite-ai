@@ -18,6 +18,52 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-061 · Phase 5: students, fee receipts and ID cards
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 5 · `packages/shared/src/students.ts`, `apps/api/src/students/*`, `apps/desktop/src/{api/students.ts,components/IdAndFeeReceipt.tsx}` (replaces the sample-data `.jsx`)
+- **Status:** Money rules decided by developer (four questions, all recommended options); the rest decided by agent
+- **What was unclear:** The plan fixes the receipt format, gap-free numbering, idempotency, "never deleted, only cancelled with a reason" and who may do what (DN-007, matrix). It doesn't say whether a receipt may exceed the balance, who sets roll numbers, whether receipts can be back-dated, or who may change a student's total fee.
+- **Decision:**
+  - **Developer's choices:**
+    - A receipt can't be more than the balance due (total fee − issued receipts).
+    - Roll numbers are automatic (`<INST>-<BRANCH>-<year>-<0001>`), and staff may type their own; they're unique per institute and upper-cased.
+    - Receipts can be dated today or up to 7 days back (IST), never in the future.
+    - Only admins (super admin, branch admin) change the total fee after enrolment, never below what's paid; counselors set it when adding a student.
+  - **Numbering:** `<INST>-<BRANCH>/<FY>/<000001>` (DN-013), by the student's branch and the receipt date's financial year. One transaction: lock the student row (`FOR UPDATE`, so two desks can't overpay), create the counter row if missing, then `UPDATE … SET last_seq = last_seq + 1 RETURNING` (the row lock serialises numbering, and a rollback undoes it, so there are no gaps), insert the receipt and the audit row.
+  - **Idempotency:** `POST /fee-receipts` requires an `Idempotency-Key`. A repeat returns the same receipt (200, nothing created). The same key with a different student, amount or user answers 409. Two simultaneous requests with one key: the loser returns the winner's receipt. The screen keeps one key per filled form and makes a new one after success.
+  - **Cancel:** `receipts.cancel` (super admin institute-wide; branch admin own branch), reason 3–300 characters. The receipt stays, marked cancelled with the reason and who cancelled it. Its amount returns to the balance. The number is never reused. Audited in the same transaction.
+  - **API:**
+    - `GET /students` (search by name, roll number, phone or guardian; status filter; cursor pages)
+    - `GET /students/next-roll-no`, `POST /students`, `GET /students/:id`, `PATCH /students/:id` (every change audited, with the old and new fee)
+    - `GET /fee-receipts?studentId=`, `POST /fee-receipts`, `POST /fee-receipts/:id/cancel`
+
+    Scope is `students.fees` (super admin whole institute; branch admin and counselor their branch); other branches and institutes get 404. A photo must be this institute's uploaded image. New codes: `RECEIPT_OVER_BALANCE`, `RECEIPT_DATE_INVALID`, `RECEIPT_ALREADY_CANCELLED`, `FEE_BELOW_PAID`, `FEE_CHANGE_NOT_ALLOWED`.
+  - **Screen:**
+    - student list with search and status; add/edit form (roll suggestion shown, fee locked for non-admins after enrolment, photo upload)
+    - per student: totals (fee, paid, due), and "रसीद काटें" (amount ≤ due, mode, date within the last 7 days)
+    - a printable receipt with the server's number, the due after it, and the issuer
+    - "रसीदें" with reprint, and cancel with a required reason for admins only
+    - "ID कार्ड" with the photo, course, batch, guardian, phone and the academic session
+
+    Only the receipt or card prints. All sample data (and the confetti import) is gone. No GST wording (DN-013).
+  - **Not built:** `GET /students/:id/id-card` from the plan (the card renders and prints in the app from the student record); receipt PDFs on the server; fee instalment plans; reports.
+- **Reason:** Money stays correct under double clicks, retries and two desks at once, and every change to it is traceable.
+- **Verified:**
+  - Shared 51 tests (financial-year turnover on 1 April, IST date, 2-decimal rupees, roll format).
+  - API 108 tests:
+    - counselor adds with automatic roll numbers 0001/0002; a typed duplicate is 409; teachers and typists 403
+    - branch and institute scoping
+    - the receipt number format; over-balance, 8-days-back and future dates refused; 7 days back accepted with the next number
+    - the same key returns the same receipt, and a different body is 409
+    - **10 parallel ₹1,000 receipts on a ₹5,000 balance: exactly 5 succeed, numbers 1…n with no gaps or repeats**
+    - total-fee rules and audit; cancel rules, balance restored, number not reused, audit row
+  - Desktop typecheck, lint, build and 36 tests pass.
+  - End-to-end in Electron against Docker:
+    - counselor (Gita Bhavan branch): no sample data; roll suggestion `DEMO-GTB-2026-000n`; student added with a photo; ₹13,000 blocked; ₹5,000 UPI gives `DEMO-GTB/2026-27/00000n` printed with "बकाया ₹7,000"
+    - history shows 1 row with no cancel button; the ID card shows the photo and details
+    - super admin finds the student; cancel stays disabled until a reason is typed; after cancelling, the row shows "रद्द: …" and the balance is back to ₹12,000
+- **Revisit if:** institutes need instalment schedules or due-date reminders, GST invoices (DN-013), or receipts emailed or sent on WhatsApp as PDFs.
+
 ### DN-060 · Phase 4 complete: doubt, YouTube, notice, book chapter and poster copy AI jobs
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 4 · `packages/shared/src/ai.ts`, `apps/api/src/ai/{doubtSolve,youtubeMeta,noticeDraft,bookChapter,posterCopy}.ts`, `apps/desktop/src/components/{DoubtSolver,YouTubeStudio,NoticeHub,BookCreator,ImageStudio}.jsx`
