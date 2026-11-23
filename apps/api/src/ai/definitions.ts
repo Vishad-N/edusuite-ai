@@ -1,6 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { z } from "zod";
 import { deckQuiz } from "./deckQuiz";
+import { paperGenerate } from "./paperGenerate";
 import { PptOutlineInputSchema, PptOutlineOutputSchema, type AiJobType, type PptOutlineInput, type PptOutlineOutput } from "@edusuite/shared";
 
 /** What a job's prompt may use besides its input: the signed-in institute (DN-052) and its files. */
@@ -93,5 +94,6 @@ export const pptOutline: JobDefinition<PptOutlineInput, PptOutlineOutput> = {
 /** Every job type the worker can run (shared IMPLEMENTED_AI_JOBS must match; a test checks it). */
 export const JOB_DEFINITIONS: Partial<Record<AiJobType, JobDefinition<never, unknown>>> = {
   ppt_outline: pptOutline as unknown as JobDefinition<never, unknown>,
+  paper_generate: paperGenerate as unknown as JobDefinition<never, unknown>,
   deck_quiz: deckQuiz as unknown as JobDefinition<never, unknown>,
 };

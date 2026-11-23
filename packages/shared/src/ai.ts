@@ -41,9 +41,51 @@ export const PptOutlineOutputSchema = z.object({
 });
 export type PptOutlineOutput = z.infer<typeof PptOutlineOutputSchema>;
 
+/** paper_generate: a sectioned test paper with an answer key (QuestionPaperMaker, DN-056). */
+export const PAPER_DIFFICULTIES = ["easy", "medium", "hard", "mixed"] as const;
+/** Marks per question in each section; the teacher can rename sections and change marks after. */
+export const PAPER_MARKS = { mcq: 1, short: 3, long: 5 } as const;
+export const PAPER_MAX_QUESTIONS = 60;
+
+export const PaperGenerateInputSchema = z
+  .object({
+    subject: z.string().trim().min(2).max(100),
+    grade: z.string().trim().max(100).optional(),
+    /** Chapters or topics the paper must cover. */
+    topics: z.string().trim().min(2).max(1000),
+    mcqCount: z.number().int().min(0).max(50).default(10),
+    shortCount: z.number().int().min(0).max(30).default(5),
+    longCount: z.number().int().min(0).max(10).default(2),
+    difficulty: z.enum(PAPER_DIFFICULTIES).default("mixed"),
+    language: z.enum(AI_LANGUAGES).default("hi"),
+  })
+  .refine((p) => p.mcqCount + p.shortCount + p.longCount >= 1, { message: "at least one question", path: ["mcqCount"] })
+  .refine((p) => p.mcqCount + p.shortCount + p.longCount <= PAPER_MAX_QUESTIONS, { message: `at most ${PAPER_MAX_QUESTIONS} questions`, path: ["mcqCount"] });
+export type PaperGenerateInput = z.infer<typeof PaperGenerateInputSchema>;
+
+export const PaperGenerateOutputSchema = z.object({
+  title: z.string().describe("A short paper title, e.g. the subject and the topics"),
+  sections: z.array(
+    z.object({
+      kind: z.enum(["mcq", "short", "long"]),
+      questions: z.array(
+        z.object({
+          q: z.string(),
+          options: z.array(z.string()).describe("Exactly four option texts for mcq, without letters; empty for short and long"),
+          answer: z
+            .string()
+            .describe("mcq: the correct letter and a one-line reason, e.g. 'B) because …'; short: a model answer in 2–4 sentences; long: a step-by-step solution or model answer"),
+        }),
+      ),
+    }),
+  ),
+});
+export type PaperGenerateOutput = z.infer<typeof PaperGenerateOutputSchema>;
+
 /** Job types the worker can run today; the others arrive one at a time (plan §08 order). */
 export const AiJobCreateSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("ppt_outline"), input: PptOutlineInputSchema }),
+  z.object({ type: z.literal("paper_generate"), input: PaperGenerateInputSchema }),
   z.object({ type: z.literal("deck_quiz"), input: DeckQuizInputSchema }),
 ]);
 export type AiJobCreate = z.infer<typeof AiJobCreateSchema>;
@@ -53,6 +95,7 @@ export const IMPLEMENTED_AI_JOBS = AiJobCreateSchema.options.map((o) => o.shape.
 export function jobItemCount(job: AiJobCreate): number {
   switch (job.type) {
     case "ppt_outline":
+    case "paper_generate":
     case "deck_quiz":
       return 1;
   }

@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AiJobCreateSchema, IMPLEMENTED_AI_JOBS, PptOutlineOutputSchema, jobItemCount } from "./ai.ts";
+import { AiJobCreateSchema, IMPLEMENTED_AI_JOBS, PAPER_MAX_QUESTIONS, PptOutlineOutputSchema, jobItemCount } from "./ai.ts";
 import { AI_JOB_PERMISSIONS } from "./permissions.ts";
 
 test("implemented job types are known, permissioned job types", () => {
-  assert.deepEqual(IMPLEMENTED_AI_JOBS, ["ppt_outline", "deck_quiz"]);
+  assert.deepEqual(IMPLEMENTED_AI_JOBS, ["ppt_outline", "paper_generate", "deck_quiz"]);
   for (const t of IMPLEMENTED_AI_JOBS) assert.ok(t in AI_JOB_PERMISSIONS, t);
 });
 
@@ -26,4 +26,16 @@ test("ppt_outline output matches what PptMaker fills", () => {
     slides: [{ tag: "परिचय", title: "क्या है?", points: ["a", "b", "c"], takeaway: "" }],
   });
   assert.equal(out.slides[0]!.points.length, 3);
+});
+
+test("paper_generate input gets defaults and needs 1 to 60 questions", () => {
+  const job = AiJobCreateSchema.parse({ type: "paper_generate", input: { subject: "रसायन", topics: "अम्ल, क्षार और लवण" } });
+  assert.equal(job.type, "paper_generate");
+  if (job.type !== "paper_generate") return;
+  assert.deepEqual([job.input.mcqCount, job.input.shortCount, job.input.longCount], [10, 5, 2]);
+  assert.equal(job.input.difficulty, "mixed");
+  const bad = (input: object) => !AiJobCreateSchema.safeParse({ type: "paper_generate", input: { subject: "रसायन", topics: "अम्ल", ...input } }).success;
+  assert.ok(bad({ mcqCount: 0, shortCount: 0, longCount: 0 }), "no questions");
+  assert.ok(bad({ mcqCount: 50, shortCount: 30, longCount: 10 }), `more than ${PAPER_MAX_QUESTIONS}`);
+  assert.ok(bad({ topics: "" }));
 });

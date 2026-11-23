@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { FileQuestion, Printer, Copy, Check, Sparkles, Sliders, Plus, Trash2 } from "lucide-react";
 import { instituteLogo } from "../utils/branding.ts";
+import { PAPER_MARKS } from "@edusuite/shared";
 import { DocumentBar } from "./DocumentBar.tsx";
+import { AiGenerate } from "./AiGenerate.tsx";
 import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 
 const GRADES = ["MPPSC Pre + Mains", "SSC CGL / GD", "Vyapam / Sub-Inspector", "Class 10", "Class 12"];
@@ -11,6 +13,24 @@ const MARKS = [
   { value: 50, label: "50 (मिड-टर्म)" },
   { value: 80, label: "80 (फुल बोर्ड)" },
 ];
+
+const SECTION_NAMES = {
+  mcq: `बहुविकल्पीय प्रश्न (${PAPER_MARKS.mcq} अंक प्रत्येक)`,
+  short: `लघु उत्तरीय प्रश्न (${PAPER_MARKS.short} अंक प्रत्येक)`,
+  long: `दीर्घ उत्तरीय / आंकिक प्रश्न (${PAPER_MARKS.long} अंक प्रत्येक)`,
+};
+const DIFFICULTIES = [
+  { value: "mixed", label: "मिश्रित (आसान से कठिन)" },
+  { value: "easy", label: "आसान" },
+  { value: "medium", label: "मध्यम" },
+  { value: "hard", label: "कठिन" },
+];
+const LANGUAGES = [
+  { value: "hi", label: "हिन्दी" },
+  { value: "en", label: "English" },
+  { value: "both", label: "हिन्दी + English" },
+];
+const count = (v, max) => Math.max(0, Math.min(max, Math.trunc(Number(v) || 0)));
 
 const blankQuestion = (mcq) => ({ q: "", options: mcq ? ["A) ", "B) ", "C) ", "D) "] : [], ans: "" });
 
@@ -31,6 +51,30 @@ export default function QuestionPaperMaker({ activeInstitute }) {
   const [docTitle, setDocTitle] = useState("");
   const [sections, setSections] = useState(blankSections);
   const [sectionIndex, setSectionIndex] = useState(0);
+  // AI blueprint (DN-056): not part of the saved paper.
+  const [topics, setTopics] = useState("");
+  const [mcqCount, setMcqCount] = useState(10);
+  const [shortCount, setShortCount] = useState(5);
+  const [longCount, setLongCount] = useState(2);
+  const [difficulty, setDifficulty] = useState("mixed");
+  const [language, setLanguage] = useState("hi");
+  const aiTotal = mcqCount + shortCount + longCount;
+  const aiMarks = mcqCount * PAPER_MARKS.mcq + shortCount * PAPER_MARKS.short + longCount * PAPER_MARKS.long;
+
+  /** Fills the editor from a paper_generate result; the teacher reviews it, unsaved. */
+  const fillFromAi = (result) => {
+    const letters = ["A", "B", "C", "D"];
+    setSections(
+      result.sections.map((s, i) => ({
+        name: `खंड ${String.fromCharCode(65 + i)}: ${SECTION_NAMES[s.kind]}`,
+        questions: s.questions.map((q) => ({ q: q.q, options: q.options.map((o, k) => `${letters[k]}) ${o}`), ans: q.answer })),
+      })),
+    );
+    setSectionIndex(0);
+    setTotalMarks(result.sections.reduce((sum, s) => sum + s.questions.length * PAPER_MARKS[s.kind], 0));
+    if (!examTitle.trim()) setExamTitle(result.title);
+    if (!docTitle.trim()) setDocTitle(result.title);
+  };
 
   // What gets saved (shape: PaperContentSchema in packages/shared/documents.ts).
   const documentContent = {
@@ -50,8 +94,7 @@ export default function QuestionPaperMaker({ activeInstitute }) {
   };
   const paper = documentContent;
 
-  // Real AI papers arrive in Phase 4 (job question_paper). Until then this lays out
-  // the usual three-section structure with empty questions for the teacher to fill.
+  // Free option: the usual three-section structure with empty questions for the teacher to fill.
   const handleGenerate = () => {
     setSections([
       { name: "खंड A: बहुविकल्पीय प्रश्न (1 अंक प्रत्येक)", questions: [blankQuestion(true), blankQuestion(true), blankQuestion(true)] },
@@ -185,12 +228,72 @@ export default function QuestionPaperMaker({ activeInstitute }) {
               आंसर-की और हल शामिल करें
               <input type="checkbox" checked={showAnswerKey} onChange={(e) => setShowAnswerKey(e.target.checked)} className="size-4" />
             </label>
-            <Button variant="primary" className="w-full" icon={<Sparkles className="size-4" />} onClick={handleGenerate}>
-              पेपर ढाँचा बनाएँ
+            <div className="space-y-3 rounded-control border border-line p-3">
+              <p className="text-label font-semibold">AI से पेपर बनाएँ</p>
+              <Field label="कौन-से अध्याय / टॉपिक" hint="जैसे: अम्ल, क्षार और लवण; pH स्केल">
+                <Textarea rows={2} value={topics} maxLength={1000} onChange={(e) => setTopics(e.target.value)} />
+              </Field>
+              <div className="grid grid-cols-3 gap-2">
+                <Field label="MCQ">
+                  <Input type="number" min={0} max={50} value={mcqCount} onChange={(e) => setMcqCount(count(e.target.value, 50))} />
+                </Field>
+                <Field label="लघु उत्तरीय">
+                  <Input type="number" min={0} max={30} value={shortCount} onChange={(e) => setShortCount(count(e.target.value, 30))} />
+                </Field>
+                <Field label="दीर्घ उत्तरीय">
+                  <Input type="number" min={0} max={10} value={longCount} onChange={(e) => setLongCount(count(e.target.value, 10))} />
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="कठिनाई">
+                  <Select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+                    {DIFFICULTIES.map((d) => (
+                      <option key={d.value} value={d.value}>
+                        {d.label}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="भाषा">
+                  <Select value={language} onChange={(e) => setLanguage(e.target.value)}>
+                    {LANGUAGES.map((l) => (
+                      <option key={l.value} value={l.value}>
+                        {l.label}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              </div>
+              <p className="text-caption text-muted">
+                कुल {aiTotal} प्रश्न · {aiMarks} अंक (MCQ {PAPER_MARKS.mcq}, लघु {PAPER_MARKS.short}, दीर्घ {PAPER_MARKS.long} अंक प्रति प्रश्न)
+                {(aiTotal < 1 || aiTotal > 60) && <span className="text-danger"> · 1 से 60 प्रश्न चुनें</span>}
+              </p>
+              <AiGenerate
+                label="AI से पेपर बनाएँ"
+                build={() =>
+                  subject.trim().length >= 2 && topics.trim().length >= 2 && aiTotal >= 1 && aiTotal <= 60
+                    ? {
+                        type: "paper_generate",
+                        input: {
+                          subject: subject.trim(),
+                          ...(grade.trim() && { grade: grade.trim() }),
+                          topics: topics.trim(),
+                          mcqCount,
+                          shortCount,
+                          longCount,
+                          difficulty,
+                          language,
+                        },
+                      }
+                    : null
+                }
+                onResult={fillFromAi}
+                hint="पहले विषय और टॉपिक लिखें। AI के प्रश्न और आंसर-की संपादक में भरे जाएँगे, सेव नहीं होंगे; प्रिंट से पहले जाँच लें।"
+              />
+            </div>
+            <Button className="w-full" icon={<Sparkles className="size-4" />} onClick={handleGenerate}>
+              खाली पेपर ढाँचा बनाएँ (मुफ़्त)
             </Button>
-            <p className="text-caption text-muted">
-              अभी यह तीन खंडों का खाली ढाँचा बनाता है, जिसमें आप प्रश्न लिखें। AI से प्रश्न अगले चरण में आएँगे।
-            </p>
           </div>
 
           <SectionEditor

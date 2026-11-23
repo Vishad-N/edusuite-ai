@@ -1,7 +1,7 @@
 import { after, before, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { AiJobSchema, DeckQuizSchema, IMPLEMENTED_AI_JOBS, PptOutlineOutputSchema, buildDeckQuizHtml } from "@edusuite/shared";
+import { AiJobSchema, DeckQuizSchema, PaperGenerateOutputSchema, IMPLEMENTED_AI_JOBS, PptOutlineOutputSchema, buildDeckQuizHtml } from "@edusuite/shared";
 import { STORAGE } from "../src/files/storage";
 import { FakeStorage, PNG_BYTES } from "./helpers/fakeStorage";
 import type { JobContext, JobDefinition } from "../src/ai/definitions";
@@ -11,6 +11,7 @@ import { AI_QUEUE, type AiQueue } from "../src/ai/queue";
 import { AiProcessor } from "../src/ai/processor";
 import { AiJobError, AiRunner, costOf, fixtureKey } from "../src/ai/runner";
 import { JOB_DEFINITIONS } from "../src/ai/definitions";
+import { normalizePaper } from "../src/ai/paperGenerate";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { CreditsService } from "../src/credits/credits.service";
 import { loadEnv } from "../src/config/env";
@@ -39,6 +40,19 @@ describe("unit: runner helpers", () => {
     assert.equal(fixtureKey("ppt_outline", { a: 1, b: { c: 2, d: 3 } }), fixtureKey("ppt_outline", { b: { d: 3, c: 2 }, a: 1 }));
     // 1M input + 1M output on Opus 5.5 = $4 + $20.
     assert.equal(costOf("claude-opus-5-5", { inputTokens: 1e6, outputTokens: 1e6, cacheReadTokens: 0, cacheWriteTokens: 0 }), 24);
+  });
+  test("paper output keeps mcq, short, long order and drops broken questions", () => {
+    const out = normalizePaper({
+      title: " रसायन ",
+      sections: [
+        { kind: "long", questions: [{ q: "दीर्घ", options: ["x"], answer: "हल" }] },
+        { kind: "mcq", questions: [{ q: "a?", options: ["1", "2", "3", "4"], answer: "A)" }, { q: "b?", options: ["1", "2"], answer: "A)" }] },
+        { kind: "short", questions: [{ q: " ", options: [], answer: "" }] },
+      ],
+    });
+    assert.deepEqual(out.sections.map((s) => [s.kind, s.questions.length]), [["mcq", 1], ["long", 1]]);
+    assert.deepEqual(out.sections[1]!.questions[0]!.options, [], "only MCQs keep options");
+    assert.throws(() => normalizePaper({ title: "x", sections: [] }), AiJobError);
   });
   test("production refuses fixture mode (DN-012); an empty key counts as unset", () => {
     assert.equal(loadEnv({ NODE_ENV: "development", ANTHROPIC_API_KEY: "" }).ANTHROPIC_API_KEY, undefined);
@@ -150,6 +164,16 @@ describe("AI jobs API (real Postgres)", { skip }, () => {
     assert.equal((await t.call("GET", `/api/v1/ai/jobs/${job.id}`, otherAdmin)).statusCode, 404, "another institute");
     // Processing again is a no-op.
     assert.equal(await processor.process(job.id, { attemptsMade: 0, maxAttempts: 3 }), "skipped");
+  });
+
+  test("paper_generate runs in fixture mode with the requested counts", async () => {
+    const res = await start(teacher, randomUUID(), { type: "paper_generate", input: { subject: "रसायन", topics: "अम्ल और क्षार", mcqCount: 4, shortCount: 2, longCount: 0 } });
+    const job = AiJobSchema.parse(res.json());
+    assert.equal(job.creditsCharged, 2, "DN-053 default price");
+    assert.equal(await processor.process(job.id, { attemptsMade: 0, maxAttempts: 3 }), "succeeded");
+    const paper = PaperGenerateOutputSchema.parse(AiJobSchema.parse((await t.call("GET", `/api/v1/ai/jobs/${job.id}`, teacher)).json()).result);
+    assert.deepEqual(paper.sections.map((s) => [s.kind, s.questions.length]), [["mcq", 4], ["short", 2]]);
+    assert.equal(paper.sections[0]!.questions[0]!.options.length, 4);
   });
 
   test("a retryable failure waits for a retry; a final failure refunds once", async () => {
