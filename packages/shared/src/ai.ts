@@ -175,6 +175,105 @@ export const LessonPlanOutputSchema = z.object({
 });
 export type LessonPlanOutput = z.infer<typeof LessonPlanOutputSchema>;
 
+/** doubt_solve: a student's doubt, typed or as a photo, solved step by step (DoubtSolver, DN-060). */
+export const DOUBT_IMAGE_MIMES = MCQ_IMAGE_MIMES;
+export const DoubtSolveInputSchema = z
+  .object({
+    question: z.string().trim().max(4000).default(""),
+    subject: z.string().trim().max(160).optional(),
+    /** An uploaded photo of the question (PNG, JPEG or WebP up to 5 MB). */
+    imageFileId: z.uuid().optional(),
+    language: z.enum(AI_LANGUAGES).default("hi"),
+  })
+  .refine((d) => d.question.length >= 2 || d.imageFileId, { message: "type the question or add a photo", path: ["question"] });
+export type DoubtSolveInput = z.infer<typeof DoubtSolveInputSchema>;
+
+export const DoubtSolveOutputSchema = z.object({
+  question: z.string().describe("The question as asked (transcribed from the photo if there is one)"),
+  answer: z.string().describe("The final answer in one line"),
+  steps: z.array(z.string()).describe("The solution, one short step per item"),
+  shortcutTrick: z.string().describe("An exam shortcut if there is a genuine one; empty otherwise"),
+  commonMistake: z.string().describe("The mistake students most often make here; empty if none"),
+  similarQuestions: z.array(z.string()).describe("2 or 3 similar practice questions"),
+});
+export type DoubtSolveOutput = z.infer<typeof DoubtSolveOutputSchema>;
+
+/** youtube_meta: video title, description and tags (YouTubeStudio, DN-060). */
+export const YOUTUBE_TITLE_MAX = 100;
+export const YoutubeMetaInputSchema = z.object({
+  headline: z.string().trim().min(2).max(200),
+  punchline: z.string().trim().max(200).optional(),
+  subject: z.string().trim().max(160).optional(),
+  facultyName: z.string().trim().max(160).optional(),
+  language: z.enum(AI_LANGUAGES).default("hi"),
+});
+export type YoutubeMetaInput = z.infer<typeof YoutubeMetaInputSchema>;
+
+export const YoutubeMetaOutputSchema = z.object({
+  title: z.string().describe(`The video title, at most ${YOUTUBE_TITLE_MAX} characters`),
+  description: z.string().describe("The video description: what the class covers, who it is for, 4 to 8 short lines"),
+  tags: z.array(z.string()).describe("10 to 20 search tags, each a few words"),
+});
+export type YoutubeMetaOutput = z.infer<typeof YoutubeMetaOutputSchema>;
+
+/** notice_draft: a notice as a WhatsApp message and a formal circular (NoticeHub, DN-060). */
+export const NoticeDraftInputSchema = z.object({
+  category: z.string().trim().max(100).optional(),
+  /** What the notice must say: the facts, dates, amounts and who it is for. */
+  details: z.string().trim().min(5).max(2000),
+  date: z.string().trim().max(60).optional(),
+  language: z.enum(AI_LANGUAGES).default("hi"),
+});
+export type NoticeDraftInput = z.infer<typeof NoticeDraftInputSchema>;
+
+export const NoticeDraftOutputSchema = z.object({
+  title: z.string().describe("A short notice title"),
+  whatsappText: z.string().describe("A friendly WhatsApp message to students or parents, with *bold* for key facts, under 120 words"),
+  formalText: z.string().describe("The body of a formal printed circular, 2 to 4 short paragraphs, without letterhead, date or signature"),
+});
+export type NoticeDraftOutput = z.infer<typeof NoticeDraftOutputSchema>;
+
+/** book_chapter: one study-book chapter (BookCreator, DN-060). Priced 2 (DN-053). */
+export const BookChapterInputSchema = z.object({
+  chapterTitle: z.string().trim().min(2).max(200),
+  bookTitle: z.string().trim().max(200).optional(),
+  subject: z.string().trim().max(160).optional(),
+  targetExam: z.string().trim().max(160).optional(),
+  questionCount: z.number().int().min(0).max(20).default(5),
+  language: z.enum(AI_LANGUAGES).default("hi"),
+});
+export type BookChapterInput = z.infer<typeof BookChapterInputSchema>;
+
+export const BookChapterOutputSchema = z.object({
+  subtitle: z.string().describe("A one-line chapter subtitle"),
+  theory: z.array(z.string()).describe("4 to 10 theory paragraphs in teaching order"),
+  highlights: z.array(z.string()).describe("3 to 8 one-line exam points"),
+  practiceQuestions: z.array(
+    z.object({
+      q: z.string(),
+      options: z.array(z.string()).describe("Exactly four option texts without letters"),
+      answer: z.string().describe("The correct letter and option, e.g. '(b) …'"),
+    }),
+  ),
+});
+export type BookChapterOutput = z.infer<typeof BookChapterOutputSchema>;
+
+/** poster_copy: headline, subheading and tagline for a poster (ImageStudio, DN-060). */
+export const PosterCopyInputSchema = z.object({
+  category: z.string().trim().max(60),
+  /** What the poster announces, with the real facts (course, dates, results, contact line). */
+  brief: z.string().trim().min(5).max(800),
+  language: z.enum(AI_LANGUAGES).default("hi"),
+});
+export type PosterCopyInput = z.infer<typeof PosterCopyInputSchema>;
+
+export const PosterCopyOutputSchema = z.object({
+  headline: z.string().describe("A punchy headline, at most 8 words"),
+  subheading: z.string().describe("One supporting line, at most 15 words"),
+  tagline: z.string().describe("A short call to action, at most 10 words"),
+});
+export type PosterCopyOutput = z.infer<typeof PosterCopyOutputSchema>;
+
 /** Job types the worker can run today; the others arrive one at a time (plan §08 order). */
 export const AiJobCreateSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("ppt_outline"), input: PptOutlineInputSchema }),
@@ -182,6 +281,11 @@ export const AiJobCreateSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("mcq_extract"), input: McqExtractInputSchema }),
   z.object({ type: z.literal("dpp_generate"), input: DppGenerateInputSchema }),
   z.object({ type: z.literal("lesson_plan"), input: LessonPlanInputSchema }),
+  z.object({ type: z.literal("doubt_solve"), input: DoubtSolveInputSchema }),
+  z.object({ type: z.literal("youtube_meta"), input: YoutubeMetaInputSchema }),
+  z.object({ type: z.literal("notice_draft"), input: NoticeDraftInputSchema }),
+  z.object({ type: z.literal("book_chapter"), input: BookChapterInputSchema }),
+  z.object({ type: z.literal("poster_copy"), input: PosterCopyInputSchema }),
   z.object({ type: z.literal("deck_quiz"), input: DeckQuizInputSchema }),
 ]);
 export type AiJobCreate = z.infer<typeof AiJobCreateSchema>;
@@ -195,6 +299,11 @@ export function jobItemCount(job: AiJobCreate): number {
     case "deck_quiz":
     case "dpp_generate":
     case "lesson_plan":
+    case "doubt_solve":
+    case "youtube_meta":
+    case "notice_draft":
+    case "book_chapter":
+    case "poster_copy":
       return 1;
     case "mcq_extract":
       return job.input.fileIds.length;

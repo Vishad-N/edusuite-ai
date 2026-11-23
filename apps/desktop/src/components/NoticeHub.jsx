@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { MessageSquareShare, Copy, Check, Printer, FileText } from "lucide-react";
 import { instituteLogo } from "../utils/branding.ts";
+import { NoticeDraftOutputSchema } from "@edusuite/shared";
 import { DocumentBar } from "./DocumentBar.tsx";
-import { Button, ConfirmDialog, Field, Input, PageHeader, Textarea } from "./ui/index.ts";
+import { AiGenerate } from "./AiGenerate.tsx";
+import { Button, ConfirmDialog, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 
 /**
  * Starting points for common notices, filled with this institute's own name and phone.
@@ -43,6 +45,17 @@ export default function NoticeHub({ activeInstitute }) {
   const [formalText, setFormalText] = useState("");
   const [docTitle, setDocTitle] = useState("");
   const [pendingTemplate, setPendingTemplate] = useState(null);
+  // AI draft (DN-060): what the notice must say; not saved.
+  const [details, setDetails] = useState("");
+  const [aiLanguage, setAiLanguage] = useState("hi");
+  const fillFromAi = (result) => {
+    const parsed = NoticeDraftOutputSchema.safeParse(result);
+    if (!parsed.success) return;
+    setTitle(parsed.data.title);
+    setWhatsappText(parsed.data.whatsappText);
+    setFormalText(parsed.data.formalText);
+    if (!docTitle.trim()) setDocTitle(parsed.data.title);
+  };
 
   // What gets saved (shape: NoticeContentSchema in packages/shared/documents.ts).
   const documentContent = { category, title, date, whatsappText, formalText };
@@ -119,6 +132,39 @@ export default function NoticeHub({ activeInstitute }) {
                 </Button>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
+            <h3 className="text-label font-semibold">AI से सूचना लिखवाएँ</h3>
+            <Field label="सूचना में क्या कहना है" hint="तारीख, समय, राशि, किसके लिए; जो नहीं लिखेंगे वह [ब्रैकेट] में आएगा">
+              <Textarea rows={3} value={details} maxLength={2000} onChange={(e) => setDetails(e.target.value)} placeholder="उदा. 26 नवंबर को गुरु नानक जयंती पर सभी बैच की छुट्टी रहेगी" />
+            </Field>
+            <Field label="भाषा">
+              <Select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)}>
+                <option value="hi">हिन्दी</option>
+                <option value="en">English</option>
+                <option value="both">हिन्दी + English</option>
+              </Select>
+            </Field>
+            <AiGenerate
+              label="AI से सूचना बनाएँ"
+              build={() =>
+                details.trim().length >= 5
+                  ? {
+                      type: "notice_draft",
+                      input: {
+                        details: details.trim(),
+                        ...(category.trim() && { category: category.trim() }),
+                        ...(date.trim() && { date: date.trim() }),
+                        language: aiLanguage,
+                      },
+                    }
+                  : null
+              }
+              confirmReplace={hasText ? { title: "लिखा संदेश बदल जाएगा", message: "AI का मसौदा अभी लिखे शीर्षक, व्हाट्सएप संदेश और सर्कुलर की जगह ले लेगा।" } : null}
+              onResult={fillFromAi}
+              hint="श्रेणी और तारीख नीचे भरें तो AI उन्हें भी इस्तेमाल करेगा। भेजने से पहले जाँच लें।"
+            />
           </div>
 
           <div className="space-y-4 rounded-card border border-line bg-surface p-4 text-ink">

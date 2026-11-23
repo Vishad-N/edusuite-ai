@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import { Image as ImageIcon, FileText } from "lucide-react";
 import { instituteLogo } from "../utils/branding.ts";
+import { PosterCopyOutputSchema, can } from "@edusuite/shared";
+import { useSignedInUser } from "../api/session.tsx";
 import { DocumentBar } from "./DocumentBar.tsx";
-import { Button, ConfirmDialog, Field, Input, PageHeader } from "./ui/index.ts";
+import { AiGenerate } from "./AiGenerate.tsx";
+import { Button, ConfirmDialog, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 
 /**
  * Poster kinds. Each has a badge shown on the poster and a plain starting template;
@@ -56,6 +59,19 @@ export default function ImageStudio({ activeInstitute }) {
 
   const hasText = headline.trim() || subheading.trim() || tagline.trim();
 
+  // AI poster copy (DN-060): only roles with image_studio.ai_copy (counselors use templates, DN-008).
+  const canAiCopy = can(useSignedInUser().role, "image_studio.ai_copy");
+  const [brief, setBrief] = useState("");
+  const [aiLanguage, setAiLanguage] = useState("hi");
+  const fillFromAi = (result) => {
+    const parsed = PosterCopyOutputSchema.safeParse(result);
+    if (!parsed.success) return;
+    setHeadline(parsed.data.headline);
+    setSubheading(parsed.data.subheading);
+    setTagline(parsed.data.tagline);
+    if (!docTitle.trim()) setDocTitle(parsed.data.headline);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -96,6 +112,28 @@ export default function ImageStudio({ activeInstitute }) {
               <span className="text-caption text-muted">[ब्रैकेट] वाली जगह अपनी जानकारी भरें।</span>
             </div>
           </div>
+
+          {canAiCopy && (
+            <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
+              <h3 className="text-label font-semibold">AI से पोस्टर के शब्द</h3>
+              <Field label="पोस्टर किस बारे में है" hint="असली जानकारी लिखें: कोर्स, तारीख, परिणाम। AI इसके बाहर कोई दावा नहीं जोड़ता।">
+                <Textarea rows={3} value={brief} maxLength={800} onChange={(e) => setBrief(e.target.value)} placeholder="उदा. MPPSC प्री 2027 का नया बैच 1 जुलाई से, सुबह 8 बजे" />
+              </Field>
+              <Field label="भाषा">
+                <Select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)}>
+                  <option value="hi">हिन्दी</option>
+                  <option value="en">English</option>
+                  <option value="both">हिन्दी + English</option>
+                </Select>
+              </Field>
+              <AiGenerate
+                label="AI से हेडलाइन और लाइनें"
+                build={() => (brief.trim().length >= 5 ? { type: "poster_copy", input: { category: cat.label, brief: brief.trim(), language: aiLanguage } } : null)}
+                confirmReplace={hasText ? { title: "लिखे शब्द बदल जाएँगे", message: "AI हेडलाइन, उप-शीर्षक और कॉल-टू-एक्शन की जगह नए शब्द लिखेगा।" } : null}
+                onResult={fillFromAi}
+              />
+            </div>
+          )}
 
           <div className="space-y-4 rounded-card border border-line bg-surface p-4 text-ink">
             <Field label="मुख्य हेडलाइन">
