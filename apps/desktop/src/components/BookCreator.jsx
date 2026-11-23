@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { BookMarked, Printer, Copy, Check, Sparkles, FileText, Sliders, Bookmark, Plus, Trash2 } from "lucide-react";
 import { instituteLogo } from "../utils/branding.ts";
+import { BookChapterOutputSchema } from "@edusuite/shared";
 import { DocumentBar } from "./DocumentBar.tsx";
+import { AiGenerate } from "./AiGenerate.tsx";
 import { Button, ConfirmDialog, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 
 const COVER_THEMES = [
@@ -126,6 +128,22 @@ export default function BookCreator({ activeInstitute }) {
 
   const editing = chapters[editIndex] ?? chapters[0];
   const setEditing = (next) => setChapters((all) => all.map((ch, i) => (i === editIndex ? next : ch)));
+  // AI chapter (DN-060): fills the chapter being edited, unsaved.
+  const [aiQuestions, setAiQuestions] = useState(5);
+  const [aiLanguage, setAiLanguage] = useState("hi");
+  const fillChapterFromAi = (result) => {
+    const parsed = BookChapterOutputSchema.safeParse(result);
+    if (!parsed.success) return;
+    const r = parsed.data;
+    setEditing({
+      ...editing,
+      subtitle: r.subtitle,
+      theoryText: r.theory.join("\n\n"),
+      highlightsText: r.highlights.join("\n"),
+      practice: r.practiceQuestions.map((p) => ({ q: p.q, optionsText: p.options.map((o, i) => `(${"abcd"[i]}) ${o}`).join("\n"), ans: p.answer })),
+    });
+    setActiveView(`chapter-${editIndex}`);
+  };
   const setPractice = (qi, next) => setEditing({ ...editing, practice: editing.practice.map((p, i) => (i === qi ? next : p)) });
 
   /** Every page is rendered so printing gives the whole book; only the chosen one shows on screen. */
@@ -216,7 +234,7 @@ export default function BookCreator({ activeInstitute }) {
                 अध्याय ढाँचा बनाएँ
               </Button>
             </div>
-            <p className="text-caption text-muted">यह खाली अध्याय बनाता है जिनमें आप सामग्री लिखें। AI से अध्याय अगले चरण में आएँगे।</p>
+            <p className="text-caption text-muted">यह खाली अध्याय बनाता है। हर अध्याय की सामग्री आप लिखें या नीचे AI से लिखवाएँ।</p>
           </div>
 
           <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
@@ -268,6 +286,42 @@ export default function BookCreator({ activeInstitute }) {
             <Field label="अध्याय का शीर्षक">
               <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
             </Field>
+            <div className="space-y-3 rounded-control border border-line p-3">
+              <p className="text-label font-semibold">AI से यह अध्याय लिखवाएँ</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="अभ्यास MCQ">
+                  <Input type="number" min={0} max={20} value={aiQuestions} onChange={(e) => setAiQuestions(Math.max(0, Math.min(20, Math.trunc(Number(e.target.value) || 0))))} />
+                </Field>
+                <Field label="भाषा">
+                  <Select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)}>
+                    <option value="hi">हिन्दी</option>
+                    <option value="en">English</option>
+                    <option value="both">हिन्दी + English शब्द</option>
+                  </Select>
+                </Field>
+              </div>
+              <AiGenerate
+                label={`AI से अध्याय ${editIndex + 1} लिखें`}
+                build={() =>
+                  editing.title.trim().length >= 2
+                    ? {
+                        type: "book_chapter",
+                        input: {
+                          chapterTitle: editing.title.trim(),
+                          ...(title.trim() && { bookTitle: title.trim() }),
+                          ...(subject.trim() && { subject: subject.trim() }),
+                          ...(targetExam.trim() && { targetExam: targetExam.trim() }),
+                          questionCount: aiQuestions,
+                          language: aiLanguage,
+                        },
+                      }
+                    : null
+                }
+                confirmReplace={chapterHasContent(editing) ? { title: "अध्याय की सामग्री बदल जाएगी", message: `AI अध्याय ${editIndex + 1} की थ्योरी, परीक्षा बिंदु और अभ्यास प्रश्नों की जगह नई सामग्री लिखेगा।` } : null}
+                onResult={fillChapterFromAi}
+                hint="अध्याय का शीर्षक साफ़ लिखें (जैसे “कोशिका की संरचना”)। AI पूरा होने तक दूसरा अध्याय न चुनें। छापने से पहले जाँच लें।"
+              />
+            </div>
             <Field label="अध्याय का उप-शीर्षक (वैकल्पिक)">
               <Input value={editing.subtitle} onChange={(e) => setEditing({ ...editing, subtitle: e.target.value })} />
             </Field>

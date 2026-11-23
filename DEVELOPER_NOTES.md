@@ -18,6 +18,54 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-060 · Phase 4 complete: doubt, YouTube, notice, book chapter and poster copy AI jobs
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 4 · `packages/shared/src/ai.ts`, `apps/api/src/ai/{doubtSolve,youtubeMeta,noticeDraft,bookChapter,posterCopy}.ts`, `apps/desktop/src/components/{DoubtSolver,YouTubeStudio,NoticeHub,BookCreator,ImageStudio}.jsx`
+- **Status:** Decided by agent
+- **What was unclear:** For the last five jobs in the plan's order: what each takes, how results fit the existing document shapes (no schema changes), and the guardrails each one needs.
+- **Decision** (prices as DN-053; all results fill the editor unsaved; `confirmReplace` from DN-059 asks before spending whenever written text would be replaced):
+  - **`doubt_solve`** (1 credit; `ai.content`): the typed doubt and/or an optional photo (PNG, JPEG or WebP up to 5 MB, this institute's, checked before charging). Claude solves first, then explains in short steps, with a shortcut only if genuine, the common mistake and 2–3 similar questions. If the photo is unclear it says what is missing. A typed question is kept; a photo-only doubt fills the question from the photo. Effort high.
+  - **`youtube_meta`** (1; `ai.content`): from the thumbnail headline, punchline and teacher. Title cut to YouTube's 100 characters, tags cleaned (no `#`, no duplicates, up to 30). No clickbait, and no invented links, dates or offers. The institute's own name comes from the server.
+  - **`notice_draft`** (1; `notices`, so counselors can use it): "what the notice must say" plus the category and date fields. Only the given facts are used; anything missing becomes a [bracket] placeholder. A WhatsApp version and a formal circular body (the app adds letterhead, date and signature).
+  - **`book_chapter`** (2; `ai.content`): writes the chapter being edited, using its title plus the book's title, subject and exam. Output: subtitle, 4–10 theory paragraphs, exam points and 0–20 practice MCQs (options as "(a) …" lines). MCQs without four options are dropped; a chapter with no theory fails and is refunded.
+  - **`poster_copy`** (1; `image_studio.ai_copy`): a brief of the real facts gives a headline (≤8 words), subheading and call to action. The prompt forbids claims the brief doesn't state (results, ranks, "No. 1", discounts), following DN-050. Counselors don't see the box (DN-008).
+  - The "AI comes in the next phase" notes on these screens are removed. A shared test now checks that every job type in `AI_JOB_PERMISSIONS` is implemented.
+- **Reason:** Completes the plan's Phase 4 job list with the same review-first pattern, and no migration.
+- **Verified:**
+  - Shared 47 tests and API 101 tests: YouTube limits; broken book MCQs dropped; all five run in fixture mode at their prices; a counselor can draft notices but gets 403 for poster copy and doubts; a PDF as a doubt photo is refused.
+  - Desktop 36 tests; typecheck, lint and build pass.
+  - End-to-end in Electron against Docker (fixture mode), as a teacher:
+    - **doubt:** answer and 3 steps filled, 1 credit; pressing again asks first and cancelling is free
+    - **YouTube:** title and tags filled, 1 credit
+    - **notice:** title filled and the WhatsApp text carries "डेमो कोचिंग संस्थान", 1 credit
+    - **book chapter:** 2 theory paragraphs and 3 practice MCQs, 2 credits
+    - **poster:** headline filled, 1 credit
+  - As a counselor: the notice AI box shows; the poster AI box is hidden.
+- **Not verified:** live Claude runs for any Phase 4 job (no key yet). Before Phase 6, run each once with `AI_MODE=record` to judge quality and save fixtures.
+- **Revisit if:** counselors need AI poster copy (DN-008), or doubts need several photos.
+
+### DN-059 · AI lesson plans (`lesson_plan`); the AI button can ask before spending credits
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 4 · `packages/shared/src/ai.ts`, `apps/api/src/ai/lessonPlan.ts`, `apps/desktop/src/components/{AiGenerate.tsx,LessonPlanner.jsx}`
+- **Status:** Decided by agent
+- **What was unclear:** A lesson plan replaces the whole plan, unlike the DPP (DN-058), where AI questions could be added after the teacher's own. Asking "replace?" after the job runs would waste the credit if the teacher says no.
+- **Options considered / Decision:**
+  - **`AiGenerate` gets `confirmReplace`** (title and message, or null). When set, the button first shows a ConfirmDialog that also states the credit cost. Nothing is charged unless the teacher confirms. Screens whose result would overwrite written work use it.
+  - **Input:** chapter, subject, class (existing fields), the screen's teaching days (1–30; AI plans at most 30, though saved plans allow 365), an optional focus (500 characters) and language. Price 1 credit.
+  - **Output:** 3–6 measurable objectives and one entry per day (topic, class activities, homework). `finish` makes the day count exact: extra days are dropped and missing ones become empty days to fill. A plan with no usable day fails and is refunded. The screen labels days "दिन 1…".
+  - **Prompt:** a sensible teaching order across exactly the given days (introduce, build up, practise, revise or test at the end when there are enough days); realistic one-period plans; specific homework; follow the class's usual syllabus; no invented facts.
+  - The free "खाली दिन-वार ढाँचा बनाएँ (मुफ़्त)" stays.
+- **Reason:** The teacher decides before paying, never after.
+- **Verified:**
+  - Shared 46 tests (limits) and API 99 tests (exact day count both ways, empty plan refused, fixture run of 4 days charges 1).
+  - Desktop typecheck, lint and build pass.
+  - End-to-end in Electron against Docker (fixture mode):
+    - disabled until chapter and subject are filled; "· 1 क्रेडिट"
+    - on an empty plan, no question asked; 3 objectives and exactly 3 days filled, the title filled, 1 credit taken
+    - pressing again with the plan written shows "लिखी योजना बदल जाएगी … इसमें 1 क्रेडिट लगेंगे"; "रुकें" keeps the credits unchanged
+- **Not verified:** a live Claude run.
+- **Revisit if:** teachers want AI to fill only empty days, or plans longer than 30 days.
+
 ### DN-058 · AI DPP (`dpp_generate`): one topic, answers stay in the teacher-only hint, AI questions are added, never replace
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 4 · `packages/shared/src/ai.ts`, `apps/api/src/ai/dppGenerate.ts`, `apps/desktop/src/components/NotebookDppMaker.jsx`

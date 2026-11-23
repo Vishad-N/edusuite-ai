@@ -4,7 +4,8 @@ import { AiJobCreateSchema, IMPLEMENTED_AI_JOBS, PAPER_MAX_QUESTIONS, PptOutline
 import { AI_JOB_PERMISSIONS } from "./permissions.ts";
 
 test("implemented job types are known, permissioned job types", () => {
-  assert.deepEqual(IMPLEMENTED_AI_JOBS, ["ppt_outline", "paper_generate", "mcq_extract", "dpp_generate", "deck_quiz"]);
+  // Phase 4 is complete: every job type the plan names (plus deck_quiz) runs.
+  assert.deepEqual([...IMPLEMENTED_AI_JOBS].sort(), Object.keys(AI_JOB_PERMISSIONS).sort());
   for (const t of IMPLEMENTED_AI_JOBS) assert.ok(t in AI_JOB_PERMISSIONS, t);
 });
 
@@ -16,7 +17,7 @@ test("ppt_outline input gets defaults and limits", () => {
   assert.equal(jobItemCount(job), 1);
   assert.ok(!AiJobCreateSchema.safeParse({ type: "ppt_outline", input: { topic: "x" } }).success, "topic too short");
   assert.ok(!AiJobCreateSchema.safeParse({ type: "ppt_outline", input: { topic: "ok topic", slideCount: 40 } }).success);
-  assert.ok(!AiJobCreateSchema.safeParse({ type: "book_chapter", input: {} }).success, "not implemented yet");
+  assert.ok(!AiJobCreateSchema.safeParse({ type: "book_chapter", input: {} }).success, "chapter title required");
 });
 
 test("ppt_outline output matches what PptMaker fills", () => {
@@ -54,4 +55,15 @@ test("dpp_generate input gets defaults and limits", () => {
   assert.deepEqual([job.input.count, job.input.style, job.input.difficulty, job.input.language], [10, "mcq", "mixed", "hi"]);
   assert.ok(!AiJobCreateSchema.safeParse({ type: "dpp_generate", input: { subject: "गणित", topic: "प्रतिशत", count: 51 } }).success);
   assert.ok(!AiJobCreateSchema.safeParse({ type: "dpp_generate", input: { subject: "गणित", topic: "" } }).success);
+});
+test("lesson_plan needs a chapter, subject and 1 to 30 days", () => {
+  const ok = { chapter: "विद्युत", subject: "भौतिकी", days: 5 };
+  assert.ok(AiJobCreateSchema.safeParse({ type: "lesson_plan", input: ok }).success);
+  assert.ok(!AiJobCreateSchema.safeParse({ type: "lesson_plan", input: { ...ok, days: 31 } }).success);
+  assert.ok(!AiJobCreateSchema.safeParse({ type: "lesson_plan", input: { ...ok, chapter: "" } }).success);
+});
+test("doubt_solve needs typed text or a photo", () => {
+  assert.ok(!AiJobCreateSchema.safeParse({ type: "doubt_solve", input: {} }).success);
+  assert.ok(AiJobCreateSchema.safeParse({ type: "doubt_solve", input: { question: "2+2?" } }).success);
+  assert.ok(AiJobCreateSchema.safeParse({ type: "doubt_solve", input: { imageFileId: crypto.randomUUID() } }).success);
 });

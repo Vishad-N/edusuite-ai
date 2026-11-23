@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { Video, Copy, Check, Sliders, FileText, Wand2 } from "lucide-react";
 import { instituteLogo } from "../utils/branding.ts";
+import { YoutubeMetaOutputSchema } from "@edusuite/shared";
 import { DocumentBar } from "./DocumentBar.tsx";
-import { Button, Field, Input, PageHeader, Textarea } from "./ui/index.ts";
+import { AiGenerate } from "./AiGenerate.tsx";
+import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 
 const THEMES = [
   { id: "red-dark", label: "Red & Black" },
@@ -45,6 +47,15 @@ export default function YouTubeStudio({ activeInstitute }) {
   const [description, setDescription] = useState("");
   const [tagsText, setTagsText] = useState("");
   const [docTitle, setDocTitle] = useState("");
+  const [aiLanguage, setAiLanguage] = useState("hi");
+  /** AI title, description and tags (DN-060), unsaved. */
+  const fillFromAi = (result) => {
+    const parsed = YoutubeMetaOutputSchema.safeParse(result);
+    if (!parsed.success) return;
+    setVideoTitle(parsed.data.title);
+    setDescription(parsed.data.description);
+    setTagsText(parsed.data.tags.join(", "));
+  };
 
   const tags = splitTags(tagsText);
 
@@ -205,6 +216,38 @@ export default function YouTubeStudio({ activeInstitute }) {
                 थंबनेल से टाइटल भरें
               </Button>
               <CopyButton text={videoTitle} label="टाइटल कॉपी करें" disabled={!videoTitle.trim()} />
+            </div>
+            <div className="space-y-2 rounded-control border border-line p-3">
+              <Field label="AI की भाषा">
+                <Select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)}>
+                  <option value="hi">हिन्दी</option>
+                  <option value="en">English</option>
+                  <option value="both">हिन्दी + English</option>
+                </Select>
+              </Field>
+              <AiGenerate
+                label="AI से टाइटल, डिस्क्रिप्शन और टैग्स"
+                build={() =>
+                  headline.trim().length >= 2
+                    ? {
+                        type: "youtube_meta",
+                        input: {
+                          headline: headline.trim(),
+                          ...(punchline.trim() && { punchline: punchline.trim() }),
+                          ...(facultyName.trim() && { facultyName: facultyName.trim() }),
+                          language: aiLanguage,
+                        },
+                      }
+                    : null
+                }
+                confirmReplace={
+                  videoTitle.trim() || description.trim() || tagsText.trim()
+                    ? { title: "लिखा टाइटल बदल जाएगा", message: "AI अभी लिखे टाइटल, डिस्क्रिप्शन और टैग्स की जगह नए लिखेगा।" }
+                    : null
+                }
+                onResult={fillFromAi}
+                hint="पहले थंबनेल का मुख्य टाइटल लिखें।"
+              />
             </div>
             <Field label="वीडियो डिस्क्रिप्शन">
               <Textarea rows={6} value={description} onChange={(e) => setDescription(e.target.value)} />

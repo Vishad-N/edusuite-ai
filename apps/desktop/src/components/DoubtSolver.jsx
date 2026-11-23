@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { Copy, Check, Zap, AlertTriangle, Lightbulb, CheckCircle2 } from "lucide-react";
+import { DoubtSolveOutputSchema, MCQ_MAX_IMAGE_BYTES } from "@edusuite/shared";
+import { uploadFile } from "../api/documents.ts";
+import { useSession } from "../api/session.tsx";
 import { DocumentBar } from "./DocumentBar.tsx";
-import { Button, Field, Input, PageHeader, Textarea } from "./ui/index.ts";
+import { AiGenerate } from "./AiGenerate.tsx";
+import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 
 const lines = (value) =>
   value
@@ -19,6 +23,36 @@ export default function DoubtSolver({ activeInstitute }) {
   const [similarText, setSimilarText] = useState("");
   const [copied, setCopied] = useState(false);
   const [docTitle, setDocTitle] = useState("");
+  // AI (DN-060): an optional photo of the question, and the answer language. Not saved.
+  const { client } = useSession();
+  const [photo, setPhoto] = useState({ state: "none" });
+  const [aiLanguage, setAiLanguage] = useState("hi");
+  const pickPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > MCQ_MAX_IMAGE_BYTES) {
+      return setPhoto({ state: "error", message: "PNG, JPG या WebP फ़ोटो चुनें, 5 MB तक।" });
+    }
+    setPhoto({ state: "uploading", name: file.name });
+    try {
+      setPhoto({ state: "done", name: file.name, id: (await uploadFile(client, file)).id });
+    } catch {
+      setPhoto({ state: "error", message: "फ़ोटो सर्वर पर नहीं गई। फिर से चुनें।" });
+    }
+  };
+  const fillFromAi = (result) => {
+    const parsed = DoubtSolveOutputSchema.safeParse(result);
+    if (!parsed.success) return;
+    const r = parsed.data;
+    if (!doubtText.trim()) setDoubtText(r.question);
+    setAnswer(r.answer);
+    setStepsText(r.steps.join("\n"));
+    setShortcutTrick(r.shortcutTrick);
+    setCommonMistake(r.commonMistake);
+    setSimilarText(r.similarQuestions.join("\n"));
+    if (!docTitle.trim()) setDocTitle((doubtText.trim() || r.question).slice(0, 80));
+  };
 
   const steps = lines(stepsText);
   const similarQuestions = lines(similarText);
@@ -55,6 +89,7 @@ export default function DoubtSolver({ activeInstitute }) {
     setShortcutTrick(content?.shortcutTrick ?? "");
     setCommonMistake(content?.commonMistake ?? "");
     setSimilarText((content?.similarQuestions ?? []).join("\n"));
+    setPhoto({ state: "none" });
   };
 
   return (
@@ -92,13 +127,56 @@ export default function DoubtSolver({ activeInstitute }) {
         <div className="lg:col-span-5 space-y-4">
           <div className="space-y-4 rounded-card border border-line bg-surface p-4 text-ink">
             <h3 className="text-label font-semibold">छात्र का प्रश्न और हल</h3>
-            <p className="text-caption text-muted">अभी हल खुद लिखें। AI से हल अगले चरण में आएगा।</p>
             <Field label="छात्र का प्रश्न / डाउट">
               <Textarea rows={4} value={doubtText} onChange={(e) => setDoubtText(e.target.value)} placeholder="प्रश्न यहाँ लिखें या पेस्ट करें" />
             </Field>
             <Field label="विषय">
               <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="उदा. गणित (चाल और दूरी)" />
             </Field>
+            <div className="space-y-3 rounded-control border border-line p-3">
+              <p className="text-label font-semibold">AI से हल करें</p>
+              <Field label="प्रश्न की फ़ोटो (वैकल्पिक)" hint="टाइप करने की जगह किताब या पेपर की फ़ोटो दें">
+                <Input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => void pickPhoto(e)} disabled={photo.state === "uploading"} />
+              </Field>
+              {photo.state === "uploading" && <p role="status" className="text-caption text-muted">फ़ोटो भेजी जा रही है…</p>}
+              {photo.state === "done" && (
+                <p role="status" className="flex items-center justify-between gap-2 text-caption text-success">
+                  {photo.name} अपलोड हो गई
+                  <Button size="sm" variant="ghost" onClick={() => setPhoto({ state: "none" })}>हटाएँ</Button>
+                </p>
+              )}
+              {photo.state === "error" && <p role="alert" className="text-caption text-danger">{photo.message}</p>}
+              <Field label="हल की भाषा">
+                <Select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)}>
+                  <option value="hi">हिन्दी</option>
+                  <option value="en">English</option>
+                  <option value="both">हिन्दी + English शब्द</option>
+                </Select>
+              </Field>
+              <AiGenerate
+                label="AI से हल करें"
+                build={() =>
+                  doubtText.trim().length >= 2 || photo.state === "done"
+                    ? {
+                        type: "doubt_solve",
+                        input: {
+                          question: doubtText.trim().slice(0, 4000),
+                          ...(subject.trim() && { subject: subject.trim() }),
+                          ...(photo.state === "done" && { imageFileId: photo.id }),
+                          language: aiLanguage,
+                        },
+                      }
+                    : null
+                }
+                confirmReplace={
+                  answer.trim() || stepsText.trim()
+                    ? { title: "लिखा हल बदल जाएगा", message: "AI का हल अभी लिखे उत्तर, चरणों, ट्रिक और समान प्रश्नों की जगह ले लेगा।" }
+                    : null
+                }
+                onResult={fillFromAi}
+                hint="AI का हल नीचे भरा जाएगा, सेव नहीं होगा। छात्र को भेजने से पहले जाँच लें।"
+              />
+            </div>
             <Field label="सही उत्तर">
               <Input value={answer} onChange={(e) => setAnswer(e.target.value)} />
             </Field>

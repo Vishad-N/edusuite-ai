@@ -4,6 +4,12 @@ import { deckQuiz } from "./deckQuiz";
 import { paperGenerate } from "./paperGenerate";
 import { mcqExtract } from "./mcqExtract";
 import { dppGenerate } from "./dppGenerate";
+import { lessonPlan } from "./lessonPlan";
+import { doubtSolve } from "./doubtSolve";
+import { youtubeMeta } from "./youtubeMeta";
+import { noticeDraft } from "./noticeDraft";
+import { bookChapter } from "./bookChapter";
+import { posterCopy } from "./posterCopy";
 import { PptOutlineInputSchema, PptOutlineOutputSchema, type AiJobType, type PptOutlineInput, type PptOutlineOutput } from "@edusuite/shared";
 
 /** What a job's prompt may use besides its input: the signed-in institute (DN-052) and its files. */
@@ -99,5 +105,11 @@ export const JOB_DEFINITIONS: Partial<Record<AiJobType, JobDefinition<never, unk
   paper_generate: paperGenerate as unknown as JobDefinition<never, unknown>,
   mcq_extract: mcqExtract as unknown as JobDefinition<never, unknown>,
   dpp_generate: dppGenerate as unknown as JobDefinition<never, unknown>,
+  lesson_plan: lessonPlan as unknown as JobDefinition<never, unknown>,
+  doubt_solve: doubtSolve as unknown as JobDefinition<never, unknown>,
+  youtube_meta: youtubeMeta as unknown as JobDefinition<never, unknown>,
+  notice_draft: noticeDraft as unknown as JobDefinition<never, unknown>,
+  book_chapter: bookChapter as unknown as JobDefinition<never, unknown>,
+  poster_copy: posterCopy as unknown as JobDefinition<never, unknown>,
   deck_quiz: deckQuiz as unknown as JobDefinition<never, unknown>,
 };

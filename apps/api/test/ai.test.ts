@@ -1,7 +1,7 @@
 import { after, before, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { AiJobSchema, DeckQuizSchema, DppGenerateResultSchema, McqExtractResultSchema, PaperGenerateOutputSchema, IMPLEMENTED_AI_JOBS, PptOutlineOutputSchema, buildDeckQuizHtml } from "@edusuite/shared";
+import { AiJobSchema, DeckQuizSchema, LessonPlanOutputSchema, DppGenerateResultSchema, McqExtractResultSchema, PaperGenerateOutputSchema, IMPLEMENTED_AI_JOBS, PptOutlineOutputSchema, buildDeckQuizHtml } from "@edusuite/shared";
 import { STORAGE } from "../src/files/storage";
 import { FakeStorage, PNG_BYTES } from "./helpers/fakeStorage";
 import type { JobContext, JobDefinition } from "../src/ai/definitions";
@@ -13,6 +13,9 @@ import { AiJobError, AiRunner, costOf, fixtureKey } from "../src/ai/runner";
 import { JOB_DEFINITIONS } from "../src/ai/definitions";
 import { normalizePaper } from "../src/ai/paperGenerate";
 import { toDppSheet } from "../src/ai/dppGenerate";
+import { fitLessonPlan } from "../src/ai/lessonPlan";
+import { fitYoutubeMeta } from "../src/ai/youtubeMeta";
+import { fitBookChapter } from "../src/ai/bookChapter";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { CreditsService } from "../src/credits/credits.service";
 import { loadEnv } from "../src/config/env";
@@ -68,6 +71,22 @@ describe("unit: runner helpers", () => {
       { q: "Ratio of 2:3 to 4:9?", hint: "उत्तर: 3:2" },
     ]);
     assert.throws(() => toDppSheet({ questions: [] }), AiJobError);
+  });
+  test("lesson plan has exactly the requested days", () => {
+    const input = { chapter: "x", subject: "y", days: 3, language: "hi" as const };
+    const day = (t: string) => ({ topic: t, activities: "a", homework: "h" });
+    assert.deepEqual(fitLessonPlan({ objectives: [" o ", ""], days: [day("1"), day("2"), day("3"), day("4")] }, input).days.map((d) => d.topic), ["1", "2", "3"]);
+    const short = fitLessonPlan({ objectives: [], days: [day("1")] }, input);
+    assert.deepEqual(short.days.map((d) => d.topic), ["1", "", ""]);
+    assert.throws(() => fitLessonPlan({ objectives: ["o"], days: [] }, input), AiJobError);
+  });
+  test("YouTube metadata fits the limits; book chapters drop broken MCQs", () => {
+    const yt = fitYoutubeMeta({ title: "x".repeat(150), description: " d ", tags: ["#SSC", "ssc", " गणित ", ""] });
+    assert.equal(yt.title.length, 100);
+    assert.deepEqual(yt.tags, ["SSC", "गणित"]);
+    const ch = fitBookChapter({ subtitle: " s ", theory: ["p1", " "], highlights: ["h"], practiceQuestions: [{ q: "q", options: ["1", "2", "3", "4"], answer: "(a) 1" }, { q: "q2", options: ["1"], answer: "" }] });
+    assert.deepEqual([ch.theory.length, ch.practiceQuestions.length], [1, 1]);
+    assert.throws(() => fitBookChapter({ subtitle: "", theory: [], highlights: [], practiceQuestions: [] }), AiJobError);
   });
   test("production refuses fixture mode (DN-012); an empty key counts as unset", () => {
     assert.equal(loadEnv({ NODE_ENV: "development", ANTHROPIC_API_KEY: "" }).ANTHROPIC_API_KEY, undefined);
@@ -198,6 +217,15 @@ describe("AI jobs API (real Postgres)", { skip }, () => {
     const sheet = DppGenerateResultSchema.parse(AiJobSchema.parse((await t.call("GET", `/api/v1/ai/jobs/${job.id}`, teacher)).json()).result);
     assert.equal(sheet.questions.length, 6);
     assert.equal(sheet.questions.filter((q) => q.q.includes("\n(a) ")).length, 4, "two thirds MCQ");
+  });
+
+  test("lesson_plan runs in fixture mode with one entry per day", async () => {
+    const job = AiJobSchema.parse((await start(teacher, randomUUID(), { type: "lesson_plan", input: { chapter: "विद्युत", subject: "भौतिकी", days: 4 } })).json());
+    assert.equal(job.creditsCharged, 1);
+    assert.equal(await processor.process(job.id, { attemptsMade: 0, maxAttempts: 3 }), "succeeded");
+    const plan = LessonPlanOutputSchema.parse(AiJobSchema.parse((await t.call("GET", `/api/v1/ai/jobs/${job.id}`, teacher)).json()).result);
+    assert.equal(plan.days.length, 4);
+    assert.equal(plan.objectives.length, 3);
   });
 
   test("a retryable failure waits for a retry; a final failure refunds once", async () => {
@@ -367,5 +395,30 @@ describe("AI jobs API (real Postgres)", { skip }, () => {
     assert.equal(sent[3]!.source!.media_type, "image/jpeg");
     const result = McqExtractResultSchema.parse((await t.db.aiJob.findUniqueOrThrow({ where: { id: job.id } })).result);
     assert.deepEqual(result.items.map((i) => i.found), [true, false]);
+  });
+
+  test("the last five plan jobs run in fixture mode at their DN-053 prices and role permissions", async () => {
+    const photo = await upload(teacher, "image/png", PNG_BYTES(64));
+    const cases: Array<[string, string, object, number]> = [
+      [teacher, "doubt_solve", { question: "", imageFileId: photo }, 1],
+      [teacher, "youtube_meta", { headline: "प्रतिशत की ट्रिक" }, 1],
+      [counselor, "notice_draft", { details: "कल अवकाश रहेगा", category: "अवकाश" }, 1],
+      [teacher, "book_chapter", { chapterTitle: "कोशिका", questionCount: 3 }, 2],
+      [teacher, "poster_copy", { category: "admission", brief: "नया बैच 1 जुलाई से" }, 1],
+    ];
+    for (const [token, type, input, cost] of cases) {
+      const res = await start(token, randomUUID(), { type, input });
+      assert.equal(res.statusCode, 202, `${type}: ${res.body}`);
+      const job = AiJobSchema.parse(res.json());
+      assert.equal(job.creditsCharged, cost, type);
+      assert.equal(await processor.process(job.id, { attemptsMade: 0, maxAttempts: 3 }), "succeeded", type);
+      assert.ok((await t.db.aiJob.findUniqueOrThrow({ where: { id: job.id } })).result, type);
+    }
+    // DN-008: counselors draft notices but get no AI poster copy or content.
+    assert.equal((await start(counselor, randomUUID(), { type: "poster_copy", input: { category: "admission", brief: "नया बैच" } })).statusCode, 403);
+    assert.equal((await start(counselor, randomUUID(), { type: "doubt_solve", input: { question: "2+2?" } })).statusCode, 403);
+    // A doubt photo must be this institute's image.
+    const pdf = await upload(teacher, "application/pdf", PDF());
+    assert.equal((await start(teacher, randomUUID(), { type: "doubt_solve", input: { imageFileId: pdf } })).json().code, "AI_INPUT_FILE_INVALID");
   });
 });
