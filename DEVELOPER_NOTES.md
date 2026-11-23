@@ -18,6 +18,24 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-058 · AI DPP (`dpp_generate`): one topic, answers stay in the teacher-only hint, AI questions are added, never replace
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 4 · `packages/shared/src/ai.ts`, `apps/api/src/ai/dppGenerate.ts`, `apps/desktop/src/components/NotebookDppMaker.jsx`
+- **Status:** Decided by agent
+- **What was unclear:** The DPP document saves only question text and a hint (`DppContentSchema`), with no options or answer fields. It also wasn't settled what happens to questions the teacher already wrote.
+- **Options considered / Decision:**
+  - **Input:** subject, topic (the screen's existing fields), batch, 3–50 questions (default 10), style (all MCQ, short/numerical, or mixed: about two thirds MCQ), difficulty (easy first by default) and language. Price 1 credit per sheet (DN-053).
+  - **Fitting the schema:** no schema change. MCQ options go into the printed question text as "(a) … (d) …" lines (the sheet already keeps line breaks). The answer goes into the hint, which is teacher-only and not printed: "उत्तर: (b) … · method". MCQs without four options and empty questions are dropped; nothing usable fails the job and refunds it.
+  - **Prompt:** every question drills the one topic from a different angle; plausible distractors; worked numerical answers; never invent data.
+  - **Teacher's questions:** AI questions are added after any the teacher wrote (up to the 200 limit). A "replace?" dialog was tried first and dropped: by the time it shows, the credit is already spent, so cancelling would waste it.
+- **Reason:** No migration or schema version bump. The printed sheet never shows answers. Nothing paid for or written is lost.
+- **Verified:**
+  - Shared 45 tests (defaults, limits) and API 97 tests (options on their own lines, answer and hint combined, broken MCQs dropped; a fixture run of 6 mixed gives 4 MCQs).
+  - Desktop typecheck, lint and build pass.
+  - End-to-end in Electron against Docker (fixture mode): disabled until topic and subject are filled; "· 1 क्रेडिट"; 1 credit taken; 6 questions in the editor; "(a) विकल्प 1" on the printed sheet; the hint is "उत्तर: (a) … · …"; the title is filled from the topic; a second run with a written question keeps it and adds 6 more (12).
+- **Not verified:** a live Claude run.
+- **Revisit if:** DPPs need a printed answer key (add an `answer` field and a schema version), or an answer-key page for students.
+
 ### DN-057 · Screenshot → MCQ (`mcq_extract`): up to 20 screenshots per job, inferred answers flagged
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 4 · `packages/shared/src/ai.ts`, `apps/api/src/ai/{mcqExtract.ts,definitions.ts,processor.ts,deckQuiz.ts}`, `apps/desktop/src/components/ScreenshotToPpt.jsx`

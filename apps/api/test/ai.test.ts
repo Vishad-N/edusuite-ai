@@ -1,7 +1,7 @@
 import { after, before, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { AiJobSchema, DeckQuizSchema, McqExtractResultSchema, PaperGenerateOutputSchema, IMPLEMENTED_AI_JOBS, PptOutlineOutputSchema, buildDeckQuizHtml } from "@edusuite/shared";
+import { AiJobSchema, DeckQuizSchema, DppGenerateResultSchema, McqExtractResultSchema, PaperGenerateOutputSchema, IMPLEMENTED_AI_JOBS, PptOutlineOutputSchema, buildDeckQuizHtml } from "@edusuite/shared";
 import { STORAGE } from "../src/files/storage";
 import { FakeStorage, PNG_BYTES } from "./helpers/fakeStorage";
 import type { JobContext, JobDefinition } from "../src/ai/definitions";
@@ -12,6 +12,7 @@ import { AiProcessor } from "../src/ai/processor";
 import { AiJobError, AiRunner, costOf, fixtureKey } from "../src/ai/runner";
 import { JOB_DEFINITIONS } from "../src/ai/definitions";
 import { normalizePaper } from "../src/ai/paperGenerate";
+import { toDppSheet } from "../src/ai/dppGenerate";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { CreditsService } from "../src/credits/credits.service";
 import { loadEnv } from "../src/config/env";
@@ -53,6 +54,20 @@ describe("unit: runner helpers", () => {
     assert.deepEqual(out.sections.map((s) => [s.kind, s.questions.length]), [["mcq", 1], ["long", 1]]);
     assert.deepEqual(out.sections[1]!.questions[0]!.options, [], "only MCQs keep options");
     assert.throws(() => normalizePaper({ title: "x", sections: [] }), AiJobError);
+  });
+  test("DPP sheet: options on their own lines, answer and hint kept for the teacher, broken MCQs dropped", () => {
+    const sheet = toDppSheet({
+      questions: [
+        { q: " 20% of 50? ", options: ["5", "10", "15", "20"], answer: "(b) 10", hint: "50 × 0.2" },
+        { q: "Two options", options: ["x", "y"], answer: "x", hint: "" },
+        { q: "Ratio of 2:3 to 4:9?", options: [], answer: "3:2", hint: "" },
+      ],
+    });
+    assert.deepEqual(sheet.questions, [
+      { q: "20% of 50?\n(a) 5\n(b) 10\n(c) 15\n(d) 20", hint: "उत्तर: (b) 10 · 50 × 0.2" },
+      { q: "Ratio of 2:3 to 4:9?", hint: "उत्तर: 3:2" },
+    ]);
+    assert.throws(() => toDppSheet({ questions: [] }), AiJobError);
   });
   test("production refuses fixture mode (DN-012); an empty key counts as unset", () => {
     assert.equal(loadEnv({ NODE_ENV: "development", ANTHROPIC_API_KEY: "" }).ANTHROPIC_API_KEY, undefined);
@@ -174,6 +189,15 @@ describe("AI jobs API (real Postgres)", { skip }, () => {
     const paper = PaperGenerateOutputSchema.parse(AiJobSchema.parse((await t.call("GET", `/api/v1/ai/jobs/${job.id}`, teacher)).json()).result);
     assert.deepEqual(paper.sections.map((s) => [s.kind, s.questions.length]), [["mcq", 4], ["short", 2]]);
     assert.equal(paper.sections[0]!.questions[0]!.options.length, 4);
+  });
+
+  test("dpp_generate runs in fixture mode and fills the DPP editor shape", async () => {
+    const job = AiJobSchema.parse((await start(teacher, randomUUID(), { type: "dpp_generate", input: { subject: "गणित", topic: "प्रतिशत", count: 6, style: "mixed" } })).json());
+    assert.equal(job.creditsCharged, 1);
+    assert.equal(await processor.process(job.id, { attemptsMade: 0, maxAttempts: 3 }), "succeeded");
+    const sheet = DppGenerateResultSchema.parse(AiJobSchema.parse((await t.call("GET", `/api/v1/ai/jobs/${job.id}`, teacher)).json()).result);
+    assert.equal(sheet.questions.length, 6);
+    assert.equal(sheet.questions.filter((q) => q.q.includes("\n(a) ")).length, 4, "two thirds MCQ");
   });
 
   test("a retryable failure waits for a retry; a final failure refunds once", async () => {
