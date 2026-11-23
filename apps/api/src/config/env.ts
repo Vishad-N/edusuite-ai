@@ -33,6 +33,20 @@ const EnvSchema = z
     /** Login attempts allowed per IP per minute (plan §09). */
     LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(10),
     /**
+     * AI (Phase 4, DN-054). `fixture` replays recorded or sample answers and never
+     * calls Claude (DN-012); `record` calls Claude and saves each answer as a fixture;
+     * `live` calls Claude. Production must be `live`.
+     */
+    AI_MODE: z.enum(["fixture", "record", "live"]).default("fixture"),
+    /** The Claude API key; only the worker needs it (it checks at startup). Never sent to the desktop app. */
+    ANTHROPIC_API_KEY: z.preprocess((v) => (v === "" ? undefined : v), z.string().min(10).optional()),
+    /** Default model for every job type (the plan's default, claude-opus-5-5). */
+    AI_MODEL: z.string().default("claude-opus-5-5"),
+    /** Jobs one worker runs at the same time. */
+    AI_CONCURRENCY: z.coerce.number().int().min(1).max(20).default(2),
+    /** Where recorded fixtures live: <dir>/<jobType>/<sha256 of input>.json */
+    AI_FIXTURES_DIR: z.string().default("fixtures/ai"),
+    /**
      * Origins allowed to call the API from a page (CORS), comma-separated.
      * The packaged desktop app loads from file:// and sends "Origin: null" (DN-037).
      */
@@ -48,6 +62,8 @@ const EnvSchema = z
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== "production") return;
+    // DN-012: fixture (and record) mode is refused in production.
+    if (env.AI_MODE !== "live") ctx.addIssue({ code: "custom", path: ["AI_MODE"], message: "must be live in production" });
     for (const key of [
       "DATABASE_URL",
       "REDIS_URL",

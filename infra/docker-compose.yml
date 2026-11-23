@@ -82,9 +82,34 @@ services:
       S3_BUCKET: ${S3_BUCKET:?set S3_BUCKET}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
+      # Only reported to the app (fixture badge); the API never calls Claude itself.
+      AI_MODE: ${AI_MODE:-live}
     depends_on:
       garage:
         condition: service_started
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  # AI worker (plan §04, ADR-2; DN-054): same image, runs queued AI jobs. Only it holds the Claude key.
+  worker:
+    image: ${API_IMAGE:-edusuite-api:local}
+    restart: unless-stopped
+    command: ["node", "dist/src/worker.js"]
+    # The image's health check probes the API's HTTP port, which the worker doesn't open.
+    healthcheck:
+      disable: true
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      AI_MODE: ${AI_MODE:-live}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-claude-opus-5-5}
+      AI_CONCURRENCY: ${AI_CONCURRENCY:-2}
+    depends_on:
       migrate:
         condition: service_completed_successfully
       redis:

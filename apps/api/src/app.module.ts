@@ -22,6 +22,9 @@ import { StatsController } from "./stats/stats.controller";
 import { StatsService } from "./stats/stats.service";
 import { CreditsController, PlatformController } from "./credits/credits.controller";
 import { CreditsService } from "./credits/credits.service";
+import { JobsController } from "./ai/jobs.controller";
+import { JobsService } from "./ai/jobs.service";
+import { AI_QUEUE, BullMqAiQueue } from "./ai/queue";
 
 const MINUTE_MS = 60_000;
 
@@ -58,6 +61,7 @@ export class AppModule {
         StatsController,
         CreditsController,
         PlatformController,
+        JobsController,
         ...extraControllers,
       ],
       providers: [
@@ -72,10 +76,14 @@ export class AppModule {
         FilesService,
         StatsService,
         CreditsService,
+        JobsService,
         // Replaceable by `overrides` (Nest keeps the first provider for a token, so drop the default).
         ...(overrides.some((p) => typeof p === "object" && "provide" in p && p.provide === STORAGE)
           ? []
           : [{ provide: STORAGE, useClass: S3Storage }]),
+        ...(overrides.some((p) => typeof p === "object" && "provide" in p && p.provide === AI_QUEUE)
+          ? []
+          : [{ provide: AI_QUEUE, useFactory: () => new BullMqAiQueue(env) }]),
         // Order matters: rate limit, then who is calling, then what they may do.
         { provide: APP_GUARD, useClass: ThrottlerGuard },
         { provide: APP_GUARD, useClass: AuthGuard },
