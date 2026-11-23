@@ -42,7 +42,10 @@ export function useSaveDocument<T extends DocumentType>() {
             expectedUpdatedAt: input.expectedUpdatedAt,
           })
         : client.post<SavedDocument<T>>("/documents", { type: input.type, title: input.title, content: input.content }),
-    onSuccess: (doc) => void queryClient.invalidateQueries({ queryKey: ["documents", doc.type] }),
+    onSuccess: (doc) => {
+      void queryClient.invalidateQueries({ queryKey: ["documents", doc.type] });
+      void queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
   });
 }
 
@@ -51,7 +54,10 @@ export function useDeleteDocument(type: DocumentType) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => client.delete(`/documents/${id}`),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["documents", type] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["documents", type] });
+      void queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
   });
 }
 

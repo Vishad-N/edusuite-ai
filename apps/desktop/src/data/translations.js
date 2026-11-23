@@ -36,38 +36,23 @@ export const translations = {
     guide: "गाइड",
 
     // Dashboard
-    heroBadge: "सत्याधी शर्मा क्लासेस • डिजिटल एडमिन पोर्टल",
+    heroBadge: "डिजिटल एडमिन पोर्टल",
     greeting: "नमस्ते!",
     heroDesc: "संस्थान की सभी शैक्षणिक एवं प्रशासनिक जरूरतें एक ही जगह पर। लेक्चर PPT, स्टडी बुक्स, डेली DPP, YouTube थंबनेल, टेस्ट पेपर्स और छात्र रसीदें मिनटों में तैयार करें।",
     btnMakeThumbnail: "YouTube थंबनेल बनाएं",
     btnNewBook: "नई किताब / मॉड्यूल",
 
-    statBatches: "सक्रिय बैचेस (Active Batches)",
-    statBatchesVal: "32 बैचेस",
-    statBatchesDet: "MPPSC, SSC, Vyapam, MPTET",
 
-    statLive: "आज की लाइव कक्षाएं",
-    statLiveVal: "8 सेशंस",
-    statLiveDet: "YouTube & स्मार्ट क्लासरूम",
 
-    statDpp: "प्रिंटेड DPP & मॉड्यूल्स",
-    statDppVal: "180+ सेट्स",
-    statDppDet: "डेली ऑफलाइन वितरण",
 
-    statBooks: "अध्ययन सामग्री (Books)",
-    statBooksVal: "48 किताबें",
-    statBooksDet: "डिजिटल एवं प्रिंट लाइब्रेरी",
 
-    todayLiveTitle: "आज का लाइव क्लास शेड्यूल (Today's Live Classes)",
-    todayLiveSub: "सुबह 8:00 AM से रात 10:00 PM तक निरंतर लाइव कक्षाएं • सत्याधी शर्मा ऑफिशियल चैनल",
-    btnSetThumbnail: "क्लास थंबनेल सेट करें",
 
     toolsSectionTitle: "संस्थान के प्रमुख टूल्स (Coaching Modules)",
     toolsSectionSub: "(किसी भी टूल पर क्लिक करके काम शुरू करें)",
 
     // Tool Cards
     toolScreenshotPptTitle: "स्क्रीनशॉट से PPT मेकर (Bulk OCR)",
-    toolScreenshotPptSub: "टीचर के 30+ प्रश्नों के स्क्रीनशॉट अपलोड करें, AI टेक्स्ट और 4 विकल्प पहचानकर स्मार्टबोर्ड PPT बनाएगा",
+    toolScreenshotPptSub: "प्रश्नों के स्क्रीनशॉट अपलोड करें, हर स्क्रीनशॉट के साथ प्रश्न और विकल्प लिखें और स्मार्टबोर्ड PPT बनाएँ",
     toolScreenshotPptAction: "स्क्रीनशॉट से PPT बनाएं",
 
     toolYoutubeTitle: "YouTube लाइव & थंबनेल स्टूडियो",
@@ -75,7 +60,7 @@ export const translations = {
     toolYoutubeAction: "थंबनेल बनाएं",
 
     toolBookTitle: "AI बुक & स्टडी मॉड्यूल मेकर",
-    toolBookSub: "3D कवर, अनुक्रमणिका, विस्तृत थ्योरी एवं 500+ MCQs के साथ पूरी किताब",
+    toolBookSub: "कवर, विषय-सूची, थ्योरी और अभ्यास प्रश्नों के साथ पूरी किताब लिखें और प्रिंट करें",
     toolBookAction: "किताब बनाएं",
 
     toolDppTitle: "डेली DPP, नोटबुक & OMR शीट्स",
@@ -83,15 +68,15 @@ export const translations = {
     toolDppAction: "DPP शीट निकालें",
 
     toolPptTitle: "डिजिटल लेक्चर PPT मेकर",
-    toolPptSub: "विषय डालते ही तैयार Microsoft PowerPoint (.pptx) स्लाइड्स",
+    toolPptSub: "स्लाइड लिखें और Microsoft PowerPoint (.pptx) फ़ाइल डाउनलोड करें",
     toolPptAction: "PPT बनाएं",
 
     toolDoubtTitle: "डाउट सॉल्वर & शॉर्टकट ट्रिक्स",
-    toolDoubtSub: "कठिन सवालों का चरणबद्ध हिंदी हल, 10-सेकंड ट्रिक एवं संभावित प्रश्न",
+    toolDoubtSub: "कठिन सवालों का चरणबद्ध हल, शॉर्टकट ट्रिक और समान प्रश्न लिखें",
     toolDoubtAction: "डाउट हल करें",
 
     toolReceiptTitle: "छात्र ID कार्ड & फीस रसीद",
-    toolReceiptSub: "नये प्रवेश पर छात्र का बारकोड युक्त पहचान-पत्र और अधिकृत फीस रसीद",
+    toolReceiptSub: "नये प्रवेश पर छात्र का पहचान-पत्र और फीस रसीद",
     toolReceiptAction: "कार्ड / रसीद जारी करें",
 
     toolTestTitle: "परीक्षा पेपर & आंसर-की मेकर",
@@ -144,38 +129,23 @@ export const translations = {
     guide: "Guide",
 
     // Dashboard
-    heroBadge: "Satyadhi Sharma Classes • Digital Admin Portal",
+    heroBadge: "Digital Admin Portal",
     greeting: "Welcome!",
     heroDesc: "All academic and management workflows under one roof. Produce Lecture PPTs, Books, DPPs, YouTube Thumbnails, Exam Papers, and Student Fee Receipts in seconds.",
     btnMakeThumbnail: "Create YouTube Thumbnail",
     btnNewBook: "New Book / Module",
 
-    statBatches: "Active Batches",
-    statBatchesVal: "32 Batches",
-    statBatchesDet: "MPPSC, SSC, Vyapam, MPTET",
 
-    statLive: "Today's Live Classes",
-    statLiveVal: "8 Sessions",
-    statLiveDet: "YouTube & Smart Classrooms",
 
-    statDpp: "Printed DPP & Modules",
-    statDppVal: "180+ Sets",
-    statDppDet: "Daily Offline Distribution",
 
-    statBooks: "Study Material (Books)",
-    statBooksVal: "48 Books",
-    statBooksDet: "Digital & Print Library",
 
-    todayLiveTitle: "Today's Live Class Schedule",
-    todayLiveSub: "Continuous live streaming from 8:00 AM to 10:00 PM • Satyadhi Sharma Official Channel",
-    btnSetThumbnail: "Set Class Thumbnail",
 
     toolsSectionTitle: "Coaching Modules & Tools",
     toolsSectionSub: "(Click any module to start work)",
 
     // Tool Cards
     toolScreenshotPptTitle: "Screenshot to PPT Maker (OCR)",
-    toolScreenshotPptSub: "Upload 30+ question screenshots and let AI extract bilingual text, options and build Smartboard PPT",
+    toolScreenshotPptSub: "Upload question screenshots, type each question and its options, and build a Smartboard PPT",
     toolScreenshotPptAction: "Make PPT from Screenshots",
 
     toolYoutubeTitle: "YouTube Live & Thumbnail Studio",
@@ -183,7 +153,7 @@ export const translations = {
     toolYoutubeAction: "Design Thumbnail",
 
     toolBookTitle: "AI Book & Study Booklet Studio",
-    toolBookSub: "Full books with 3D Cover, Index, Detailed Theory & 500+ MCQs",
+    toolBookSub: "Write and print a full book with cover, contents, theory and practice questions",
     toolBookAction: "Create Book",
 
     toolDppTitle: "Daily DPP, Notebook & OMR Sheets",
@@ -191,15 +161,15 @@ export const translations = {
     toolDppAction: "Generate DPP Sheet",
 
     toolPptTitle: "Digital Lecture PPT Maker",
-    toolPptSub: "Ready-to-present Microsoft PowerPoint (.pptx) slides on any topic",
+    toolPptSub: "Write slides and download a Microsoft PowerPoint (.pptx) file",
     toolPptAction: "Make PPT",
 
     toolDoubtTitle: "Doubt Solver & Shortcut Tricks",
-    toolDoubtSub: "Step-by-step bilingual solutions, 10-second shortcut tricks & PYQs",
+    toolDoubtSub: "Write step-by-step solutions, shortcut tricks and similar questions",
     toolDoubtAction: "Solve Doubt",
 
     toolReceiptTitle: "Student ID Card & Fee Receipt",
-    toolReceiptSub: "Smart Barcoded Student ID Cards & Official GST Fee Receipts",
+    toolReceiptSub: "Student ID cards and fee receipts for new admissions",
     toolReceiptAction: "Issue Card / Receipt",
 
     toolTestTitle: "Test Papers & Answer Key Maker",

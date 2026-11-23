@@ -18,6 +18,39 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-051 · `GET /stats/dashboard`; Dashboard and TeacherDesk show real work; sample data removed
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 3 · `apps/api/src/stats`, `packages/shared/src/stats.ts`, `apps/desktop/src/components/{Dashboard.jsx,TeacherDesk.jsx,RecentDocuments.tsx,DocumentBar.tsx}`, `App.tsx`, `translations.js`
+- **Status:** Decided by agent
+- **What was unclear:** DN-021 says these screens show real documents and counts, with schedule and syllabus "coming soon". The plan lists `GET /stats/dashboard` under ADMIN but doesn't say what it returns, who may call it, or how a listed document opens.
+  - **Dashboard:** its stat cards were fixed text ("32 बैचेस", "8 सेशंस", "180+ सेट्स", "48 किताबें"), it had an always-"LIVE" class banner, and the hero badge named another institute. Tool tiles also showed screens the role can't open.
+  - **TeacherDesk:** made up four named faculty with experience and timetables, a syllabus tracker with invented percentages, and a footer with another institute's name and city.
+- **Options considered / Decision:**
+  - **API:** `GET /api/v1/stats/dashboard`, any signed-in user (every role has a dashboard, DN-008). For each document type the role may use, it counts with exactly the documents API's rules (DN-038): super admin institute-wide, everyone else their current branch. Types the role can't use are left out. It returns `byType` (total, mine), `totals` (total, mine, last 7 days), and the 6 latest visible and 6 latest own documents as summaries (no content). Shared types are in `packages/shared/src/stats.ts`, with `DOCUMENT_SCREENS` (type → screen) and Hindi `DOCUMENT_TYPE_LABELS`. A shared test checks that each type's screen needs the same permission as the type.
+  - **Opening from a list:** a link like `#/ppt?open=<id>` makes that screen's `DocumentBar` open the document once and then drop the parameter. Opening a document of another type on the wrong screen is refused. Save and delete refresh the stats.
+  - **Dashboard:** three real cards (saved documents, "branch" or "whole institute"; mine; last 7 days) and "हाल के दस्तावेज़" (recent documents) with "खोलें". The live banner and fake stat strings are gone (keys removed from `translations.js`). Tool tiles and hero buttons show only screens the role may open. The hero buttons are a 2×2 grid, because four in a row squeezed the greeting into a narrow column.
+  - **TeacherDesk:** the signed-in user's name, role, institute and branch; tool tiles filtered by role; "मेरे हाल के दस्तावेज़" (my recent documents) with "खोलें"; their own count per type; and one "टाइमटेबल और सिलेबस ट्रैकर जल्द आ रहा है" (timetable and syllabus tracker coming soon) card (DN-021). All the made-up faculty, schedule, syllabus and notice content is gone.
+  - **Translations:** the hero badge no longer names another institute, and tool descriptions no longer promise AI detection, "500+ MCQs", slides "ready as soon as you type a topic", or "GST" receipts (DN-013).
+  - **`sampleData.js` deleted:** the Dashboard's "sample PPT" prop was passed but never used, so it is removed from `App.tsx` with the last sample data.
+- **Not changed (follow-up):** another institute's name and logo still appear as defaults elsewhere: the sidebar footer, the `SATYADHI_LOGO` fallback, the PPT and motion-file generators, and parts of QuestionPaperMaker, ScreenshotToPpt and the UI gallery. The Dashboard hero text still lists every tool, even for roles that can't use some of them.
+- **Reason:** A dashboard that shows invented numbers misleads the people running the institute.
+- **Verified:** API tests (3 new, 69 total) with real Postgres:
+  - 401 without sign-in
+  - per-type and "mine" counts and newest-first recent lists
+  - a teacher doesn't count another branch's notice
+  - a typist has no notice type
+  - a counselor sees only notices and posters
+  - the super admin sees both branches
+  - another institute sees nothing
+  - deleted documents stop counting
+
+  Shared tests 29. End-to-end in the real Electron app against Docker:
+  - teacher: no fake stats or other-institute badge; 9 tool tiles with no fee-receipt tile; saving a deck raises "मेरे दस्तावेज़" (my documents) by 1 and lists it; "खोलें" lands in PptMaker with the deck loaded, shown as "saved", and the link cleaned to `#/ppt`
+  - TeacherDesk: shows the teacher's name, their deck, counts per type and the coming-soon card, with none of the made-up faculty
+  - counselor: no PPT documents, only the receipt, poster and notice tiles, and no teacher-portal button
+- **Affects:** `/api/v1/stats/dashboard`, `apps/api/src/{stats,app.module.ts,documents/documents.service.ts}`, `packages/shared/src/{stats.ts,stats.test.ts,index.ts}`, the desktop files above, `apps/desktop/src/api/{stats.ts,documents.ts}`, `apps/desktop/src/data/sampleData.js` (deleted)
+- **Revisit if:** Stats get slow on large institutes (add an index on `documents(institute_id, branch_id, type, updated_at)`), or timetables are added to the plan.
+
 ### DN-050 · Image Studio saves posters through DocumentBar; fake export and outside-AI prompts removed
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 3 · `apps/desktop/src/components/ImageStudio.jsx`

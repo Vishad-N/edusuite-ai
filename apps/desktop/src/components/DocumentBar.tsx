@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react";
-import { useBlocker } from "react-router";
+import { useBlocker, useSearchParams } from "react-router";
 import { FilePlus2, FolderOpen, Save, Search, Trash2 } from "lucide-react";
 import type { DocumentType, SavedDocument } from "@edusuite/shared";
 import { ApiError } from "../api/client.ts";
@@ -79,6 +79,10 @@ export function DocumentBar<T extends DocumentType>({ type, title, onTitleChange
   const open = async (id: string) => {
     try {
       const doc = await fetchDocument<T>(client, id);
+      if (doc.type !== type) {
+        toast.show({ tone: "error", title: "यह दस्तावेज़ इस स्क्रीन का नहीं है" });
+        return;
+      }
       onTitleChange(doc.title);
       onOpen(doc.content, doc);
       setCurrent({ id: doc.id, updatedAt: doc.updatedAt });
@@ -91,6 +95,23 @@ export function DocumentBar<T extends DocumentType>({ type, title, onTitleChange
       toast.show({ tone: "error", title: "दस्तावेज़ नहीं खुला", description: err instanceof ApiError ? err.message : undefined });
     }
   };
+
+  // A link like #/ppt?open=<id> (Dashboard, TeacherDesk) opens that document once, then
+  // drops the parameter so a reload or "New" doesn't open it again.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const linkedId = searchParams.get("open");
+  useEffect(() => {
+    if (!linkedId) return;
+    setSearchParams(
+      (params) => {
+        params.delete("open");
+        return params;
+      },
+      { replace: true },
+    );
+    void open(linkedId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per linked id
+  }, [linkedId]);
 
   /** Runs `action` now, or after confirming if there are unsaved changes. */
   const guard = (action: () => void) => (dirty ? setPendingDiscard(() => action) : action());
