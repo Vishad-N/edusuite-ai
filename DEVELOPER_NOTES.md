@@ -18,6 +18,23 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-046 · DoubtSolver saves through DocumentBar; teachers write the solution until Phase 4
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 3 · `apps/desktop/src/components/DoubtSolver.jsx`
+- **Status:** Decided by agent
+- **What was unclear:** The screen always showed one built-in train-and-platform solution, whatever question was typed. Its "हल निकालें" (solve) button waited 0.7 s and played confetti, so it looked as if the AI had solved the typed question.
+- **Options considered / Decision:**
+  - Same pattern as DN-041 to DN-045. A new doubt starts blank. The sample solution, the fake solve button and the confetti are gone; a note says AI solutions come in the next phase.
+  - The teacher writes every part: question, subject, answer, steps (one per line), shortcut trick, common mistake and similar questions (one per line). The solution card on the right shows what was typed and hides the optional parts that are empty.
+  - Saved shape is `DoubtContentSchema` unchanged; empty lines aren't saved, and an empty trick or mistake isn't saved.
+  - The WhatsApp copy now includes only the parts that have text, and the similar questions.
+  - The whole screen moved to tokens and the shared primitives (light surfaces, Hindi labels, `PageHeader`).
+- **Not changed:** the sidebar still shows an "AI" badge on this screen; sidebar labels change in their own change set.
+- **Reason:** A saved solution is the teacher's own; nothing implies the AI solved the student's question.
+- **Verified:** End-to-end in the real Electron app against Docker: no sample text on open; all parts typed show on the card, and the empty "common mistake" is hidden; save shows "saved"; New clears without asking; reopening from History restores every field and shows "saved"; an unsaved edit then New asks first, and "रुकें" keeps it.
+- **Affects:** `DoubtSolver.jsx`
+- **Revisit if:** Phase 4 adds the `doubt_solve` AI job (a solve button then starts a job and fills the fields for the teacher to check).
+
 ### DN-045 · LessonPlanner saves through DocumentBar; teachers write the plan until Phase 4
 - **Date:** 2026-11-21
 - **Phase / area:** Phase 3 · `apps/desktop/src/components/LessonPlanner.jsx`
