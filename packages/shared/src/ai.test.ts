@@ -4,7 +4,7 @@ import { AiJobCreateSchema, IMPLEMENTED_AI_JOBS, PptOutlineOutputSchema, jobItem
 import { AI_JOB_PERMISSIONS } from "./permissions.ts";
 
 test("implemented job types are known, permissioned job types", () => {
-  assert.deepEqual(IMPLEMENTED_AI_JOBS, ["ppt_outline"]);
+  assert.deepEqual(IMPLEMENTED_AI_JOBS, ["ppt_outline", "deck_quiz"]);
   for (const t of IMPLEMENTED_AI_JOBS) assert.ok(t in AI_JOB_PERMISSIONS, t);
 });
 

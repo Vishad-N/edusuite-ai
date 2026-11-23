@@ -16,6 +16,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "gen:quiz-template": "node scripts/gen-deck-quiz-template.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test \"src/**/*.test.ts\"",
     "lint": "oxlint -c ../../.oxlintrc.json src"

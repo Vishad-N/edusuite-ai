@@ -56,7 +56,8 @@ export class JobsService {
 
   async create(actor: AuthUser, body: AiJobCreate, idempotencyKey: string, ctx: Ctx): Promise<{ job: AiJob; created: boolean }> {
     if (!can(actor.role, AI_JOB_PERMISSIONS[body.type])) throw new ApiHttpException(403, "FORBIDDEN");
-    if (!JOB_DEFINITIONS[body.type]) throw new ApiHttpException(400, "AI_JOB_TYPE_UNAVAILABLE");
+    const def = JOB_DEFINITIONS[body.type];
+    if (!def) throw new ApiHttpException(400, "AI_JOB_TYPE_UNAVAILABLE");
     const db = this.prisma.db;
 
     const existing = await db.aiJob.findUnique({ where: { instituteId_idempotencyKey: { instituteId: actor.instituteId, idempotencyKey } } });
@@ -65,6 +66,14 @@ export class JobsService {
       if (existing.userId !== actor.userId || existing.type !== body.type) throw new ApiHttpException(409, "CONFLICT");
       return { job: toJobDto(existing, ctx.acceptLanguage), created: false };
     }
+
+    await def.precheck?.(body.input as never, {
+      instituteId: actor.instituteId,
+      findFile: async (fileId) => {
+        const f = await db.file.findFirst({ where: { id: fileId, instituteId: actor.instituteId } });
+        return f && { mime: f.mime, bytes: f.bytes, uploaded: f.uploadedAt !== null };
+      },
+    });
 
     const cost = creditCost(await this.credits.priceFor(body.type), jobItemCount(body));
     const row = await db.$transaction(async (tx) => {

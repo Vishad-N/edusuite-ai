@@ -91,6 +91,7 @@ export class AiRunner {
   private async callClaude(def: JobDefinition<never, unknown>, input: never, ctx: JobContext): Promise<RunResult> {
     this.client ??= new Anthropic({ apiKey: this.env.ANTHROPIC_API_KEY });
     let message: Anthropic.Beta.Messages.BetaMessage;
+    const content = await def.user(input, ctx);
     try {
       const stream = this.client.beta.messages.stream({
         model: this.env.AI_MODEL,
@@ -101,7 +102,7 @@ export class AiRunner {
         fallbacks: "default",
         output_config: { effort: def.effort, format: zodOutputFormat(def.output) },
         system: [{ type: "text", text: def.system, cache_control: { type: "ephemeral" } }],
-        messages: [{ role: "user", content: def.user(input, ctx) as Anthropic.Beta.Messages.BetaContentBlockParam[] }],
+        messages: [{ role: "user", content: content as Anthropic.Beta.Messages.BetaContentBlockParam[] }],
       });
       message = await stream.finalMessage();
     } catch (err) {
