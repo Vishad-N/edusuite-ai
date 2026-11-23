@@ -204,30 +204,6 @@ export const sampleQuestionPapers = [
   },
 ];
 
-export const sampleNotices = [
-  {
-    category: "Fee Reminder",
-    title: "Quarterly Fee Reminder Notice",
-    target: "Parents & Students",
-    whatsappText: `📢 *SATYADHI SHARMA TECH - FEE REMINDER*\n\nDear Students / Parents,\nThis is a gentle reminder that the installment for the ongoing batch is due on or before *10th of this month*.\n\n💳 *Payment Modes:* UPI, Net Banking, or Institute Accounts Desk.\n⚠️ Timely fee clearance helps maintain uninterrupted online/offline classes.\n\nFor any query, contact Accounts at +91 97706 77070.\n\nWarm regards,\n*Satyadhi Sharma Tech & Classes*`,
-    formalText: `Ref No: SST/FEE/2026/04\nDate: 18th November 2026\n\nCIRCULAR: TUITION FEE SUBMISSION SCHEDULE\n\nRespected Parents / Candidates,\n\nAll students and parents are hereby informed to clear pending dues for the current academic session before 10th of the month. Timely payments assist the institution in providing seamless digital library, study materials, and faculty test series.\n\nSincerely,\nDirector of Accounts\nSatyadhi Sharma Tech`,
-  },
-  {
-    category: "PTM Announcement",
-    title: "Parent-Teacher Meeting & Test Review",
-    target: "All Parents & Candidates",
-    whatsappText: `🤝 *PARENT-TEACHER & MENTORSHIP MEET*\n\nRespected Parents,\nWe invite you to the Monthly Progress Review to discuss your ward's test rank, mock paper performance, and exam strategy.\n\n🗓️ *Date:* Saturday, 23rd Nov 2026\n⏰ *Time:* 9:00 AM to 1:00 PM\n📍 *Venue:* Satyadhi Sharma Campus (Indore)\n\nBest wishes,\n*Academic Coordinator*`,
-    formalText: `Ref No: SST/PTM/2026\nDate: 18th November 2026\n\nNOTIFICATION: PARENT INTERACTION & PERFORMANCE AUDIT\n\nThe institute will conduct the Monthly Student Evaluation on Saturday, 23rd November 2026. Mock test rankings and faculty feedback will be shared individually.\n\nAcademic Dean\nSatyadhi Sharma Tech`,
-  },
-  {
-    category: "Admissions Alert",
-    title: "New Target Batches 2026-27 (MPPSC, SSC, Vyapam)",
-    target: "Prospective Students",
-    whatsappText: `🚀 *NEW BATCHES COMMENCING*\n\n*SATYADHI SHARMA CLASSES & TECH*\n\n🌟 *Salient Features:*\n✅ Indore's Top Renowned Faculty Team\n✅ Daily Practice Tests (DPP) & AI Mock Papers\n✅ Comprehensive Printed Notes & Online Test Series\n✅ Individual Mentorship Desk\n\n📅 *New Batches Start:* Next Monday\n📞 *Inquiry / Demo Class:* +91 97706 77070\n📍 *Address:* Bhanwarkuan / Geeta Bhawan, Indore`,
-    formalText: `ANNOUNCEMENT: COMMENCEMENT OF FRESH COMPETITIVE BATCHES\n\nAdmissions open for MPPSC (Pre + Mains), SSC CGL, Vyapam/PEB, and State Exams.\n\nRegistration desk active at main center. Free 3-day demo classes available.\n\nDirector of Admissions\nSatyadhi Sharma Tech`,
-  },
-];
-
 export const sampleBooks = [
   {
     id: "science-mastery",
