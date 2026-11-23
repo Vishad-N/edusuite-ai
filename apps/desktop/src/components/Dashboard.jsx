@@ -17,7 +17,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { visibleScreens } from "@edusuite/shared";
-import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { instituteLogo } from "../utils/branding.ts";
 import { useSignedInUser } from "../api/session.tsx";
 import { useDashboardStats } from "../api/stats.ts";
 import { ApiError } from "../api/client.ts";
@@ -132,7 +132,7 @@ export default function Dashboard({ activeInstitute, onNavigate, t, currentUser 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             <img
-              src={activeInstitute?.logo || SATYADHI_LOGO}
+              src={instituteLogo(activeInstitute)}
               alt=""
               className="w-20 h-20 md:w-24 md:h-24 rounded-full object-contain bg-amber-300 ring-4 ring-amber-400/80 shadow-2xl shrink-0"
             />

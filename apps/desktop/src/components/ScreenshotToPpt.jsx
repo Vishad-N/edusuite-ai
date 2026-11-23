@@ -72,7 +72,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
   const [facultyName, setFacultyName] = useState("");
   const [subject, setSubject] = useState("");
   const [examTag, setExamTag] = useState("");
-  const [pptTheme, setPptTheme] = useState("satyadhi_dark"); // 'satyadhi_dark' | 'clean_white' | 'emerald'
+  const [pptTheme, setPptTheme] = useState("satyadhi_dark"); // 'satyadhi_dark' (the dark theme's saved id) | 'clean_white' | 'emerald'
   const [layoutMode, setLayoutMode] = useState("split"); // 'split' | 'screenshot_left' | 'classic_full'
 
   // Motion Player Modal states
@@ -244,6 +244,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
     subject,
     examTag,
     instituteName: activeInstitute.name,
+    instituteContact: [activeInstitute.city, activeInstitute.phone].filter(Boolean).join(" · "),
     questions,
   });
 
@@ -832,7 +833,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
                     onChange={(e) => setPptTheme(e.target.value)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-medium focus:outline-none focus:border-amber-400"
                   >
-                    <option value="satyadhi_dark">🌟 सत्याधी डार्क (स्मार्टबोर्ड बेस्ट)</option>
+                    <option value="satyadhi_dark">🌟 डार्क स्मार्टबोर्ड (सबसे साफ़)</option>
                     <option value="clean_white">☀️ क्लीन वाइट बोर्ड</option>
                     <option value="emerald">🟢 क्लासिकल ग्रीन बोर्ड</option>
                   </select>
@@ -997,7 +998,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
               </div>
               <div className="flex items-center gap-2 text-right">
                 <span className="text-xs font-bold text-[#FACC15]">
-                  {activeInstitute.name || "सत्याधी शर्मा क्लासेस, इंदौर"}
+                  {activeInstitute.name}
                 </span>
               </div>
             </div>
@@ -1170,7 +1171,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
                     )}
 
                     <div className="text-[10px] text-white/40 border-t border-white/10 pt-1">
-                      सत्याधी शर्मा स्मार्ट क्लासरूम
+                      {activeInstitute.name}
                     </div>
                   </div>
                 )}
@@ -1179,8 +1180,8 @@ export default function ScreenshotToPpt({ activeInstitute }) {
 
             {/* Bottom Slide Footer */}
             <div className="flex items-center justify-between pt-2 border-t border-white/10 text-[11px] text-white/50">
-              <span>सत्याधी शर्मा क्लासेस • भंवरकुआं मेन ब्रांच, इंदौर</span>
-              <span>हेल्पलाइन: +91 97706 77070 | Live MCQ Marathon</span>
+              <span>{[activeInstitute.name, activeInstitute.city].filter(Boolean).join(" • ")}</span>
+              <span>{activeInstitute.phone && `हेल्पलाइन: ${activeInstitute.phone}`}</span>
             </div>
           </div>
         </div>
@@ -1197,7 +1198,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
                 <div>
                   <h3 className="text-white font-black text-sm md:text-base flex items-center gap-2">
                     <Film className="w-4 h-4 text-amber-400" />
-                    सत्याधी मोशन स्टूडियो • 60fps इंटरएक्टिव क्लासरूम प्रजेंटेशन
+                    मोशन प्लेयर • इंटरएक्टिव क्लासरूम प्रजेंटेशन
                   </h3>
                   <p className="text-slate-400 text-xs hidden sm:block">
                     Web Audio API साउंड इफेक्ट्स, 10s टाइमर, चेक/क्रॉस मोशन और स्मार्टबोर्ड ऑटो-स्केलिंग
@@ -1225,7 +1226,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
             {/* Embedded Live Motion Player: isolated origin in the desktop app, srcDoc in a plain browser */}
             <div className="flex-1 w-full h-full bg-black relative">
               <iframe
-                title="Satyadhi Motion Interactive Player"
+                title="मोशन प्लेयर"
                 {...(motionPlayerUrl ? { src: motionPlayerUrl } : { srcDoc: motionHtmlDoc })}
                 className="w-full h-full border-0"
                 // No allow-same-origin: with allow-scripts it would let the frame remove its own sandbox.

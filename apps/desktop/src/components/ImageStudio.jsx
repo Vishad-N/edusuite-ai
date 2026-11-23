@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Image as ImageIcon, FileText } from "lucide-react";
-import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { instituteLogo } from "../utils/branding.ts";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { Button, ConfirmDialog, Field, Input, PageHeader } from "./ui/index.ts";
 
@@ -140,7 +140,7 @@ export default function ImageStudio({ activeInstitute }) {
               style={{ background: `radial-gradient(circle at 80% 20%, ${accentColor}25 0%, #090d16 85%)` }}
             >
               <div className="flex items-center gap-2.5 z-10">
-                <img src={activeInstitute?.logo || SATYADHI_LOGO} alt="" className="w-7 h-7 rounded-full object-contain bg-amber-300 ring-2 ring-amber-400/50 shadow" />
+                <img src={instituteLogo(activeInstitute)} alt="" className="w-7 h-7 rounded-full object-contain bg-amber-300 ring-2 ring-amber-400/50 shadow" />
                 <span className="text-xs font-extrabold tracking-wider uppercase text-slate-100">{activeInstitute.name}</span>
               </div>
 

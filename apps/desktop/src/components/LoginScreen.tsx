@@ -1,6 +1,6 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { AlertCircle, ArrowRight, Clock, Eye, EyeOff, Key, Lock, LogIn, ShieldCheck, User } from "lucide-react";
-import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { EDUSUITE_MARK } from "../utils/branding.ts";
 import { ApiError } from "../api/client.ts";
 import type { ApiError as ApiErrorType } from "../api/client.ts";
 
@@ -69,9 +69,9 @@ export default function LoginScreen({ onLogin, endedBecause }: Props) {
       <div className="w-full max-w-5xl mx-auto flex items-center justify-between py-2 border-b border-slate-800/80">
         <div className="flex items-center gap-3">
           <img
-            src={SATYADHI_LOGO}
+            src={EDUSUITE_MARK}
             alt=""
-            className="w-10 h-10 rounded-full object-contain bg-amber-300 ring-2 ring-amber-400 shrink-0"
+            className="w-10 h-10 rounded-control shrink-0"
           />
           <div>
             <p className="text-sm font-black tracking-wider uppercase text-white">EduSuite</p>

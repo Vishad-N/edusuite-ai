@@ -1,7 +1,7 @@
 {
   "name": "edusuite",
   "private": true,
-  "description": "EduSuite / Satyadhi Sharma Tech monorepo: desktop app, API and shared code",
+  "description": "EduSuite AI monorepo: desktop app, API and shared code",
   "engines": {
     "node": ">=26"
   },

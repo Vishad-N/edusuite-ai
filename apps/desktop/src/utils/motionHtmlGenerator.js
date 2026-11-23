@@ -1,5 +1,5 @@
 import { MOTION_TEMPLATE_BEFORE, MOTION_TEMPLATE_AFTER } from "./motionTemplate.js";
-import { SATYADHI_LOGO } from "./mediaHelper.js";
+import { initialsLogo } from "./branding.ts";
 
 /**
  * Maps our scanned questions into the exact motion engine schema:
@@ -14,7 +14,7 @@ import { SATYADHI_LOGO } from "./mediaHelper.js";
  *   screenshotDataUrl: "data:image/..."
  * }
  */
-export function buildMotionQuestions(questions = [], defaultExam = "MPPSC / व्यापम PYQ") {
+export function buildMotionQuestions(questions = [], defaultExam = "") {
   return questions.map((q, idx) => {
     // Map options
     const optList = [
@@ -39,50 +39,55 @@ export function buildMotionQuestions(questions = [], defaultExam = "MPPSC / व�
       a: correctIndex,
       v: artChoice,
       cat: q.exam || defaultExam,
-      exp: q.trick || "सत्याधी शर्मा क्लासेस व्याख्या एवं महत्वपूर्ण परीक्षा तथ्य।",
+      exp: q.trick || "",
       screenshotDataUrl: q.screenshotDataUrl || null,
     };
   });
 }
 
 /**
- * Compiles the standalone HTML5 Motion Interactive Studio file
+ * Text placed into the template lands in HTML and, on some slides, inside a JS
+ * template literal, so escape both kinds of special character.
+ */
+export function escapeForTemplate(value) {
+  return String(value ?? "").replace(/[&<>"'`$\\]/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+function fill(template, values) {
+  // A function replacement, so "$&" or "$1" in staff text is inserted as-is.
+  return template.replace(/{{([A-Z_]+)}}/g, (whole, key) => (key in values ? values[key] : whole));
+}
+
+/**
+ * Compiles the standalone HTML5 Motion Interactive Studio file. Everything shown
+ * comes from the set and the signed-in institute (DN-052); there are no ad slides.
  */
 export function generateMotionHtml({
-  title = "MCQ Live Motion Class",
-  examTag = "MPPSC / व्यापम PYQ",
-  subject = "सामान्य अध्ययन & विज्ञान",
-  facultyName = "शर्मा सर & फैकल्टी",
-  instituteName = "सत्याधी शर्मा क्लासेस, इंदौर",
-  logoUrl = SATYADHI_LOGO,
+  title = "MCQ अभ्यास",
+  examTag = "",
+  subject = "",
+  facultyName = "",
+  instituteName = "",
+  /** City and phone, shown where the template has a contact line. */
+  instituteContact = "",
+  logoUrl = "",
   questions = [],
 }) {
   const motionQuestions = buildMotionQuestions(questions, examTag);
-  const questionsJson = JSON.stringify(motionQuestions, null, 2);
-
-  // Replace placeholders in before template
-  let before = MOTION_TEMPLATE_BEFORE
-    .replace(/{{TITLE}}/g, title)
-    .replace(/{{INSTITUTE_NAME}}/g, instituteName)
-    .replace(/{{LOGO_URL}}/g, logoUrl || SATYADHI_LOGO)
-    .replace(/{{EXAM_TAG}}/g, examTag)
-    .replace(/{{SUBJECT}}/g, subject)
-    .replace(/{{BRAND_NAME}}/g, "SATYADHI SHARMA")
-    .replace(/{{BRAND_SUB}}/g, "CLASSES · INDORE");
-
-  // Replace placeholders in after template
-  let after = MOTION_TEMPLATE_AFTER
-    .replace(/{{TITLE}}/g, title)
-    .replace(/{{INSTITUTE_NAME}}/g, instituteName)
-    .replace(/{{LOGO_URL}}/g, logoUrl || SATYADHI_LOGO)
-    .replace(/{{EXAM_TAG}}/g, examTag)
-    .replace(/{{SUBJECT}}/g, subject)
-    .replace(/{{FACULTY_NAME}}/g, facultyName)
-    .replace(/{{TOTAL_QUESTIONS}}/g, String(questions.length));
-
-  // Assemble full HTML with the questions array
-  const fullHtml = `${before}const QS = ${questionsJson};${after}`;
-  return fullHtml;
+  const values = {
+    TITLE: escapeForTemplate(title),
+    INSTITUTE_NAME: escapeForTemplate(instituteName),
+    INSTITUTE_CONTACT: escapeForTemplate(instituteContact),
+    EXAM_TAG: escapeForTemplate(examTag),
+    SUBJECT: escapeForTemplate(subject),
+    FACULTY_NAME: escapeForTemplate(facultyName),
+    TOTAL_QUESTIONS: String(questions.length),
+    // Data URLs only (a logo from the app, or the initials badge); quotes can't occur in them.
+    LOGO_URL: escapeForTemplate(logoUrl || initialsLogo(instituteName)),
+  };
+  // `<` is escaped so question text can never close the script block.
+  const questionsJson = JSON.stringify(motionQuestions, null, 2).replace(/</g, "\\u003c");
+  return `${fill(MOTION_TEMPLATE_BEFORE, values)}const QS = ${questionsJson};${fill(MOTION_TEMPLATE_AFTER, values)}`;
 }
 
 /**
@@ -94,7 +99,7 @@ export function downloadMotionHtmlFile(params) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  const safeName = (params.title || "Satyadhi_Motion_Class").replace(/[^a-zA-Z0-9_\u0900-\u097F]/g, "_");
+  const safeName = (params.title || "Motion_Class").replace(/[^a-zA-Z0-9_ऀ-ॿ]/g, "_");
   a.download = `${safeName}_Motion.html`;
   document.body.appendChild(a);
   a.click();

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { MessageSquareShare, Copy, Check, Printer, FileText } from "lucide-react";
-import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { instituteLogo } from "../utils/branding.ts";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { Button, ConfirmDialog, Field, Input, PageHeader, Textarea } from "./ui/index.ts";
 
@@ -164,7 +164,7 @@ export default function NoticeHub({ activeInstitute }) {
             <div className="p-8 rounded-2xl bg-white text-slate-900 border border-slate-200 shadow-xl space-y-4 select-text">
               <div className="text-center border-b-2 border-slate-800 pb-3">
                 <div className="flex items-center justify-center gap-3 mb-1">
-                  <img src={activeInstitute?.logo || SATYADHI_LOGO} alt="" className="w-10 h-10 rounded-full object-contain bg-amber-300 ring-2 ring-amber-400 shadow" />
+                  <img src={instituteLogo(activeInstitute)} alt="" className="w-10 h-10 rounded-full object-contain bg-amber-300 ring-2 ring-amber-400 shadow" />
                   <div className="text-left">
                     <h2 className="text-base font-black uppercase text-slate-900">{activeInstitute.name}</h2>
                     <p className="text-[11px] text-slate-600">

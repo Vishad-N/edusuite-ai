@@ -73,7 +73,7 @@ export const generatePptxFile = async (presentationData, theme = "navy") => {
 
   // School / Institute Branding Footer
   titleSlide.addText(
-    `${presentationData.instituteName || "Satyadhi Sharma Tech"} | Class: ${presentationData.grade || "All Standards"} | Subject: ${presentationData.subject || "General"}`,
+    `${presentationData.instituteName || ""} | Class: ${presentationData.grade || "All Standards"} | Subject: ${presentationData.subject || "General"}`,
     {
       x: 0.8,
       y: 5.8,
@@ -156,7 +156,7 @@ export const generatePptxFile = async (presentationData, theme = "navy") => {
     }
 
     // Footer
-    s.addText(presentationData.instituteName || "Satyadhi Sharma Tech", {
+    s.addText(presentationData.instituteName || "", {
       x: 0.8,
       y: 6.8,
       w: 6.0,
@@ -172,10 +172,12 @@ export const generatePptxFile = async (presentationData, theme = "navy") => {
 
 export const generateScreenshotMcqPptx = async ({
   title = "MCQ Live Class",
-  facultyName = "सत्याधी शर्मा फैकल्टी",
+  facultyName = "",
   subject = "सामान्य अध्ययन",
-  examTag = "MPPSC / व्यापम / SSC PYQ",
-  instituteName = "सत्याधी शर्मा क्लासेस, इंदौर",
+  examTag = "",
+  instituteName = "",
+  /** City and phone, shown in the slide footer when set. */
+  instituteContact = "",
   questions = [],
   theme = "satyadhi_dark",
   layoutMode = "split", // 'split' | 'screenshot_left' | 'classic_full'
@@ -279,7 +281,7 @@ export const generateScreenshotMcqPptx = async ({
   );
 
   // Footer Tagline
-  titleSlide.addText("🔴 स्मार्ट क्लासरूम & यूट्यूब लाइव सेशन • सत्याधी शर्मा डिजिटल स्टूडियो", {
+  titleSlide.addText(instituteName, {
     x: 1.0,
     y: 6.2,
     w: 11.33,
@@ -331,7 +333,7 @@ export const generateScreenshotMcqPptx = async ({
     });
 
     // Institute Brand Top Right
-    s.addText(`सत्याधी शर्मा क्लासेस`, {
+    s.addText(instituteName, {
       x: 9.0,
       y: 0.45,
       w: 3.7,
@@ -558,7 +560,7 @@ export const generateScreenshotMcqPptx = async ({
     }
 
     // Bottom institute footer
-    s.addText(`सत्याधी शर्मा क्लासेस • भंवरकुआं, इंदौर | हेल्पलाइन: +91 97706 77070`, {
+    s.addText([instituteName, instituteContact].filter(Boolean).join(" • "), {
       x: 0.6,
       y: 6.9,
       w: 12.13,
@@ -568,6 +570,6 @@ export const generateScreenshotMcqPptx = async ({
     });
   });
 
-  const safeFileName = `${(title || "Satyadhi_MCQ_Smartboard").replace(/[^a-zA-Z0-9_\u0900-\u097F]/g, "_")}.pptx`;
+  const safeFileName = `${(title || "MCQ_Smartboard").replace(/[^a-zA-Z0-9_\u0900-\u097F]/g, "_")}.pptx`;
   await pptx.writeFile({ fileName: safeFileName });
 };

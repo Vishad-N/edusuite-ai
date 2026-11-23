@@ -99,7 +99,7 @@ function screenPath(screen: string): string {
 function useLanguage(): ["hi" | "en", (lang: "hi" | "en") => void] {
   const [lang, setLang] = useState<"hi" | "en">(() => {
     try {
-      return localStorage.getItem("satyadhi_lang") === "en" ? "en" : "hi";
+      return localStorage.getItem("edusuite_lang") === "en" ? "en" : "hi";
     } catch {
       return "hi";
     }
@@ -110,7 +110,7 @@ function useLanguage(): ["hi" | "en", (lang: "hi" | "en") => void] {
   const change = (next: "hi" | "en") => {
     setLang(next);
     try {
-      localStorage.setItem("satyadhi_lang", next);
+      localStorage.setItem("edusuite_lang", next);
     } catch {
       // Language still changes for this run.
     }
@@ -189,6 +189,7 @@ function AppShell() {
       <Header
         instituteName={activeInstitute.name}
         branchName={user.branch.name}
+        phone={activeInstitute.phone}
         lang={lang}
         onLanguageChange={setLang}
         t={t}
@@ -205,6 +206,8 @@ function AppShell() {
           setActiveTab={onNavigate}
           t={t}
           allowedScreens={visibleScreens(user.role)}
+          instituteName={activeInstitute.name}
+          branchName={user.branch.name}
         />
         <main className="flex-1 overflow-y-auto bg-slate-100/70 p-6 md:p-8">
           <div className="max-w-7xl mx-auto">

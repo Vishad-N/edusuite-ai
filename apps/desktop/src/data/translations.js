@@ -1,14 +1,7 @@
 export const translations = {
   hi: {
     // Header
-    brandName: "सत्याधी शर्मा क्लासेस & टेक",
     appBadge: "कोचिंग OS",
-    subtitle: "मध्य प्रदेश का प्रतिष्ठित प्रतियोगी परीक्षा संस्थान • इंदौर",
-    branchMain: "भंवरकुआं मेन ब्रांच",
-    branchCity: "इंदौर (म.प्र.)",
-    session: "सत्र 2026-27",
-    helpline: "+91 97706 77070",
-    switchBranch: "ब्रांच / सेंटर चुनें",
 
     // Sidebar Groups & Items
     grpDashboard: "मुख्य डैशबोर्ड",
@@ -30,8 +23,6 @@ export const translations = {
     navReceipt: "छात्र ID कार्ड & फीस रसीद",
     navImage: "प्रवेश पोस्टर & बैनर",
     navNotice: "व्हाट्सएप ब्रॉडकास्ट & नोटिस",
-    sidebarInstitute: "सत्याधी शर्मा क्लासेस",
-    sidebarSub: "इंदौर (म.प्र.) • स्थापित 2012",
     sidebarSystem: "संस्थान प्रबंधन सिस्टम v2.5",
     guide: "गाइड",
 
@@ -94,14 +85,7 @@ export const translations = {
 
   en: {
     // Header
-    brandName: "Satyadhi Sharma Classes & Tech",
     appBadge: "Coaching OS",
-    subtitle: "Premier Competitive Exam Institute • Indore (M.P.)",
-    branchMain: "Bhanwarkuan Main Branch",
-    branchCity: "Indore (M.P.)",
-    session: "Session 2026-27",
-    helpline: "+91 97706 77070",
-    switchBranch: "Select Branch / Center",
 
     // Sidebar Groups & Items
     grpDashboard: "Main Dashboard",
@@ -123,8 +107,6 @@ export const translations = {
     navReceipt: "Student ID & Fee Receipt",
     navImage: "Admission Posters & Banners",
     navNotice: "WhatsApp Alerts & Circulars",
-    sidebarInstitute: "Satyadhi Sharma Classes",
-    sidebarSub: "Indore (M.P.) • Est. 2012",
     sidebarSystem: "Institute Management System v2.5",
     guide: "Guide",
 

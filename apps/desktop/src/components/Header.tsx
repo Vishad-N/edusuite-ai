@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Calendar, LogOut, MapPin, PhoneCall, Settings } from "lucide-react";
-import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { EDUSUITE_MARK } from "../utils/branding.ts";
+import { academicSession } from "../utils/academicSession.ts";
 import { ConfirmDialog } from "./ui/index.ts";
 import type { LegacyUser } from "../App.tsx";
 
 type Props = {
   instituteName: string;
   branchName: string;
+  /** The institute's own helpline (branding.phone); hidden when empty. */
+  phone: string;
   lang: "hi" | "en";
   onLanguageChange: (lang: "hi" | "en") => void;
   t: Record<string, string>;
@@ -19,7 +22,7 @@ type Props = {
 /** Native window controls sit over the top-right corner (titleBarOverlay); keep clear of them. */
 const OVERLAY_SAFE_PADDING = "calc(100vw - env(titlebar-area-width, 100vw) + 12px)";
 
-export default function Header({ instituteName, branchName, lang, onLanguageChange, t, currentUser, onLogout, onOpenSettings }: Props) {
+export default function Header({ instituteName, branchName, phone, lang, onLanguageChange, t, currentUser, onLogout, onOpenSettings }: Props) {
   const [confirmLogout, setConfirmLogout] = useState(false);
   const langButton = (code: "hi" | "en", label: string) => (
     <button
@@ -41,7 +44,7 @@ export default function Header({ instituteName, branchName, lang, onLanguageChan
       style={{ paddingRight: OVERLAY_SAFE_PADDING }}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <img src={SATYADHI_LOGO} alt="" className="w-8 h-8 rounded-full object-contain bg-amber-300 shrink-0" />
+        <img src={EDUSUITE_MARK} alt="" className="w-8 h-8 rounded-control shrink-0" />
         <div className="flex flex-col justify-center min-w-0">
           <span className="font-extrabold text-white tracking-tight text-sm truncate">{instituteName}</span>
           <span className="text-[11px] text-slate-300 truncate">{t.appBadge}</span>
@@ -55,7 +58,7 @@ export default function Header({ instituteName, branchName, lang, onLanguageChan
         </span>
         <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-800/50 border border-slate-700/60 text-[11px] text-slate-200">
           <Calendar className="w-3 h-3 text-emerald-400" aria-hidden="true" />
-          {t.session}
+          {academicSession(lang)}
         </span>
       </div>
 
@@ -65,10 +68,12 @@ export default function Header({ instituteName, branchName, lang, onLanguageChan
           {langButton("en", "English")}
         </div>
 
-        <div className="hidden xl:flex items-center gap-1.5 px-2 py-1 rounded-lg border border-amber-400/25 text-amber-200 text-[11px] font-semibold">
-          <PhoneCall className="w-3 h-3 text-amber-400" aria-hidden="true" />
-          {t.helpline}
-        </div>
+        {phone && (
+          <div className="hidden xl:flex items-center gap-1.5 px-2 py-1 rounded-lg border border-amber-400/25 text-amber-200 text-[11px] font-semibold">
+            <PhoneCall className="w-3 h-3 text-amber-400" aria-hidden="true" />
+            {phone}
+          </div>
+        )}
 
         <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-700/80">
           <div className="hidden sm:flex items-center gap-1.5 bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700/80">

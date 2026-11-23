@@ -151,7 +151,7 @@ function Dialogs() {
         }
       >
         <Field label="संस्थान का नाम">
-          <Input defaultValue="सत्याधी शर्मा क्लासेस" />
+          <Input defaultValue="डेमो कोचिंग संस्थान" />
         </Field>
       </Modal>
       <ConfirmDialog

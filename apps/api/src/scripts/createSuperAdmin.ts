@@ -4,8 +4,8 @@
  *
  *   docker compose -f infra/docker-compose.yml --env-file infra/.env exec api \
  *     node dist/src/scripts/createSuperAdmin.js \
- *       --institute-code IND --institute-name "सत्याधी शर्मा क्लासेस" \
- *       --branch-code BKN --branch-name "भंवरकुआं मेन ब्रांच" \
+ *       --institute-code DEMO --institute-name "डेमो कोचिंग संस्थान" \
+ *       --branch-code MAIN --branch-name "मेन ब्रांच" \
  *       --employee-code IND-SA-1 --email owner@example.com --name "Owner Name"
  *
  * The password is asked for without echoing it. In a non-interactive shell it
