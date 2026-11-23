@@ -40,7 +40,7 @@ export const deckQuiz: JobDefinition<DeckQuizInput, DeckQuizOutput> = {
   maxTokens: 64000,
   system: SYSTEM,
   user: async (input, ctx) => {
-    const pdf = await ctx.readFile(input.fileId, "application/pdf");
+    const { bytes: pdf } = await ctx.readFile(input.fileId, ["application/pdf"]);
     return [
       { type: "document", source: { type: "base64", media_type: "application/pdf", data: Buffer.from(pdf).toString("base64") } },
       {

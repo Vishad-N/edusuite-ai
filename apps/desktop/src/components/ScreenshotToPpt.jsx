@@ -31,6 +31,8 @@ import { fileUrl, uploadFile } from "../api/documents.ts";
 import { ApiError } from "../api/client.ts";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { Button, PageHeader, useToast } from "./ui/index.ts";
+import { MCQ_EXTRACT_MAX_IMAGES, McqExtractResultSchema } from "@edusuite/shared";
+import { AiGenerate } from "./AiGenerate.tsx";
 
 /** Screenshot types the files API accepts (DN-040). */
 const ACCEPTED_IMAGES = "image/png,image/jpeg,image/webp";
@@ -181,7 +183,30 @@ export default function ScreenshotToPpt({ activeInstitute }) {
   // Update question field in review mode
   const handleUpdateCurrentField = (field, value) => {
     const q = questions[selectedQuestionIndex];
-    if (q) patchQuestion(q.id, { [field]: value });
+    // Choosing the answer by hand counts as checking the AI's answer.
+    if (q) patchQuestion(q.id, { [field]: value, ...(field === "correct" && { aiCheck: false }) });
+  };
+
+  // AI reading (DN-057): screenshots that are uploaded and still have no question text.
+  const aiPending = questions.filter((q) => q.screenshotFileId && q.upload === "done" && !q.question.trim()).slice(0, MCQ_EXTRACT_MAX_IMAGES);
+  const aiToCheck = questions.filter((q) => q.aiCheck).length;
+  const fillFromAi = (result) => {
+    const parsed = McqExtractResultSchema.safeParse(result);
+    if (!parsed.success) return toast.show({ tone: "error", title: "AI का उत्तर सही रूप में नहीं आया", description: "फिर से कोशिश करें।" });
+    const byFile = new Map(parsed.data.items.map((it) => [it.fileId, it]));
+    const missed = parsed.data.items.filter((it) => !it.found).length;
+    setQuestions((all) =>
+      all.map((q) => {
+        const it = q.screenshotFileId && !q.question.trim() ? byFile.get(q.screenshotFileId) : undefined;
+        if (!it) return q;
+        if (!it.found) {
+          return { ...q, aiNote: it.note || "इस स्क्रीनशॉट में AI को प्रश्न नहीं मिला; खुद लिखें।" };
+        }
+        return { ...q, question: it.question, options: { ...it.options }, correct: it.correct, trick: it.trick, aiCheck: !it.answerFromImage, aiNote: it.note };
+      }),
+    );
+    setActiveTab("review");
+    if (missed) toast.show({ tone: "info", title: `${missed} स्क्रीनशॉट में प्रश्न नहीं मिला`, description: "उन्हें खुद लिखें।" });
   };
 
   const handleUpdateOption = (optKey, value) => {
@@ -300,7 +325,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
         icon={<Upload className="size-6" />}
         title="स्क्रीनशॉट से स्मार्टबोर्ड PPT मेकर"
         badge="स्मार्टबोर्ड 16:9 PPTX"
-        description="प्रश्नों के स्क्रीनशॉट अपलोड करें, हर स्क्रीनशॉट के साथ प्रश्न, 4 विकल्प और सही उत्तर लिखें, और स्मार्टबोर्ड PPT या मोशन फ़ाइल बनाएँ। स्क्रीनशॉट से अपने-आप प्रश्न पढ़ने (AI) की सुविधा अगले चरण में आएगी।"
+        description="प्रश्नों के स्क्रीनशॉट अपलोड करें, AI से प्रश्न, 4 विकल्प, उत्तर और ट्रिक पढ़वाएँ या खुद लिखें, जाँचें, और स्मार्टबोर्ड PPT या मोशन फ़ाइल बनाएँ।"
         actions={
           <>
             <Button variant="primary" icon={<Upload className="size-4" />} onClick={() => fileInputRef.current?.click()}>
@@ -319,6 +344,31 @@ export default function ScreenshotToPpt({ activeInstitute }) {
         onOpen={(content) => openSaved(content)}
         onNew={startNew}
       />
+
+      {questions.length > 0 && (
+        <div className="space-y-2 rounded-card border border-line bg-surface p-4 text-ink no-print">
+          <p className="text-label font-semibold">AI से स्क्रीनशॉट पढ़ें</p>
+          <p className="text-caption text-muted">
+            {aiPending.length > 0
+              ? `${aiPending.length} स्क्रीनशॉट में अभी प्रश्न नहीं लिखा है। AI उन्हें पढ़कर प्रश्न, विकल्प, उत्तर और ट्रिक भर देगा (एक बार में ${MCQ_EXTRACT_MAX_IMAGES} तक)।`
+              : "जिन स्क्रीनशॉट का प्रश्न खाली है और अपलोड पूरा हो चुका है, AI उन्हें पढ़ सकता है। अभी ऐसा कोई नहीं है।"}
+          </p>
+          <AiGenerate
+            label="AI से प्रश्न पढ़ें"
+            build={() =>
+              aiPending.length > 0
+                ? { type: "mcq_extract", input: { fileIds: aiPending.map((q) => q.screenshotFileId), ...(subject.trim() && { subject: subject.trim() }) } }
+                : null
+            }
+            onResult={fillFromAi}
+          />
+          {aiToCheck > 0 && (
+            <p role="status" className="rounded-control border border-warning bg-warning-subtle p-2 text-label">
+              {aiToCheck} प्रश्नों का उत्तर स्क्रीनशॉट पर नहीं था, AI ने तय किया है। “प्रश्न लिखें व सुधारें” में हर एक जाँचें।
+            </p>
+          )}
+        </div>
+      )}
 
       {exportError && (
         <p role="alert" className="rounded-control border border-danger bg-danger-subtle p-3 text-label text-danger">
@@ -697,6 +747,24 @@ export default function ScreenshotToPpt({ activeInstitute }) {
 
                 {/* Right: Editable Extracted Fields */}
                 <div className="md:col-span-7 space-y-4">
+                  {(currQ?.aiCheck || currQ?.aiNote) && (
+                    <div role="status" className="space-y-1 rounded-xl border border-warning bg-warning-subtle p-2.5 text-xs">
+                      {currQ.aiCheck && (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-bold">यह उत्तर स्क्रीनशॉट पर नहीं था; AI ने तय किया है। जाँचें।</span>
+                          <button
+                            type="button"
+                            onClick={() => patchQuestion(currQ.id, { aiCheck: false })}
+                            className="rounded-lg border border-slate-300 bg-white px-2 py-1 font-bold text-slate-800 cursor-pointer"
+                          >
+                            उत्तर सही है
+                          </button>
+                        </div>
+                      )}
+                      {currQ.aiNote && <p lang="en">AI नोट: {currQ.aiNote}</p>}
+                    </div>
+                  )}
+
                   {/* Question Text */}
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-800 flex items-center justify-between">

@@ -82,10 +82,50 @@ export const PaperGenerateOutputSchema = z.object({
 });
 export type PaperGenerateOutput = z.infer<typeof PaperGenerateOutputSchema>;
 
+/** mcq_extract: read MCQs from uploaded screenshots (ScreenshotToPpt, DN-057). Priced per screenshot. */
+export const MCQ_EXTRACT_MAX_IMAGES = 20;
+export const MCQ_IMAGE_MIMES = ["image/png", "image/jpeg", "image/webp"] as const;
+/** Claude's per-image limit over the API. */
+export const MCQ_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const LETTER = z.enum(["A", "B", "C", "D"]);
+const OPTIONS4 = z.object({ A: z.string(), B: z.string(), C: z.string(), D: z.string() });
+
+export const McqExtractInputSchema = z.object({
+  fileIds: z
+    .array(z.uuid())
+    .min(1)
+    .max(MCQ_EXTRACT_MAX_IMAGES)
+    .refine((ids) => new Set(ids).size === ids.length, "duplicate screenshot"),
+  subject: z.string().trim().max(160).optional(),
+});
+export type McqExtractInput = z.infer<typeof McqExtractInputSchema>;
+
+const McqReadFields = {
+  found: z.boolean().describe("false if the screenshot holds no readable multiple-choice question"),
+  question: z.string().describe("The question text exactly as shown, in its own language; empty if not found"),
+  options: OPTIONS4.describe("The four options exactly as shown, without their letters or numbers"),
+  correct: LETTER.describe("The correct option"),
+  answerFromImage: z.boolean().describe("true only if the screenshot itself marks or states the answer; false if you worked it out"),
+  trick: z.string().describe("One short exam tip or reason for the answer, in the question's language; empty if none"),
+  note: z.string().describe("A problem: unreadable text, missing options, more than one question, a doubtful answer; in English; empty if none"),
+};
+
+export const McqExtractOutputSchema = z.object({
+  items: z.array(z.object({ screenshot: z.number().int().describe("The screenshot's number, starting at 1"), ...McqReadFields })),
+});
+export type McqExtractOutput = z.infer<typeof McqExtractOutputSchema>;
+
+/** The stored result: one entry per screenshot, in input order. */
+export const McqExtractResultSchema = z.object({
+  items: z.array(z.object({ fileId: z.uuid(), ...McqReadFields })),
+});
+export type McqExtractResult = z.infer<typeof McqExtractResultSchema>;
+
 /** Job types the worker can run today; the others arrive one at a time (plan §08 order). */
 export const AiJobCreateSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("ppt_outline"), input: PptOutlineInputSchema }),
   z.object({ type: z.literal("paper_generate"), input: PaperGenerateInputSchema }),
+  z.object({ type: z.literal("mcq_extract"), input: McqExtractInputSchema }),
   z.object({ type: z.literal("deck_quiz"), input: DeckQuizInputSchema }),
 ]);
 export type AiJobCreate = z.infer<typeof AiJobCreateSchema>;
@@ -98,6 +138,8 @@ export function jobItemCount(job: AiJobCreate): number {
     case "paper_generate":
     case "deck_quiz":
       return 1;
+    case "mcq_extract":
+      return job.input.fileIds.length;
   }
 }
 

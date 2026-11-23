@@ -18,6 +18,26 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-057 · Screenshot → MCQ (`mcq_extract`): up to 20 screenshots per job, inferred answers flagged
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 4 · `packages/shared/src/ai.ts`, `apps/api/src/ai/{mcqExtract.ts,definitions.ts,processor.ts,deckQuiz.ts}`, `apps/desktop/src/components/ScreenshotToPpt.jsx`
+- **Status:** Decided by agent
+- **What was unclear:** The plan names "Screenshot → MCQ (vision)" third in the AI order, priced per screenshot (DN-053). It doesn't say how many screenshots go in one call, what happens when a screenshot has no answer marked, or how the result meets the teacher's own edits.
+- **Options considered / Decision:**
+  - **One job reads up to 20 screenshots** (one Claude call with an image block per screenshot, numbered). The price is 1 credit per screenshot, so 20 cost 20. Larger sets run in more batches; the button always takes the next 20.
+  - **Before charging:** every file must be this institute's uploaded PNG, JPEG or WebP of up to 5 MB (Claude's image limit; uploads allow 10 MB). Otherwise `AI_INPUT_FILE_INVALID`, whose message is now generic rather than PDF-specific.
+  - **Prompt rules:** transcribe the question and four options exactly, in their own script, without the option letters; read Devanagari carefully and note unreadable words. `answerFromImage` is true only when the screenshot marks the answer; otherwise Claude works it out and says so. Ignore watermarks, channel names and ads. If there's no MCQ, `found` is false.
+  - **Result:** one item per screenshot in input order, keyed by file id. A screenshot Claude skipped comes back as not found.
+  - **Screen:** "AI से स्क्रीनशॉट पढ़ें" fills only screenshots that are uploaded and still have empty question text, so the teacher's own writing is never overwritten. Inferred answers are counted in a banner, and the question shows "यह उत्तर स्क्रीनशॉट पर नहीं था…" with an "उत्तर सही है" button; choosing an answer by hand also clears it. Claude's note shows under it. Screenshots with no question show a message to write it by hand. The result fills unsaved. The flags aren't saved with the set.
+  - **Plumbing:** `ctx.readFile` takes a list of allowed types and returns the type; `finish` also gets the input.
+- **Reason:** Batching keeps one request per class set; per-screenshot pricing stays fair; the teacher confirms every answer the image didn't give.
+- **Verified:**
+  - Shared 44 tests (per-item count; 0, more than 20 or duplicate files refused) and API 95 tests (a PDF, another institute's image or an unknown id refused before charging; a counselor gets 403; 3 screenshots charge 3 and come back in order with the inferred flags; the worker sends each image with its own type and exact bytes; a skipped screenshot is not found).
+  - Desktop typecheck, lint and build pass.
+  - End-to-end in Electron against Docker (fixture mode): two screenshots uploaded through the real file input; the button reads "AI से प्रश्न पढ़ें · 2 क्रेडिट"; 2 credits taken; the questions filled; "1 प्रश्नों का उत्तर … AI ने तय किया है" shown; question 2 shows the warning and Claude's note; "उत्तर सही है" clears it; status "unsaved"; the button is disabled once nothing is left to read.
+- **Not verified:** a live Claude run on real Hindi screenshots (the important check for this feature).
+- **Revisit if:** screenshots often hold several questions (then one screenshot can yield many), or the flags should be saved with the set.
+
 ### DN-056 · AI question papers (`paper_generate`): blueprint by counts, fixed marks per kind
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 4 · `packages/shared/src/ai.ts`, `apps/api/src/ai/paperGenerate.ts`, `apps/desktop/src/components/QuestionPaperMaker.jsx`
