@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { FileSpreadsheet, Printer, Plus, Trash2 } from "lucide-react";
 import { instituteLogo } from "../utils/branding.ts";
+import { DppGenerateResultSchema } from "@edusuite/shared";
 import { DocumentBar } from "./DocumentBar.tsx";
+import { AiGenerate } from "./AiGenerate.tsx";
 import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 
 const TEMPLATES = [
@@ -20,6 +22,19 @@ export default function NotebookDppMaker({ activeInstitute }) {
   const [omrQuestionsCount, setOmrQuestionsCount] = useState(50); // 50 or 100
   const [questions, setQuestions] = useState(() => [blankQuestion()]);
   const [docTitle, setDocTitle] = useState("");
+  // AI options (DN-058); not part of the saved sheet.
+  const [aiCount, setAiCount] = useState(10);
+  const [aiStyle, setAiStyle] = useState("mcq");
+  const [aiDifficulty, setAiDifficulty] = useState("mixed");
+  const [aiLanguage, setAiLanguage] = useState("hi");
+
+  /** Adds the AI's questions after any the teacher already wrote (nothing is lost after paying), unsaved. */
+  const fillFromAi = (result) => {
+    const parsed = DppGenerateResultSchema.safeParse(result);
+    if (!parsed.success) return;
+    setQuestions((all) => [...all.filter((q) => q.q.trim() || q.hint.trim()), ...parsed.data.questions.map((q) => ({ q: q.q, hint: q.hint }))].slice(0, 200));
+    if (!docTitle.trim()) setDocTitle(dppTopic.trim());
+  };
 
   // What gets saved (shape: DppContentSchema in packages/shared/documents.ts).
   const documentContent = {
@@ -115,7 +130,58 @@ export default function NotebookDppMaker({ activeInstitute }) {
           {templateType === "dpp" && (
             <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
               <h3 className="text-label font-semibold">DPP के प्रश्न</h3>
-              <p className="text-caption text-muted">प्रश्न खुद लिखें। AI से प्रश्न अगले चरण में आएँगे।</p>
+              <div className="space-y-3 rounded-control border border-line p-3">
+                <p className="text-label font-semibold">AI से DPP बनाएँ</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="कितने प्रश्न">
+                    <Input type="number" min={3} max={50} value={aiCount} onChange={(e) => setAiCount(Math.max(3, Math.min(50, Math.trunc(Number(e.target.value) || 3))))} />
+                  </Field>
+                  <Field label="प्रश्न का प्रकार">
+                    <Select value={aiStyle} onChange={(e) => setAiStyle(e.target.value)}>
+                      <option value="mcq">सभी MCQ</option>
+                      <option value="short">लघु / आंकिक</option>
+                      <option value="mixed">मिश्रित</option>
+                    </Select>
+                  </Field>
+                  <Field label="कठिनाई">
+                    <Select value={aiDifficulty} onChange={(e) => setAiDifficulty(e.target.value)}>
+                      <option value="mixed">आसान से कठिन</option>
+                      <option value="easy">आसान</option>
+                      <option value="medium">मध्यम</option>
+                      <option value="hard">कठिन</option>
+                    </Select>
+                  </Field>
+                  <Field label="भाषा">
+                    <Select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)}>
+                      <option value="hi">हिन्दी</option>
+                      <option value="en">English</option>
+                      <option value="both">हिन्दी + English</option>
+                    </Select>
+                  </Field>
+                </div>
+                <AiGenerate
+                  label="AI से प्रश्न बनाएँ"
+                  build={() =>
+                    dppSubject.trim().length >= 2 && dppTopic.trim().length >= 2
+                      ? {
+                          type: "dpp_generate",
+                          input: {
+                            subject: dppSubject.trim(),
+                            topic: dppTopic.trim(),
+                            ...(targetBatch.trim() && { targetBatch: targetBatch.trim() }),
+                            count: aiCount,
+                            style: aiStyle,
+                            difficulty: aiDifficulty,
+                            language: aiLanguage,
+                          },
+                        }
+                      : null
+                  }
+                  onResult={fillFromAi}
+                  hint="पहले टॉपिक और विषय लिखें। AI के प्रश्न आपके लिखे प्रश्नों के बाद जुड़ते हैं। उत्तर और संकेत केवल शिक्षक के लिए “संकेत” में आते हैं, शीट पर प्रिंट नहीं होते।"
+                />
+              </div>
+              <p className="text-caption text-muted">या प्रश्न खुद लिखें।</p>
               <ol className="space-y-3">
                 {questions.map((item, index) => (
                   <li key={index} className="space-y-2 rounded-control border border-line p-3">

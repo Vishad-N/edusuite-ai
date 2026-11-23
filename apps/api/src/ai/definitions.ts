@@ -3,6 +3,7 @@ import type { z } from "zod";
 import { deckQuiz } from "./deckQuiz";
 import { paperGenerate } from "./paperGenerate";
 import { mcqExtract } from "./mcqExtract";
+import { dppGenerate } from "./dppGenerate";
 import { PptOutlineInputSchema, PptOutlineOutputSchema, type AiJobType, type PptOutlineInput, type PptOutlineOutput } from "@edusuite/shared";
 
 /** What a job's prompt may use besides its input: the signed-in institute (DN-052) and its files. */
@@ -97,5 +98,6 @@ export const JOB_DEFINITIONS: Partial<Record<AiJobType, JobDefinition<never, unk
   ppt_outline: pptOutline as unknown as JobDefinition<never, unknown>,
   paper_generate: paperGenerate as unknown as JobDefinition<never, unknown>,
   mcq_extract: mcqExtract as unknown as JobDefinition<never, unknown>,
+  dpp_generate: dppGenerate as unknown as JobDefinition<never, unknown>,
   deck_quiz: deckQuiz as unknown as JobDefinition<never, unknown>,
 };

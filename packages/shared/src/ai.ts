@@ -121,11 +121,42 @@ export const McqExtractResultSchema = z.object({
 });
 export type McqExtractResult = z.infer<typeof McqExtractResultSchema>;
 
+/** dpp_generate: a daily practice sheet for NotebookDppMaker (DN-058). */
+export const DPP_STYLES = ["mcq", "short", "mixed"] as const;
+
+export const DppGenerateInputSchema = z.object({
+  subject: z.string().trim().min(2).max(100),
+  topic: z.string().trim().min(2).max(200),
+  targetBatch: z.string().trim().max(160).optional(),
+  count: z.number().int().min(3).max(50).default(10),
+  style: z.enum(DPP_STYLES).default("mcq"),
+  difficulty: z.enum(PAPER_DIFFICULTIES).default("mixed"),
+  language: z.enum(AI_LANGUAGES).default("hi"),
+});
+export type DppGenerateInput = z.infer<typeof DppGenerateInputSchema>;
+
+export const DppGenerateOutputSchema = z.object({
+  questions: z.array(
+    z.object({
+      q: z.string(),
+      options: z.array(z.string()).describe("Four option texts without letters for an MCQ; empty for a short-answer question"),
+      answer: z.string().describe("MCQ: the correct letter (a, b, c or d) and the option; short: the final answer in a few words"),
+      hint: z.string().describe("One line: the method, formula or shortcut that solves it"),
+    }),
+  ),
+});
+export type DppGenerateOutput = z.infer<typeof DppGenerateOutputSchema>;
+
+/** The stored result, in the DPP editor's shape: printed question text, and the teacher-only hint with the answer. */
+export const DppGenerateResultSchema = z.object({ questions: z.array(z.object({ q: z.string(), hint: z.string() })).min(1) });
+export type DppGenerateResult = z.infer<typeof DppGenerateResultSchema>;
+
 /** Job types the worker can run today; the others arrive one at a time (plan §08 order). */
 export const AiJobCreateSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("ppt_outline"), input: PptOutlineInputSchema }),
   z.object({ type: z.literal("paper_generate"), input: PaperGenerateInputSchema }),
   z.object({ type: z.literal("mcq_extract"), input: McqExtractInputSchema }),
+  z.object({ type: z.literal("dpp_generate"), input: DppGenerateInputSchema }),
   z.object({ type: z.literal("deck_quiz"), input: DeckQuizInputSchema }),
 ]);
 export type AiJobCreate = z.infer<typeof AiJobCreateSchema>;
@@ -137,6 +168,7 @@ export function jobItemCount(job: AiJobCreate): number {
     case "ppt_outline":
     case "paper_generate":
     case "deck_quiz":
+    case "dpp_generate":
       return 1;
     case "mcq_extract":
       return job.input.fileIds.length;
