@@ -18,6 +18,27 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-050 · Image Studio saves posters through DocumentBar; fake export and outside-AI prompts removed
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 3 · `apps/desktop/src/components/ImageStudio.jsx`
+- **Status:** Decided by agent
+- **What was unclear:**
+  - "Export Graphic" saved nothing (confetti plus an `alert()` saying the design was saved).
+  - The category presets made claims an institute may not be able to back ("Kota Top Faculty", "100% Success Ratio", "Apex Family").
+  - Every category except toppers showed an "Admissions Open" badge, and every poster carried an "Official Creative" badge.
+  - A box offered to copy prompts for Gemini/Imagen. The plan keeps AI on our own server (ADR-2), and counselors get no AI copy (DN-008).
+- **Options considered / Decision:**
+  - Same save pattern as DN-041 to DN-049 (`PosterContentSchema` unchanged). A new poster starts with empty text, the admission category, 1:1 and the cyan colour.
+  - Choosing a category no longer overwrites the text. "<category> का ढाँचा भरें" fills plain Hindi starting text with [brackets] for details, and asks first if any text is already written. Templates make no claims about results or faculty.
+  - The badge on the poster follows the category (प्रवेश प्रारंभ, हमारे टॉपर्स, अध्ययन सामग्री, शुभकामनाएँ). The "Official Creative" badge is gone. The phone and city footer shows only what the institute has.
+  - A colour picker sets the accent colour (saved as `#rrggbb`, which the schema requires).
+  - The fake export and the Gemini/Imagen prompt box are removed. The preview says to use a screenshot for now and that PNG download comes later, the same follow-up as the YouTube thumbnail (DN-047).
+  - Controls use the shared primitives with Hindi labels; category and size buttons use `aria-pressed`. The poster itself keeps its own design.
+- **Reason:** No fake export, no claims put in an institute's mouth, and no AI path outside the server that counts and limits AI use.
+- **Verified:** End-to-end in the real Electron app against Docker: no "Kota", "Gemini", "Export Graphic" or "Official Creative" on open; the topper category shows "हमारे टॉपर्स"; its template fills an empty poster without asking; a typed call-to-action, the 9:16 size and colour #123abc show; the template over written text asks first, and cancelling keeps it; save shows "saved"; New clears without asking and goes back to the admission badge; reopening from History restores the text, colour, category and size, and shows "saved"; an unsaved edit then New asks first, and "रुकें" keeps it.
+- **Affects:** `ImageStudio.jsx`
+- **Revisit if:** PNG export is built (shared with the YouTube thumbnail), or Phase 4 adds `poster_copy` AI for roles with `image_studio.ai_copy`.
+
 ### DN-049 · BookCreator becomes a chapter editor that prints the whole book; unused sample data removed
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 3 · `apps/desktop/src/components/BookCreator.jsx`, `apps/desktop/src/data/sampleData.js`
