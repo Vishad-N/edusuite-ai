@@ -24,6 +24,8 @@ import { CreditsController, PlatformController } from "./credits/credits.control
 import { CreditsService } from "./credits/credits.service";
 import { JobsController } from "./ai/jobs.controller";
 import { JobsService } from "./ai/jobs.service";
+import { FeeReceiptsController, StudentsController } from "./students/students.controller";
+import { StudentsService } from "./students/students.service";
 import { AI_QUEUE, BullMqAiQueue } from "./ai/queue";
 
 const MINUTE_MS = 60_000;
@@ -62,6 +64,8 @@ export class AppModule {
         CreditsController,
         PlatformController,
         JobsController,
+        StudentsController,
+        FeeReceiptsController,
         ...extraControllers,
       ],
       providers: [
@@ -77,6 +81,7 @@ export class AppModule {
         StatsService,
         CreditsService,
         JobsService,
+        StudentsService,
         // Replaceable by `overrides` (Nest keeps the first provider for a token, so drop the default).
         ...(overrides.some((p) => typeof p === "object" && "provide" in p && p.provide === STORAGE)
           ? []
