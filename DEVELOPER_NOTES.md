@@ -18,6 +18,22 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-047 · YouTube Studio saves through DocumentBar; title, description and tags become editable; fake download removed
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 3 · `apps/desktop/src/components/YouTubeStudio.jsx`
+- **Status:** Decided by agent (the thumbnail PNG download is a follow-up; see below)
+- **What was unclear:** "थंबनेल डाउनलोड करें" downloaded nothing (confetti plus an `alert()` saying it was "ready for export"). The video title appended "Indore", the tags were a fixed list naming one institute ("satyadhi sharma classes"), and the description was built but never shown or copied. The three topic presets were sample text, one naming that institute. The schema has `title`, `description` and `tags`, which the screen never let anyone edit.
+- **Options considered:** Download: A) Remove the fake button now and say plainly that PNG download comes later; build a real export (drawing the thumbnail on a `<canvas>`, saved through `file.saveAs`) as its own change set. B) Build the canvas export in this change set. C) Add an HTML-to-image library (new dependency, needs approval).
+- **Decision:** A.
+  - Same save pattern as DN-041 to DN-046. A new thumbnail starts blank with the red theme; the presets, confetti and alert are gone. The preview shows placeholders and hides empty badges.
+  - Title, description and tags are editable and saved. "थंबनेल से टाइटल भरें" fills the title from headline, punchline and the institute's name (no hard-coded city). The title shows a count against YouTube's 100-character limit (the field allows the schema's 200). Tags are typed comma-separated and saved as a cleaned list. Each of the three has its own copy button, disabled when empty.
+  - The preview note says to use a screenshot of the thumbnail for now.
+  - Theme buttons use `Button` with `aria-pressed`; the form uses the shared primitives and Hindi labels. The thumbnail itself keeps its own design.
+- **Reason:** Nothing claims a download that doesn't happen, and the YouTube metadata is the institute's own, not another institute's.
+- **Verified:** End-to-end in the real Electron app against Docker: no sample or other-institute text and no fake download button on open; headline, punchline and badge show on the thumbnail; "fill title" gives "headline | punchline | institute"; save shows "saved"; New clears without asking; reopening from History restores every field, the Royal Blue theme, the description's two lines and the tags (cleaned to "mppsc, इतिहास, live"), and shows "saved"; an unsaved edit then New asks first, and "रुकें" keeps it.
+- **Affects:** `YouTubeStudio.jsx`
+- **Revisit if:** The PNG download is built (option A's follow-up), or Phase 4 adds AI-written titles and descriptions.
+
 ### DN-046 · DoubtSolver saves through DocumentBar; teachers write the solution until Phase 4
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 3 · `apps/desktop/src/components/DoubtSolver.jsx`
