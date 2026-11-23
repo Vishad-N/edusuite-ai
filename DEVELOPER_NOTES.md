@@ -18,6 +18,28 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-059 · AI lesson plans (`lesson_plan`); the AI button can ask before spending credits
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 4 · `packages/shared/src/ai.ts`, `apps/api/src/ai/lessonPlan.ts`, `apps/desktop/src/components/{AiGenerate.tsx,LessonPlanner.jsx}`
+- **Status:** Decided by agent
+- **What was unclear:** A lesson plan replaces the whole plan, unlike the DPP (DN-058), where AI questions could be added after the teacher's own. Asking "replace?" after the job runs would waste the credit if the teacher says no.
+- **Options considered / Decision:**
+  - **`AiGenerate` gets `confirmReplace`** (title and message, or null). When set, the button first shows a ConfirmDialog that also states the credit cost. Nothing is charged unless the teacher confirms. Screens whose result would overwrite written work use it.
+  - **Input:** chapter, subject, class (existing fields), the screen's teaching days (1–30; AI plans at most 30, though saved plans allow 365), an optional focus (500 characters) and language. Price 1 credit.
+  - **Output:** 3–6 measurable objectives and one entry per day (topic, class activities, homework). `finish` makes the day count exact: extra days are dropped and missing ones become empty days to fill. A plan with no usable day fails and is refunded. The screen labels days "दिन 1…".
+  - **Prompt:** a sensible teaching order across exactly the given days (introduce, build up, practise, revise or test at the end when there are enough days); realistic one-period plans; specific homework; follow the class's usual syllabus; no invented facts.
+  - The free "खाली दिन-वार ढाँचा बनाएँ (मुफ़्त)" stays.
+- **Reason:** The teacher decides before paying, never after.
+- **Verified:**
+  - Shared 46 tests (limits) and API 99 tests (exact day count both ways, empty plan refused, fixture run of 4 days charges 1).
+  - Desktop typecheck, lint and build pass.
+  - End-to-end in Electron against Docker (fixture mode):
+    - disabled until chapter and subject are filled; "· 1 क्रेडिट"
+    - on an empty plan, no question asked; 3 objectives and exactly 3 days filled, the title filled, 1 credit taken
+    - pressing again with the plan written shows "लिखी योजना बदल जाएगी … इसमें 1 क्रेडिट लगेंगे"; "रुकें" keeps the credits unchanged
+- **Not verified:** a live Claude run.
+- **Revisit if:** teachers want AI to fill only empty days, or plans longer than 30 days.
+
 ### DN-058 · AI DPP (`dpp_generate`): one topic, answers stay in the teacher-only hint, AI questions are added, never replace
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 4 · `packages/shared/src/ai.ts`, `apps/api/src/ai/dppGenerate.ts`, `apps/desktop/src/components/NotebookDppMaker.jsx`

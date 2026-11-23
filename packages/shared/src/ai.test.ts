@@ -4,7 +4,7 @@ import { AiJobCreateSchema, IMPLEMENTED_AI_JOBS, PAPER_MAX_QUESTIONS, PptOutline
 import { AI_JOB_PERMISSIONS } from "./permissions.ts";
 
 test("implemented job types are known, permissioned job types", () => {
-  assert.deepEqual(IMPLEMENTED_AI_JOBS, ["ppt_outline", "paper_generate", "mcq_extract", "dpp_generate", "deck_quiz"]);
+  assert.deepEqual(IMPLEMENTED_AI_JOBS, ["ppt_outline", "paper_generate", "mcq_extract", "dpp_generate", "lesson_plan", "deck_quiz"]);
   for (const t of IMPLEMENTED_AI_JOBS) assert.ok(t in AI_JOB_PERMISSIONS, t);
 });
 
@@ -54,4 +54,10 @@ test("dpp_generate input gets defaults and limits", () => {
   assert.deepEqual([job.input.count, job.input.style, job.input.difficulty, job.input.language], [10, "mcq", "mixed", "hi"]);
   assert.ok(!AiJobCreateSchema.safeParse({ type: "dpp_generate", input: { subject: "गणित", topic: "प्रतिशत", count: 51 } }).success);
   assert.ok(!AiJobCreateSchema.safeParse({ type: "dpp_generate", input: { subject: "गणित", topic: "" } }).success);
+});
+test("lesson_plan needs a chapter, subject and 1 to 30 days", () => {
+  const ok = { chapter: "विद्युत", subject: "भौतिकी", days: 5 };
+  assert.ok(AiJobCreateSchema.safeParse({ type: "lesson_plan", input: ok }).success);
+  assert.ok(!AiJobCreateSchema.safeParse({ type: "lesson_plan", input: { ...ok, days: 31 } }).success);
+  assert.ok(!AiJobCreateSchema.safeParse({ type: "lesson_plan", input: { ...ok, chapter: "" } }).success);
 });

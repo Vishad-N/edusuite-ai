@@ -151,12 +151,37 @@ export type DppGenerateOutput = z.infer<typeof DppGenerateOutputSchema>;
 export const DppGenerateResultSchema = z.object({ questions: z.array(z.object({ q: z.string(), hint: z.string() })).min(1) });
 export type DppGenerateResult = z.infer<typeof DppGenerateResultSchema>;
 
+/** lesson_plan: learning objectives and a day-by-day plan for LessonPlanner (DN-059). */
+export const LessonPlanInputSchema = z.object({
+  chapter: z.string().trim().min(2).max(200),
+  subject: z.string().trim().min(2).max(160),
+  grade: z.string().trim().max(100).optional(),
+  days: z.number().int().min(1).max(30),
+  /** Anything the teacher wants stressed: exam focus, lab work, weak areas. */
+  focus: z.string().trim().max(500).optional(),
+  language: z.enum(AI_LANGUAGES).default("hi"),
+});
+export type LessonPlanInput = z.infer<typeof LessonPlanInputSchema>;
+
+export const LessonPlanOutputSchema = z.object({
+  objectives: z.array(z.string()).describe("3 to 6 measurable learning objectives, each one sentence"),
+  days: z.array(
+    z.object({
+      topic: z.string().describe("What this day covers, a short phrase"),
+      activities: z.string().describe("How the class runs: explanation, examples, board work, a quick check; 2 to 4 short sentences"),
+      homework: z.string().describe("Specific homework for the day; empty only on a test or revision day"),
+    }),
+  ),
+});
+export type LessonPlanOutput = z.infer<typeof LessonPlanOutputSchema>;
+
 /** Job types the worker can run today; the others arrive one at a time (plan §08 order). */
 export const AiJobCreateSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("ppt_outline"), input: PptOutlineInputSchema }),
   z.object({ type: z.literal("paper_generate"), input: PaperGenerateInputSchema }),
   z.object({ type: z.literal("mcq_extract"), input: McqExtractInputSchema }),
   z.object({ type: z.literal("dpp_generate"), input: DppGenerateInputSchema }),
+  z.object({ type: z.literal("lesson_plan"), input: LessonPlanInputSchema }),
   z.object({ type: z.literal("deck_quiz"), input: DeckQuizInputSchema }),
 ]);
 export type AiJobCreate = z.infer<typeof AiJobCreateSchema>;
@@ -169,6 +194,7 @@ export function jobItemCount(job: AiJobCreate): number {
     case "paper_generate":
     case "deck_quiz":
     case "dpp_generate":
+    case "lesson_plan":
       return 1;
     case "mcq_extract":
       return job.input.fileIds.length;

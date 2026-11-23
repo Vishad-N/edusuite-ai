@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { BookOpen, Sparkles, Printer, Copy, Check, CheckCircle2, FileCheck, Plus, Trash2 } from "lucide-react";
 import { DocumentBar } from "./DocumentBar.tsx";
+import { AiGenerate } from "./AiGenerate.tsx";
+import { LessonPlanOutputSchema } from "@edusuite/shared";
 import { Button, ConfirmDialog, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 
 const DURATIONS = [
@@ -30,10 +32,21 @@ export default function LessonPlanner({ activeInstitute }) {
   // What gets saved (shape: LessonContentSchema in packages/shared/documents.ts).
   const documentContent = { chapter, subject, grade, durationDays, objectives, schedule };
 
-  // Real AI lesson plans arrive in Phase 4 (job lesson_plan). Until then this lays out
-  // one empty day per teaching day for the teacher to fill.
+  // Free option: one empty day per teaching day for the teacher to fill.
   const [confirmTemplate, setConfirmTemplate] = useState(false);
   const hasWrittenDays = schedule.some((d) => d.topic.trim() || d.activities.trim() || d.homework.trim());
+
+  // AI plan (DN-059): replaces objectives and days, so it asks first when either is written.
+  const [focus, setFocus] = useState("");
+  const [aiLanguage, setAiLanguage] = useState("hi");
+  const fillFromAi = (result) => {
+    const parsed = LessonPlanOutputSchema.safeParse(result);
+    if (!parsed.success) return;
+    setObjectivesText(parsed.data.objectives.join("\n"));
+    setSchedule(parsed.data.days.map((d, i) => ({ day: `दिन ${i + 1}`, ...d })));
+    setDayIndex(0);
+    if (!docTitle.trim() && chapter.trim()) setDocTitle(chapter.trim());
+  };
   const handleTemplate = () => {
     setConfirmTemplate(false);
     setSchedule(Array.from({ length: durationDays }, (_, i) => blankDay(i + 1)));
@@ -128,12 +141,47 @@ export default function LessonPlanner({ activeInstitute }) {
                 ))}
               </Select>
             </Field>
-            <Button variant="primary" className="w-full" icon={<Sparkles className="size-4" />} onClick={() => (hasWrittenDays ? setConfirmTemplate(true) : handleTemplate())}>
-              दिन-वार ढाँचा बनाएँ
+            <div className="space-y-3 rounded-control border border-line p-3">
+              <p className="text-label font-semibold">AI से लेसन प्लान बनाएँ</p>
+              <Field label="किस पर ज़ोर दें (वैकल्पिक)" hint="जैसे: परीक्षा के आंकिक प्रश्न, प्रयोग, कमज़ोर छात्रों के लिए दोहराव">
+                <Input value={focus} maxLength={500} onChange={(e) => setFocus(e.target.value)} />
+              </Field>
+              <Field label="भाषा">
+                <Select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)}>
+                  <option value="hi">हिन्दी</option>
+                  <option value="en">English</option>
+                  <option value="both">हिन्दी + English शब्द</option>
+                </Select>
+              </Field>
+              <AiGenerate
+                label="AI से लेसन प्लान बनाएँ"
+                build={() =>
+                  chapter.trim().length >= 2 && subject.trim().length >= 2
+                    ? {
+                        type: "lesson_plan",
+                        input: {
+                          chapter: chapter.trim(),
+                          subject: subject.trim(),
+                          ...(grade.trim() && { grade: grade.trim() }),
+                          days: Math.min(30, durationDays),
+                          ...(focus.trim() && { focus: focus.trim() }),
+                          language: aiLanguage,
+                        },
+                      }
+                    : null
+                }
+                confirmReplace={
+                  hasWrittenDays || objectives.length > 0
+                    ? { title: "लिखी योजना बदल जाएगी", message: "AI का लेसन प्लान अभी लिखे सीखने के लक्ष्य और दिन-वार योजना की जगह ले लेगा।" }
+                    : null
+                }
+                onResult={fillFromAi}
+                hint="पहले अध्याय, विषय और दिन चुनें। AI की योजना भरी जाएगी, सेव नहीं होगी; जाँचकर बदलें।"
+              />
+            </div>
+            <Button className="w-full" icon={<Sparkles className="size-4" />} onClick={() => (hasWrittenDays ? setConfirmTemplate(true) : handleTemplate())}>
+              खाली दिन-वार ढाँचा बनाएँ (मुफ़्त)
             </Button>
-            <p className="text-caption text-muted">
-              यह चुने गए दिनों के लिए खाली दिन बनाता है। AI से लेसन प्लान अगले चरण में आएगा।
-            </p>
             <ConfirmDialog
               open={confirmTemplate}
               title="लिखे हुए दिन हट जाएँगे"

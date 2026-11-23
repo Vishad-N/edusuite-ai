@@ -1,27 +1,33 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Sparkles } from "lucide-react";
 import { creditCost, jobItemCount, type AiJob, type AiJobCreate } from "@edusuite/shared";
 import { useAiJob } from "../api/ai.ts";
 import { useCredits } from "../api/credits.ts";
-import { Button, JobProgress } from "./ui/index.ts";
+import { Button, ConfirmDialog, JobProgress } from "./ui/index.ts";
 
 /**
  * One "make it with AI" control for every tool screen (DN-054): shows the credit
  * cost, starts the job, follows its real progress, and hands the result back.
  * The screen decides what to send (`build`, null when the form isn't ready) and
  * what to do with the result (usually fill its editor, unsaved).
+ * `confirmReplace` asks before any credits are spent, when the result would replace
+ * work the teacher already wrote.
  */
 export function AiGenerate({
   label,
   build,
   onResult,
   hint,
+  confirmReplace,
 }: {
   label: string;
   build: () => AiJobCreate | null;
   onResult: (result: unknown, job: AiJob) => void;
   hint?: ReactNode;
+  /** Set (title and message) when the result would overwrite written work; null otherwise. */
+  confirmReplace?: { title: string; message: string } | null;
 }) {
+  const [asking, setAsking] = useState(false);
   const credits = useCredits();
   const ai = useAiJob();
   const body = build();
@@ -38,7 +44,7 @@ export function AiGenerate({
 
   return (
     <div className="space-y-2">
-      <Button variant="primary" className="w-full" icon={<Sparkles className="size-4" />} loading={ai.running} disabled={!body || tooFew || ai.running} onClick={() => void run()}>
+      <Button variant="primary" className="w-full" icon={<Sparkles className="size-4" />} loading={ai.running} disabled={!body || tooFew || ai.running} onClick={() => (confirmReplace ? setAsking(true) : void run())}>
         {label}
         {cost !== null && ` · ${cost} क्रेडिट`}
       </Button>
@@ -61,6 +67,20 @@ export function AiGenerate({
         </p>
       )}
       {hint && <p className="text-caption text-muted">{hint}</p>}
+      {confirmReplace && (
+        <ConfirmDialog
+          open={asking}
+          title={confirmReplace.title}
+          message={`${confirmReplace.message}${cost !== null ? ` इसमें ${cost} क्रेडिट लगेंगे।` : ""}`}
+          confirmLabel="हाँ, AI से बनाएँ"
+          cancelLabel="रुकें"
+          onConfirm={() => {
+            setAsking(false);
+            void run();
+          }}
+          onCancel={() => setAsking(false)}
+        />
+      )}
     </div>
   );
 }
