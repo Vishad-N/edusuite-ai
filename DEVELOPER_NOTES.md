@@ -18,6 +18,31 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-049 · BookCreator becomes a chapter editor that prints the whole book; unused sample data removed
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 3 · `apps/desktop/src/components/BookCreator.jsx`, `apps/desktop/src/data/sampleData.js`
+- **Status:** Decided by agent
+- **What was unclear:** Almost everything on this screen was fake:
+  - The presets were sample books from `sampleData.js`.
+  - "पूरी किताब तैयार करें" waited 0.9 s, then filled every chapter with the same filler paragraphs and placeholder MCQs ("विकल्प 1"…), with confetti.
+  - The cover always claimed "500+ Practice MCQs" and an "Official" badge, and ignored the chosen cover colour.
+  - The contents showed made-up page numbers ("Page 12, 24…").
+  - "पूरी किताब प्रिंट करें" printed only the page currently on screen.
+  - Nothing in a chapter could be edited.
+- **Options considered / Decision:**
+  - Same save pattern as DN-041 to DN-048 (`BookContentSchema` unchanged). A new book starts blank with one empty chapter.
+  - "अध्याय ढाँचा बनाएँ" makes 3, 5 or 8 empty chapters, and asks first if any chapter already has content. A note says AI chapters come in the next phase.
+  - Chapter editor: pick a chapter (also by clicking its tab or contents entry); title, subtitle, theory (paragraphs separated by a blank line), exam points (one per line), practice questions (text, options one per line, answer; add up to 500, delete); add a chapter (up to 100) or delete one.
+  - Cover: uses the chosen theme (now saved as `coverColor`: `amber`, `navy` or `emerald`) and shows the real chapter and question counts. The "Official" badge and "500+" claim are gone; empty author or edition show "—".
+  - Contents: chapter numbers and titles only, no page numbers (the app can't know them).
+  - Printing: cover, contents and every chapter are always rendered; only the chosen one shows on screen, and in print each gets its own page. The print stylesheet hides all buttons, so the contents print from a plain copy of each entry. Chapters print without the on-screen scroll limit. The editor is `no-print`.
+  - `sampleData.js`: `sampleBooks`, and the now-unused `sampleQuestionPapers` and `sampleInstitutes`, are removed. Only `presentationPresets` remains, still used by the Dashboard's sample-PPT download.
+  - Form uses the shared primitives with Hindi labels; page tabs and theme buttons use `aria-pressed`.
+- **Reason:** A printed study book goes to students; it must hold the institute's own content and print completely, with no invented claims.
+- **Verified:** End-to-end in the real Electron app against Docker: no "500+", "Official" or fake page numbers on open; a 3-chapter outline fills the document title; chapter 2's two theory paragraphs, exam point and practice question show in the reader; the cover uses the navy theme and shows "3 अध्याय" and "1 अभ्यास प्रश्न"; in print mode the page shows the cover, contents and all three chapters and hides the editor; save shows "saved"; re-running the outline asks first; New clears without asking; reopening from History restores 3 chapters, the navy theme, and chapter 2's title, paragraphs, question and options, and shows "saved"; an unsaved edit then New asks first, and "रुकें" keeps it.
+- **Affects:** `BookCreator.jsx`, `sampleData.js`
+- **Revisit if:** Phase 4 adds the `book_chapter` AI job, or the Dashboard's sample PPT is replaced (then `sampleData.js` can go).
+
 ### DN-048 · NoticeHub becomes an editor with own-institute templates; saves through DocumentBar
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 3 · `apps/desktop/src/components/NoticeHub.jsx`, `apps/desktop/src/data/sampleData.js`
