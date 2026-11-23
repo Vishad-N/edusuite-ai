@@ -18,6 +18,22 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-048 · NoticeHub becomes an editor with own-institute templates; saves through DocumentBar
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 3 · `apps/desktop/src/components/NoticeHub.jsx`, `apps/desktop/src/data/sampleData.js`
+- **Status:** Decided by agent
+- **What was unclear:** The screen only displayed three fixed English notices from `sampleData.js` (fee reminder, PTM, admissions). Nothing could be edited, and the text named another institute, with its phone number, campus address and reference numbers, so every institute would have sent another institute's notice. Every card also showed a fixed "18 Nov 2026" date.
+- **Options considered / Decision:**
+  - The screen is now an editor: category, date, title, the WhatsApp message and the formal circular, all saved (`NoticeContentSchema` unchanged).
+  - The three notice types stay as Hindi starting templates (fee reminder, parent-teacher meeting, admissions). They are built from the signed-in institute's own name and phone; anything staff must fill in is in [brackets], including the phone when the institute has none. Applying a template to an empty notice fills it at once. If a message is already written, it asks first, because it replaces the title, category and both messages. These are plain templates, not AI, and are labelled as a starting point.
+  - Preview: a WhatsApp bubble or the formal circular with the institute letterhead, title, date and "अधिकृत हस्ताक्षर" (authorised signature). The editor is `no-print`. The copy button copies the version being previewed and is disabled when it's empty.
+  - `sampleNotices` was removed from `sampleData.js` (nothing else used it).
+  - The screen moved to tokens and the shared primitives with Hindi labels; preview switchers use `aria-pressed`.
+- **Reason:** A notice must come from the institute sending it, and staff need to change the details before sending.
+- **Verified:** End-to-end in the real Electron app against Docker: no other-institute text on open; the fee template applies without asking on an empty notice and uses the demo institute's own name; an edited date shows in bold in the WhatsApp preview, and the circular shows "दिनांक: 25 नवंबर 2026"; applying another template over written text asks first, and cancelling keeps it; save shows "saved"; New clears without asking; reopening from History restores every field and shows "saved"; an unsaved edit then New asks first, and "रुकें" keeps it.
+- **Affects:** `NoticeHub.jsx`, `sampleData.js`
+- **Revisit if:** Phase 4 adds the `notice` AI job, or the institute wants English notices too (templates per language).
+
 ### DN-047 · YouTube Studio saves through DocumentBar; title, description and tags become editable; fake download removed
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 3 · `apps/desktop/src/components/YouTubeStudio.jsx`
