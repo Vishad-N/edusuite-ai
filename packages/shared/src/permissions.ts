@@ -86,6 +86,7 @@ export const SCREEN_PERMISSIONS = {
   users: "users.manage",
   teacher_desk: "teacher_desk.view",
   ocr_ppt: "ai.screenshot_ppt",
+  deck_quiz: "ai.content",
   youtube: "ai.content",
   ppt: "ai.content",
   doubt: "ai.content",
@@ -119,7 +120,7 @@ export const AI_JOB_PERMISSIONS = {
   notice_draft: "notices",
   book_chapter: "ai.content",
   poster_copy: "image_studio.ai_copy",
-  // DN-053: a PDF deck becomes an interactive bilingual quiz.
+  // DN-053/DN-055: a PDF deck becomes an interactive bilingual quiz.
   deck_quiz: "ai.content",
 } as const satisfies Record<string, Permission>;
 

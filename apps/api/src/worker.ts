@@ -4,6 +4,7 @@ import { PrismaService } from "./prisma/prisma.service";
 import { AuditService } from "./audit/audit.service";
 import { CreditsService } from "./credits/credits.service";
 import { AiRunner } from "./ai/runner";
+import { S3Storage } from "./files/storage";
 import { AiProcessor } from "./ai/processor";
 import { AI_JOB_ATTEMPTS, AI_QUEUE_NAME, redisConnection } from "./ai/queue";
 
@@ -31,7 +32,9 @@ async function main(): Promise<void> {
 
   const prisma = new PrismaService(env);
   const credits = new CreditsService(prisma, new AuditService(prisma));
-  const processor = new AiProcessor(prisma, credits, new AiRunner(env), {
+  const storage = new S3Storage(env);
+  if (!storage.configured) log.warn("storage is not configured; jobs that read uploaded files will fail");
+  const processor = new AiProcessor(prisma, credits, new AiRunner(env), storage, {
     info: (m) => log.info(m),
     warn: (m) => log.warn(m),
   });

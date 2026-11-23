@@ -9,3 +9,5 @@ export * from "./files.ts";
 export * from "./stats.ts";
 export * from "./credits.ts";
 export * from "./ai.ts";
+export * from "./branding.ts";
+export * from "./deckQuiz.ts";

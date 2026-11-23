@@ -4,6 +4,8 @@
  * institute's name or logo is built in.
  */
 
+import { initialsOf } from "@edusuite/shared";
+
 export const PRODUCT_NAME = "EduSuite AI";
 
 /** The EduSuite mark: an amber "E" on a navy rounded square (also the app icon's source). */
@@ -15,17 +17,7 @@ export const EDUSUITE_MARK = svgDataUrl(EDUSUITE_MARK_SVG);
 
 const escapeXml = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-/** First letter (grapheme, so Devanagari conjuncts stay whole) of the first two words. */
-export function initialsOf(name: string | null | undefined): string {
-  const words = String(name ?? "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
-  const first = (word: string) => segmenter.segment(word)[Symbol.iterator]().next().value?.segment ?? "";
-  const letters = words.slice(0, 2).map(first).join("");
-  return letters.toUpperCase() || "?";
-}
+export { initialsOf };
 
 const initialsCache = new Map<string, string>();
 

@@ -20,6 +20,8 @@ export interface Storage {
   size(key: string): Promise<number | null>;
   /** The first `n` bytes, to check the file signature. */
   readHead(key: string, n: number): Promise<Uint8Array>;
+  /** The whole object (the AI worker reads uploaded decks this way). */
+  read(key: string): Promise<Uint8Array>;
   delete(key: string): Promise<void>;
 }
 
@@ -124,6 +126,11 @@ export class S3Storage implements Storage, OnModuleInit {
     const res = await this.client("internal").send(
       new GetObjectCommand({ Bucket: this.bucket, Key: key, Range: `bytes=0-${n - 1}` }),
     );
+    return res.Body ? res.Body.transformToByteArray() : new Uint8Array();
+  }
+
+  async read(key: string): Promise<Uint8Array> {
+    const res = await this.client("internal").send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
     return res.Body ? res.Body.transformToByteArray() : new Uint8Array();
   }
 

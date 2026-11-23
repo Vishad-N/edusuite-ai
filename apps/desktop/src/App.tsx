@@ -28,6 +28,7 @@ import ScreenshotToPpt from "./components/ScreenshotToPpt";
 import TeacherDesk from "./components/TeacherDesk";
 import UserManagement from "./components/UserManagement.tsx";
 import PlatformCredits from "./components/PlatformCredits.tsx";
+import DeckQuiz from "./components/DeckQuiz.tsx";
 import LoginScreen from "./components/LoginScreen.tsx";
 import SettingsModal from "./components/SettingsModal.tsx";
 import { translations } from "./data/translations";
@@ -53,6 +54,7 @@ const SCREENS: Record<ScreenId, AnyScreen> = {
   users: UserManagement,
   teacher_desk: TeacherDesk,
   ocr_ppt: ScreenshotToPpt,
+  deck_quiz: DeckQuiz,
   youtube: YouTubeStudio,
   ppt: PptMaker,
   doubt: DoubtSolver,

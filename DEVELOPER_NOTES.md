@@ -18,6 +18,36 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-055 · Deck → interactive quiz: Claude reads the PDF, a fixed template builds the HTML
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 4 · `packages/shared/{src/deckQuiz.ts,src/branding.ts,templates/deck-quiz.html,scripts/gen-deck-quiz-template.mjs}`, `apps/api/src/ai/{deckQuiz.ts,definitions.ts,processor.ts,jobs.service.ts,runner.ts}`, `apps/api/src/files/storage.ts`, `apps/desktop/src/components/DeckQuiz.tsx`, `docs/prompts/deck-to-interactive-quiz.md`
+- **Status:** Decided by agent (please review the template choices and the system prompt)
+- **What was unclear:** The developer's prompt (`PROMPT_deck_to_interactive_html.md`) and sample (`biol.html`) describe a long agent session that writes a new page per deck: ads and logo cut from the deck, 3D scenes made for each subject, CDN libraries. Every example names one institute. What part should Claude do inside a product used by many institutes?
+- **Options considered:** A) Claude returns only structured quiz data; EduSuite fills one fixed, tested template with the signed-in institute's name. B) Claude writes the whole HTML per deck. C) Claude picks from the sample's biology scenes.
+- **Decision:** A.
+  - **Prompt:** kept in the repo as `docs/prompts/deck-to-interactive-quiz.md`, with the institute examples removed and a note on how EduSuite splits the work. The job's system prompt follows its sections 2–4: skip banners and ads; transcribe faithfully and check Hindi against English; answers from the deck are marked `answerInDeck`, inferred ones are not; deck errors go in a per-question `note`, never silently fixed; 1–3 sentence explanations; 2–5 key points with the one or two the answer rests on marked; no links, numbers or institute names. Institute, exam and subject are filled per job.
+  - **Template:** made once from `biol.html` by script and kept as readable HTML. It keeps the quiz screens, language toggle (हिन्दी / English / दोनों), reveal, keyboard, score, dots, result ring and the self-healing watermark. Removed: the other institute's name, logo, ads, carousel and ad slides, the biology-only 2D and 3D scenes, and every CDN (three.js, motion, Google Fonts). It is fully self-contained and works offline and in the app's network-less player. One new "concept" scene works for any subject: the key points light up on answer. The logo is the institute's initials badge (DN-052).
+  - **Building the file:** `buildDeckQuizHtml` in the shared package, so the app builds it after the teacher's review. Every deck string is HTML-escaped, and the data is JSON that can't close its script block. Replacements use a function. A generated module (`deckQuizTemplate.ts`) carries the template; a test fails if it drifts from the `.html`.
+  - **Job `deck_quiz`:** input `{fileId, exam, subject}`. Before charging, it checks that the file is this institute's uploaded PDF of up to 20 MB (`AI_INPUT_FILE_INVALID`, 400). The worker reads the PDF from storage (`Storage.read`, this institute only) and sends it as a base64 document block. Effort `high`, 64k max tokens. The output is normalized: questions without four options or a valid answer are dropped and listed in `issues`; no usable question fails the job and refunds it. Price stays as DN-053 set it (10 credits per deck, operator-editable).
+  - **Job plumbing:** a definition may now have an async `user()`, a `precheck` (runs before credits are taken) and a `finish` (shapes the stored result).
+  - **Screen "डेक से इंटरैक्टिव क्विज़"** (`ai.content`): upload the PDF, type exam and subject, generate. Then every question is shown with its options. The teacher can change any answer. Each answer the deck didn't state is marked "जाँचना बाकी" (to check) and must be ticked or changed before "HTML डाउनलोड करें" works. Deck problems are listed. "क्विज़ खोलें" runs the quiz in the isolated player (DN-036).
+  - **Not saved yet:** the quiz isn't saved on the server. Leaving before downloading asks first, and a new run costs credits again.
+  - `initialsOf` moved to the shared package (the desktop re-exports it).
+- **Not in this version (follow-ups):** saving quizzes as documents with history; deck banners and the institute's own logo in the quiz; subject-specific or 3D scenes; PPTX decks; a wider in-app preview.
+- **Reason:** No model-written code runs on students' devices; one template is tested once and carries only the right institute's name; and the teacher, not the AI, has the last word on answers.
+- **Verified:**
+  - Shared tests 42 (template matches its source; no other institute, ads or outside requests; escaping, including `</script>` and `$&`; normalization; download name).
+  - API tests 90 (3 new): a PNG, an unfinished upload, another institute's file or an unknown id is refused before charging; a fixture run charges the price and returns checked data; the worker sends the exact PDF bytes as a document block with the institute's name; a job pointed at another institute's file fails and is refunded.
+  - Desktop 36; typecheck and lint pass.
+  - End-to-end in the real Electron app against Docker (fixture mode):
+    - the sidebar item shows; the button stays disabled until a PDF is uploaded through the files API and the fields are filled
+    - generating takes the price from the header chip; 3 questions, 2 marked to check, the deck issue and note are shown, and download is blocked
+    - changing one answer and ticking the other unblocks download
+    - the player shows "डेमो कोचिंग संस्थान", "SSC CGL · जीव विज्ञान · यूनिट-1" and the watermark, with no other institute's text; the teacher's changed answer (d) scores correct and its key point lights
+    - leaving before downloading asks first, and "रुकें" keeps the quiz
+- **Not verified:** a live Claude run on a real deck (no key yet). Use `AI_MODE=record` once with a key to judge Hindi transcription and answer quality.
+- **Revisit if:** teachers need to reopen past quizzes (add a document type), or decks over 20 MB or 100 questions are common (split the PDF across jobs).
+
 ### DN-054 · Phase 4 foundation: jobs API, BullMQ worker, fixture mode, PPT outline
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 4 · `apps/api/src/ai/*`, `apps/api/src/worker.ts`, `packages/shared/src/ai.ts`, `infra/*`, `apps/desktop/src/{api/ai.ts,api/client.ts,components/{AiGenerate,CreditsChip}.tsx,components/PptMaker.jsx}`

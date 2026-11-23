@@ -24,6 +24,12 @@ export class FakeStorage implements Storage {
     return (this.objects.get(key) ?? new Uint8Array()).slice(0, n);
   }
 
+  async read(key: string): Promise<Uint8Array> {
+    const o = this.objects.get(key);
+    if (!o) throw new Error("NoSuchKey");
+    return o;
+  }
+
   async delete(key: string): Promise<void> {
     this.objects.delete(key);
   }

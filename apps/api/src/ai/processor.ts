@@ -2,7 +2,8 @@ import { TERMINAL_JOB_STATUSES, type AiJobStatus, type AiJobType } from "@edusui
 import type { Prisma } from "../generated/prisma/client";
 import type { PrismaService } from "../prisma/prisma.service";
 import type { CreditsService } from "../credits/credits.service";
-import { JOB_DEFINITIONS } from "./definitions";
+import type { Storage } from "../files/storage";
+import { JOB_DEFINITIONS, type JobContext } from "./definitions";
 import { AiJobError, toJobError, type AiRunner } from "./runner";
 
 export type Attempt = { attemptsMade: number; maxAttempts: number };
@@ -20,6 +21,7 @@ export class AiProcessor {
     private readonly prisma: PrismaService,
     private readonly credits: CreditsService,
     private readonly runner: AiRunner,
+    private readonly storage: Storage,
     private readonly log: Log = { info: () => undefined, warn: () => undefined },
   ) {}
 
@@ -40,13 +42,14 @@ export class AiProcessor {
     });
 
     try {
-      const result = await this.runner.run(def, input, { instituteName: job.institute.name });
+      const result = await this.runner.run(def, input, this.context(job.instituteId, job.institute.name));
+      const output = def.finish ? def.finish(result.output as never) : result.output;
       await db.$transaction(async (tx) => {
         await tx.aiJob.update({
           where: { id: aiJobId },
           data: {
             status: "succeeded",
-            result: result.output as Prisma.InputJsonValue,
+            result: output as Prisma.InputJsonValue,
             fixture: result.fixture,
             progressDone: def.steps(input),
             finishedAt: new Date(),
@@ -82,6 +85,19 @@ export class AiProcessor {
       await this.fail(aiJobId, e);
       return "failed";
     }
+  }
+
+  /** What a job may read: only this institute's verified uploads. */
+  private context(instituteId: string, instituteName: string): JobContext {
+    return {
+      instituteId,
+      instituteName,
+      readFile: async (fileId, mime) => {
+        const file = await this.prisma.db.file.findFirst({ where: { id: fileId, instituteId, mime, uploadedAt: { not: null } } });
+        if (!file) throw new AiJobError("AI_INPUT_FILE_INVALID", false);
+        return this.storage.read(file.bucketKey);
+      },
+    };
   }
 
   private async fail(aiJobId: string, e: AiJobError): Promise<void> {

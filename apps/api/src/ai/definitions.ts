@@ -1,9 +1,18 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { z } from "zod";
+import { deckQuiz } from "./deckQuiz";
 import { PptOutlineInputSchema, PptOutlineOutputSchema, type AiJobType, type PptOutlineInput, type PptOutlineOutput } from "@edusuite/shared";
 
-/** What a job's prompt may use besides its input: the signed-in institute (DN-052). */
-export type JobContext = { instituteName: string };
+/** What a job's prompt may use besides its input: the signed-in institute (DN-052) and its files. */
+export type JobContext = {
+  instituteId: string;
+  instituteName: string;
+  /** Bytes of an uploaded, verified file of this institute (DN-040); throws AI_INPUT_FILE_INVALID otherwise. */
+  readFile: (fileId: string, mime: string) => Promise<Uint8Array>;
+};
+
+/** Checks done before credits are taken (the user is told at once, not after a failed job). */
+export type JobPrecheck = { instituteId: string; findFile: (fileId: string) => Promise<{ mime: string; bytes: number; uploaded: boolean } | null> };
 
 /**
  * One AI job type (plan §08): its input and output schemas, the prompt, how hard
@@ -18,7 +27,11 @@ export type JobDefinition<I = unknown, O = unknown> = {
   maxTokens: number;
   /** Stable across requests, so it is prompt-cached. Nothing per-request goes here. */
   system: string;
-  user: (input: I, ctx: JobContext) => Anthropic.Messages.ContentBlockParam[];
+  user: (input: I, ctx: JobContext) => Anthropic.Messages.ContentBlockParam[] | Promise<Anthropic.Messages.ContentBlockParam[]>;
+  /** Optional check of the input before the job is charged and queued; throws an ApiHttpException. */
+  precheck?: (input: I, ctx: JobPrecheck) => Promise<void>;
+  /** Optional last step on the validated output (e.g. dropping unusable items); returns the stored result. */
+  finish?: (output: O) => unknown;
   /** How many progress steps the job reports. */
   steps: (input: I) => number;
   /** Fixture mode: a deterministic answer built from the input (used when no recording exists). */
@@ -80,4 +93,5 @@ export const pptOutline: JobDefinition<PptOutlineInput, PptOutlineOutput> = {
 /** Every job type the worker can run (shared IMPLEMENTED_AI_JOBS must match; a test checks it). */
 export const JOB_DEFINITIONS: Partial<Record<AiJobType, JobDefinition<never, unknown>>> = {
   ppt_outline: pptOutline as unknown as JobDefinition<never, unknown>,
+  deck_quiz: deckQuiz as unknown as JobDefinition<never, unknown>,
 };

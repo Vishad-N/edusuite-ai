@@ -17,6 +17,7 @@ import {
   Users,
   Crown,
   Coins,
+  ListChecks,
 } from "lucide-react";
 import { initialsOf } from "../utils/branding.ts";
 
@@ -64,6 +65,12 @@ export default function Sidebar({ activeTab, setActiveTab, t, allowedScreens, in
           label: t.navScreenshotPpt || "स्क्रीनशॉट से PPT",
           icon: Camera,
           badge: "नया",
+        },
+        {
+          id: "deck_quiz",
+          label: "डेक से इंटरैक्टिव क्विज़",
+          icon: ListChecks,
+          badge: "AI",
         },
         {
           id: "youtube",

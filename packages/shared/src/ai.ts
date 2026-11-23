@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { AiJobType } from "./permissions.ts";
+import { DeckQuizInputSchema } from "./deckQuiz.ts";
 
 /**
  * AI jobs (plan §08, Phase 4; DN-054). The desktop app starts a job, the API
@@ -43,6 +44,7 @@ export type PptOutlineOutput = z.infer<typeof PptOutlineOutputSchema>;
 /** Job types the worker can run today; the others arrive one at a time (plan §08 order). */
 export const AiJobCreateSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("ppt_outline"), input: PptOutlineInputSchema }),
+  z.object({ type: z.literal("deck_quiz"), input: DeckQuizInputSchema }),
 ]);
 export type AiJobCreate = z.infer<typeof AiJobCreateSchema>;
 export const IMPLEMENTED_AI_JOBS = AiJobCreateSchema.options.map((o) => o.shape.type.value) as AiJobType[];
@@ -51,6 +53,7 @@ export const IMPLEMENTED_AI_JOBS = AiJobCreateSchema.options.map((o) => o.shape.
 export function jobItemCount(job: AiJobCreate): number {
   switch (job.type) {
     case "ppt_outline":
+    case "deck_quiz":
       return 1;
   }
 }

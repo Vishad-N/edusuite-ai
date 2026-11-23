@@ -6,6 +6,10 @@ import { ApiError, createApiClient, type ApiClient, type TokenVault } from "./cl
 type Bridge = {
   app: { config: () => Promise<{ apiBaseUrl: string }> };
   auth: { getToken: () => Promise<string | null>; setToken: (t: string) => Promise<void>; clearToken: () => Promise<void> };
+  /** Isolated, network-less player for generated HTML (DN-036); returns the URL to load in a sandboxed iframe. */
+  motion?: { open: (html: string) => Promise<string> };
+  /** Native save dialog (allowed extensions only). */
+  file?: { saveAs: (suggestedName: string, data: Uint8Array) => Promise<{ saved: boolean; fileName?: string }> };
 };
 declare global {
   interface Window {
