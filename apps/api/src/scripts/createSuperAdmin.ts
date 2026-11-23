@@ -13,6 +13,12 @@
  * argument, so it can't end up in shell history or process lists.
  *
  * Refuses to run if the institute already has a super admin.
+ *
+ * With --platform it creates the EduSuite operator instead (DN-053): a
+ * platform_admin who manages every institute's AI credits. Use a dedicated
+ * operator institute (e.g. --institute-code EDUSUITE --branch-code HQ); the
+ * command refuses an institute that has any other staff. The password comes
+ * from a hidden prompt or PLATFORM_ADMIN_PASSWORD.
  */
 import { parseArgs } from "node:util";
 import { createInterface } from "node:readline";
@@ -38,13 +44,14 @@ function readHidden(prompt: string): Promise<string> {
   });
 }
 
-async function readPassword(): Promise<string> {
+async function readPassword(platform: boolean): Promise<string> {
+  const envName = platform ? "PLATFORM_ADMIN_PASSWORD" : "SUPERADMIN_PASSWORD";
   if (!process.stdin.isTTY) {
-    const fromEnv = process.env.SUPERADMIN_PASSWORD;
-    if (!fromEnv) throw new Error("No terminal: set SUPERADMIN_PASSWORD for this one command.");
+    const fromEnv = process.env[envName];
+    if (!fromEnv) throw new Error(`No terminal: set ${envName} for this one command.`);
     return fromEnv;
   }
-  const first = await readHidden(`New super admin password (min ${MIN_PASSWORD_LENGTH} characters): `);
+  const first = await readHidden(`New ${platform ? "operator" : "super admin"} password (min ${MIN_PASSWORD_LENGTH} characters): `);
   const second = await readHidden("Type it again: ");
   if (first !== second) throw new Error("The two passwords don't match.");
   return first;
@@ -61,8 +68,11 @@ async function main(): Promise<void> {
       email: { type: "string" },
       name: { type: "string" },
       phone: { type: "string" },
+      platform: { type: "boolean" },
     },
   });
+  const platform = values.platform === true;
+  const role = platform ? ("platform_admin" as const) : ("superadmin" as const);
   for (const key of ["institute-code", "institute-name", "branch-code", "branch-name", "employee-code", "email", "name"] as const) {
     if (!values[key]) throw new Error(`Missing --${key}`);
   }
@@ -72,7 +82,7 @@ async function main(): Promise<void> {
   const instituteCode = BranchCodeSchema.parse(values["institute-code"]);
   const branchCode = BranchCodeSchema.parse(values["branch-code"]);
   const employeeCode = EmployeeCodeSchema.parse(values["employee-code"]);
-  const password = await readPassword();
+  const password = await readPassword(platform);
 
   // Validate everything before writing anything (the branch id is filled in later).
   const input = UserCreateSchema.parse({
@@ -89,7 +99,12 @@ async function main(): Promise<void> {
   const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
   try {
     const existing = await db.institute.findUnique({ where: { code: instituteCode } });
-    if (existing && (await db.appUser.count({ where: { instituteId: existing.id, role: "superadmin" } })) > 0) {
+    if (platform) {
+      // The operator's institute holds only operators; it must never be a customer.
+      if (existing && (await db.appUser.count({ where: { instituteId: existing.id, role: { not: "platform_admin" } } })) > 0) {
+        throw new Error(`Institute ${instituteCode} has institute staff. Use a separate operator institute code.`);
+      }
+    } else if (existing && (await db.appUser.count({ where: { instituteId: existing.id, role: "superadmin" } })) > 0) {
       throw new Error(`Institute ${instituteCode} already has a super admin. Manage users from the app instead.`);
     }
 
@@ -112,7 +127,7 @@ async function main(): Promise<void> {
           phone: input.phone ?? null,
           displayName: input.displayName,
           fullName: input.fullName,
-          role: "superadmin",
+          role,
           passwordHash,
         },
       });
@@ -123,12 +138,12 @@ async function main(): Promise<void> {
           action: "user.create",
           entityType: "user",
           entityId: user.id,
-          meta: { role: "superadmin", via: "cli" },
+          meta: { role, via: "cli" },
         },
       });
       return { user, institute, branch };
     });
-    console.log(`Created super admin ${user.employeeCode} for ${institute.code}/${branch.code}. They can log in now.`);
+    console.log(`Created ${platform ? "operator" : "super admin"} ${user.employeeCode} for ${institute.code}/${branch.code}. They can log in now.`);
   } finally {
     await db.$disconnect();
   }

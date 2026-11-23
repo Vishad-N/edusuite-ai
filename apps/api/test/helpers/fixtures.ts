@@ -15,6 +15,8 @@ export async function createFixtures(db: PrismaClient) {
   const otherA = await db.branch.create({ data: { instituteId: instA.id, code: "SEC", name: "A Second" } });
   const instB = await db.institute.create({ data: { code: "TSTB", name: "Test Institute B" } });
   const mainB = await db.branch.create({ data: { instituteId: instB.id, code: "MAIN", name: "B Main" } });
+  const opInst = await db.institute.create({ data: { code: "TSTOP", name: "Test Operator" } });
+  const opBranch = await db.branch.create({ data: { instituteId: opInst.id, code: "HQ", name: "HQ" } });
 
   let n = 0;
   const user = (role: UserRole, code: string, instituteId: string, branchId: string) => {
@@ -41,9 +43,11 @@ export async function createFixtures(db: PrismaClient) {
     typist: await user("typist", "A-TY", instA.id, mainA.id),
     counselor: await user("counselor", "A-C", instA.id, otherA.id),
     otherAdmin: await user("branch_admin", "B-BA", instB.id, mainB.id),
+    // The EduSuite operator lives in its own institute (DN-053).
+    platformAdmin: await user("platform_admin", "P-PA", opInst.id, opBranch.id),
   };
   // The teacher may also work at A's second branch (DN-015).
   await db.userBranch.create({ data: { userId: users.teacher.id, branchId: otherA.id } });
 
-  return { instA, mainA, otherA, instB, mainB, users };
+  return { instA, mainA, otherA, instB, mainB, opInst, users };
 }

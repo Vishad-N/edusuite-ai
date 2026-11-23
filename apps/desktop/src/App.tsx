@@ -27,6 +27,7 @@ import DoubtSolver from "./components/DoubtSolver";
 import ScreenshotToPpt from "./components/ScreenshotToPpt";
 import TeacherDesk from "./components/TeacherDesk";
 import UserManagement from "./components/UserManagement.tsx";
+import PlatformCredits from "./components/PlatformCredits.tsx";
 import LoginScreen from "./components/LoginScreen.tsx";
 import SettingsModal from "./components/SettingsModal.tsx";
 import { translations } from "./data/translations";
@@ -48,6 +49,7 @@ type AnyScreen = ComponentType<any>;
 
 const SCREENS: Record<ScreenId, AnyScreen> = {
   dashboard: Dashboard,
+  platform: PlatformCredits,
   users: UserManagement,
   teacher_desk: TeacherDesk,
   ocr_ppt: ScreenshotToPpt,
@@ -75,6 +77,7 @@ const ROLE_LABELS: Record<Role, { hi: string; en: string; avatar: string }> = {
   teacher: { hi: "शिक्षक", en: "Teacher", avatar: "👨‍🏫" },
   typist: { hi: "DTP / टाइपिस्ट", en: "DTP / Typist", avatar: "⌨️" },
   counselor: { hi: "काउंसलर", en: "Counselor", avatar: "🪪" },
+  platform_admin: { hi: "EduSuite ऑपरेटर", en: "EduSuite Operator", avatar: "🛰️" },
 };
 
 export function roleLabel(role: Role, lang: "hi" | "en"): string {
@@ -228,8 +231,11 @@ function ScreenRoute({ forced }: { forced?: ScreenId }) {
   const params = useParams();
   const screen = (forced ?? params.screen) as ScreenId;
   const props = useOutletContextProps();
-  if (!(screen in SCREEN_PERMISSIONS) || !visibleScreens(user.role).includes(screen)) {
-    return <Navigate to="/" replace />;
+  const allowed = visibleScreens(user.role);
+  if (!(screen in SCREEN_PERMISSIONS) || !allowed.includes(screen)) {
+    // Roles without a dashboard (the EduSuite operator, DN-053) land on their first screen.
+    const home = allowed.includes("dashboard") ? "/" : allowed[0] ? `/${allowed[0]}` : "/login";
+    return <Navigate to={home} replace />;
   }
   const Screen = SCREENS[screen];
   return <Screen {...props} />;

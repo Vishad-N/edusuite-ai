@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PERMISSIONS, ROLES, can, type Permission, type Role } from "./permissions.ts";
+import { ALL_ROLES, PERMISSIONS, can, type Permission, type Role } from "./permissions.ts";
 
 /**
  * Auth request and response shapes (plan §05 Daily login, §07 AUTH).
@@ -36,7 +36,7 @@ export const SessionUserSchema = z.object({
   employeeCode: z.string(),
   displayName: z.string(),
   fullName: z.string(),
-  role: z.enum(ROLES),
+  role: z.enum(ALL_ROLES),
   institute: z.object({ id: z.uuid(), name: z.string(), code: z.string() }),
   /** The branch this session is working at. */
   branch: BranchRefSchema,

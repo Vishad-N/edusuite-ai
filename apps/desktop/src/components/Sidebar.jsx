@@ -16,6 +16,7 @@ import {
   GraduationCap,
   Users,
   Crown,
+  Coins,
 } from "lucide-react";
 import { initialsOf } from "../utils/branding.ts";
 
@@ -29,6 +30,12 @@ export default function Sidebar({ activeTab, setActiveTab, t, allowedScreens, in
     {
       group: t.grpDashboard,
       items: [
+        {
+          id: "platform",
+          label: "AI क्रेडिट प्रबंधन",
+          icon: Coins,
+          badge: "EduSuite",
+        },
         {
           id: "dashboard",
           label: t.navDashboard,

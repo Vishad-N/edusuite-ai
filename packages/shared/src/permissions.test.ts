@@ -14,8 +14,9 @@ test("every permission has an entry in the matrix", () => {
   assert.deepEqual(Object.keys(PERMISSION_MATRIX).sort(), [...PERMISSIONS].sort());
 });
 
-test("super admin holds every permission institute-wide", () => {
-  for (const p of PERMISSIONS) assert.equal(scopeFor("superadmin", p), "institute", p);
+test("super admin holds every institute permission institute-wide, but none of the operator's (DN-053)", () => {
+  for (const p of PERMISSIONS.filter((x) => !x.startsWith("platform."))) assert.equal(scopeFor("superadmin", p), "institute", p);
+  assert.equal(can("superadmin", "platform.credits"), false);
 });
 
 test("no role other than super admin gets institute-wide scope", () => {

@@ -41,6 +41,15 @@ export const ERROR_MESSAGES = {
     en: "This file isn't the type it claims to be. Upload only PNG, JPG, WebP or PDF.",
   },
 
+  CREDITS_EXHAUSTED: {
+    hi: "आपके संस्थान के AI क्रेडिट कम हैं। और क्रेडिट के लिए EduSuite से संपर्क करें।",
+    en: "Your institute doesn't have enough AI credits. Contact EduSuite for more.",
+  },
+  CREDITS_ADJUST_TOO_LARGE: {
+    hi: "इतने क्रेडिट नहीं घटाए जा सकते; बैलेंस शून्य से कम हो जाएगा।",
+    en: "You can't take away that many credits; the balance would go below zero.",
+  },
+
   AUTH_INVALID: { hi: "ID या पासवर्ड गलत है।", en: "The ID or password is incorrect." },
   AUTH_LOCKED: {
     hi: "कई गलत प्रयासों के कारण खाता 15 मिनट के लिए रोका गया है।",

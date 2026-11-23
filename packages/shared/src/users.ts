@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ROLES, type Role } from "./permissions.ts";
+import { ALL_ROLES, ROLES, type Role } from "./permissions.ts";
 import { PageQuerySchema } from "./pagination.ts";
 
 /** Minimum password length for staff accounts. */
@@ -33,7 +33,7 @@ export const UserSchema = z.object({
   phone: z.string().nullable(),
   displayName: z.string(),
   fullName: z.string(),
-  role: z.enum(ROLES),
+  role: z.enum(ALL_ROLES),
   status: z.enum(USER_STATUSES),
   /** Home branch. */
   branchId: z.uuid(),

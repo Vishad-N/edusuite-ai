@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { hash, verify, type Algorithm } from "@node-rs/argon2";
 import { SignJWT, jwtVerify } from "jose";
-import { ROLES, type Role } from "@edusuite/shared";
+import { ALL_ROLES, type Role } from "@edusuite/shared";
 import type { AuthUser } from "./authUser";
 
 // argon2id with OWASP's recommended minimum (19 MiB memory, 2 passes).
@@ -69,7 +69,7 @@ export async function verifyAccessToken(token: string, secret: string): Promise<
       typeof sid !== "string" ||
       typeof iid !== "string" ||
       typeof bid !== "string" ||
-      !ROLES.includes(role as Role)
+      !ALL_ROLES.includes(role as Role)
     ) {
       return null;
     }
