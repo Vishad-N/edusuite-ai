@@ -50,11 +50,11 @@ test("sidebar screens per role", () => {
   assert.deepEqual(visibleScreens("counselor").sort(), ["dashboard", "image", "notice", "receipt"]);
   assert.deepEqual(
     visibleScreens("typist").sort(),
-    ["book", "dashboard", "doubt", "dpp", "image", "lesson", "ocr_ppt", "ppt", "test", "youtube"],
+    ["book", "dashboard", "deck_quiz", "doubt", "dpp", "image", "lesson", "ocr_ppt", "ppt", "test", "youtube"],
   );
   assert.equal(visibleScreens("teacher").includes("teacher_desk"), true);
   assert.equal(visibleScreens("teacher").includes("users"), false);
-  assert.equal(visibleScreens("superadmin").length, 14);
+  assert.equal(visibleScreens("superadmin").length, 15);
 });
 
 test("every AI job type maps to a known permission", () => {
