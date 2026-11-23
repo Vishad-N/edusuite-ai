@@ -126,3 +126,29 @@ test("logout clears the local session even if the server can't be reached", asyn
   await client.logout();
   assert.equal(vault.value, null);
 });
+
+test("events() reads server-sent events across chunk boundaries and sends the token", async () => {
+  const chunks = ['data: {"status":"queued"}\n\n: keep-alive\n\nda', 'ta: {"status":"running"}\n', '\ndata: {"status":"succeeded"}\n\n'];
+  const { client, calls } = setup((call) => {
+    if (call.url === "/auth/refresh") return json(200, { accessToken: "A1", refreshToken: "R2" });
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const c of chunks) controller.enqueue(new TextEncoder().encode(c));
+        controller.close();
+      },
+    });
+    return new Response(body, { status: 200, headers: { "content-type": "text/event-stream" } });
+  }, memoryVault("R1"));
+  const seen: unknown[] = [];
+  await client.events("/ai/jobs/1/events", (d) => seen.push(d));
+  assert.deepEqual(seen, [{ status: "queued" }, { status: "running" }, { status: "succeeded" }]);
+  const streamCall = calls.find((c) => c.url === "/ai/jobs/1/events")!;
+  assert.equal(streamCall.headers.authorization, "Bearer A1");
+  assert.equal(streamCall.headers.accept, "text/event-stream");
+});
+
+test("post() can send extra headers such as the idempotency key", async () => {
+  const { client, calls } = setup((call) => (call.url === "/auth/refresh" ? json(200, { accessToken: "A1", refreshToken: "R2" }) : json(202, { id: "j" })), memoryVault("R1"));
+  await client.post("/ai/jobs", { type: "ppt_outline" }, { headers: { "idempotency-key": "key-12345678" } });
+  assert.equal(calls.at(-1)!.headers["idempotency-key"], "key-12345678");
+});

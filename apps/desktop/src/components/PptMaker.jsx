@@ -2,18 +2,17 @@ import React, { useState } from "react";
 import {
   Presentation,
   Download,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
   Plus,
   Trash2,
   Check,
-  RefreshCw,
   Sliders,
 } from "lucide-react";
 import { generatePptxFile } from "../utils/pptxGenerator";
 import { DocumentBar } from "./DocumentBar.tsx";
-import { Button, Field, Input, PageHeader, Textarea } from "./ui/index.ts";
+import { AiGenerate } from "./AiGenerate.tsx";
+import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 
 /** A blank deck: one title slide to start from (no sample content, Phase 3). */
 function blankPresentation(topic, grade, subject) {
@@ -31,7 +30,7 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
   const [grade, setGrade] = useState("Class 9 & 10");
   const [subject, setSubject] = useState("");
   const [theme, setTheme] = useState("navy");
-  const isGenerating = false;
+  const [slideCount, setSlideCount] = useState(6);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [docTitle, setDocTitle] = useState("");
 
@@ -53,8 +52,33 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
     })),
   };
 
-  // Real AI outlines arrive in Phase 4 (job ppt_outline). Until then this builds an
-  // editable outline template from the topic, immediately and labelled as a template.
+  // AI outline (Phase 4, job ppt_outline): fills the editor as unsaved work for the teacher to check.
+  const aiRequest = () =>
+    topic.trim().length >= 2
+      ? {
+          type: "ppt_outline",
+          input: {
+            topic: topic.trim(),
+            ...(grade.trim() && { grade: grade.trim() }),
+            ...(subject.trim() && { subject: subject.trim() }),
+            slideCount,
+            language: "hi",
+          },
+        }
+      : null;
+  const applyOutline = (result) => {
+    setPresentation({
+      title: result.title,
+      subtitle: result.subtitle ?? "",
+      grade,
+      subject,
+      slides: result.slides.map((s) => ({ tag: s.tag ?? "", title: s.title, points: s.points, takeaway: s.takeaway ?? "" })),
+    });
+    if (!docTitle.trim()) setDocTitle(result.title);
+    setCurrentSlideIndex(0);
+  };
+
+  // The free option: an editable outline template from the topic, without AI.
   const handleGenerate = () => {
     const t = topic.trim() || "नई प्रस्तुति";
     setPresentation({
@@ -154,7 +178,7 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
                 क्या आपके पास प्रश्नों के 10 से 50 स्क्रीनशॉट हैं?
               </h4>
               <p className="text-xs text-slate-600">
-                टाइपिस्ट को देने और घंटों इंतजार करने की जरूरत नहीं — AI स्क्रीनशॉट डिटेक्टर से 30 सेकंड में ऑटोमैटिक MCQ PPT बनाएं!
+                स्क्रीनशॉट अपलोड करें, हर प्रश्न और विकल्प लिखें और स्मार्टबोर्ड MCQ PPT बनाएँ।
               </p>
             </div>
           </div>
@@ -277,27 +301,27 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
               </div>
             </div>
 
-            {/* Generate Button */}
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating}
-              className="w-full mt-3 py-3 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2 transition transform active:scale-98 disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>बन रहा है…</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>स्लाइड ढाँचा बनाएँ</span>
-                </>
-              )}
-            </button>
-            <p className="text-caption text-muted">
-              अभी यह विषय से एक खाली ढाँचा बनाता है, जिसे आप दाईं ओर बदल सकते हैं। AI से पूरी सामग्री बनाने की सुविधा अगले चरण में आएगी।
-            </p>
+            {/* Generate: AI (uses credits) or a free empty outline */}
+            <div className="mt-3 space-y-3 rounded-card border border-line bg-surface p-3 text-ink">
+              <Field label="कितनी स्लाइड">
+                <Select value={slideCount} onChange={(e) => setSlideCount(Number(e.target.value))}>
+                  {[4, 5, 6, 8, 10, 12].map((n) => (
+                    <option key={n} value={n}>
+                      {n} स्लाइड
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <AiGenerate
+                label="AI से स्लाइड बनाएँ"
+                build={aiRequest}
+                onResult={applyOutline}
+                hint={topic.trim().length < 2 ? "पहले ऊपर विषय लिखें।" : "AI ड्राफ़्ट बनाता है; दाईं ओर जाँचें, बदलें और सेव करें।"}
+              />
+              <Button className="w-full" onClick={handleGenerate}>
+                खाली ढाँचा बनाएँ (बिना AI, मुफ़्त)
+              </Button>
+            </div>
           </div>
         </div>
 

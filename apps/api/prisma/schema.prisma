@@ -297,6 +297,15 @@ model AiJob {
   status         AiJobStatus @default(queued)
   input          Json
   error          String?
+  /// Error code from the API's error list when the job failed (DN-054).
+  errorCode      String?     @map("error_code")
+  /// The job's output, checked against its type's schema (DN-054).
+  result         Json?
+  /// Progress for the SSE stream: items done of total.
+  progressDone   Int         @default(0) @map("progress_done")
+  progressTotal  Int         @default(0) @map("progress_total")
+  /// Output came from fixture mode, not Claude (DN-012).
+  fixture        Boolean     @default(false)
   /// The document this job produced, if any.
   documentId     String?     @map("document_id") @db.Uuid
   idempotencyKey String      @map("idempotency_key")

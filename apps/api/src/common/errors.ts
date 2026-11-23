@@ -50,6 +50,23 @@ export const ERROR_MESSAGES = {
     en: "You can't take away that many credits; the balance would go below zero.",
   },
 
+  AI_REFUSED: {
+    hi: "AI ने यह अनुरोध पूरा नहीं किया। विषय या शब्द बदलकर फिर से कोशिश करें। क्रेडिट वापस कर दिए गए हैं।",
+    en: "The AI declined this request. Try different wording. Your credits were returned.",
+  },
+  AI_BAD_OUTPUT: {
+    hi: "AI का उत्तर सही रूप में नहीं आया। फिर से कोशिश करें; क्रेडिट वापस कर दिए गए हैं।",
+    en: "The AI's answer wasn't in the right format. Please try again; your credits were returned.",
+  },
+  AI_UNAVAILABLE: {
+    hi: "AI सेवा अभी उपलब्ध नहीं है। थोड़ी देर बाद कोशिश करें; क्रेडिट वापस कर दिए गए हैं।",
+    en: "The AI service isn't available right now. Try again later; your credits were returned.",
+  },
+  AI_JOB_TYPE_UNAVAILABLE: {
+    hi: "यह AI सुविधा अभी उपलब्ध नहीं है।",
+    en: "This AI feature isn't available yet.",
+  },
+
   AUTH_INVALID: { hi: "ID या पासवर्ड गलत है।", en: "The ID or password is incorrect." },
   AUTH_LOCKED: {
     hi: "कई गलत प्रयासों के कारण खाता 15 मिनट के लिए रोका गया है।",

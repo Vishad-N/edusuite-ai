@@ -54,8 +54,15 @@ export function createApiClient(options: ApiClientOptions) {
   let accessToken: string | null = null;
   let refreshing: Promise<boolean> | null = null;
 
-  async function send(method: Method, path: string, body: unknown, token: string | null): Promise<Response> {
-    const headers: Record<string, string> = { "accept-language": options.language(), accept: "application/json" };
+  async function send(
+    method: Method,
+    path: string,
+    body: unknown,
+    token: string | null,
+    extra: Record<string, string> = {},
+    signal?: AbortSignal,
+  ): Promise<Response> {
+    const headers: Record<string, string> = { "accept-language": options.language(), accept: "application/json", ...extra };
     if (body !== undefined) headers["content-type"] = "application/json";
     if (token) headers.authorization = `Bearer ${token}`;
     try {
@@ -63,8 +70,10 @@ export function createApiClient(options: ApiClientOptions) {
         method,
         headers,
         ...(body !== undefined && { body: JSON.stringify(body) }),
+        ...(signal && { signal }),
       });
-    } catch {
+    } catch (err) {
+      if (signal?.aborted) throw err;
       throw NETWORK_ERROR(options.language());
     }
   }
@@ -110,18 +119,51 @@ export function createApiClient(options: ApiClientOptions) {
     return refreshing;
   }
 
-  async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+  async function authed(method: Method, path: string, body?: unknown, extra?: Record<string, string>, signal?: AbortSignal): Promise<Response> {
     if (!accessToken) await refresh();
-    let res = await send(method, path, body, accessToken);
+    let res = await send(method, path, body, accessToken, extra, signal);
     if (res.status === 401 && (await refresh())) {
-      res = await send(method, path, body, accessToken);
+      res = await send(method, path, body, accessToken, extra, signal);
     }
-    return parse<T>(res);
+    return res;
+  }
+
+  async function request<T>(method: Method, path: string, body?: unknown, extra?: Record<string, string>): Promise<T> {
+    return parse<T>(await authed(method, path, body, extra));
+  }
+
+  /**
+   * Reads a server-sent event stream (AI job progress, DN-054) and calls onData
+   * with each `data:` payload parsed as JSON. Resolves when the server ends it.
+   * Uses fetch rather than EventSource, which can't send the Authorization header.
+   */
+  async function events(path: string, onData: (data: unknown) => void, signal?: AbortSignal): Promise<void> {
+    const res = await authed("GET", path, undefined, { accept: "text/event-stream" }, signal);
+    if (!res.ok || !res.body) throw await toError(res);
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      let end: number;
+      while ((end = buffer.indexOf("\n\n")) >= 0) {
+        const event = buffer.slice(0, end);
+        buffer = buffer.slice(end + 2);
+        const data = event
+          .split("\n")
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trimStart())
+          .join("\n");
+        if (data) onData(JSON.parse(data));
+      }
+    }
   }
 
   return {
     get: <T>(path: string) => request<T>("GET", path),
-    post: <T>(path: string, body?: unknown) => request<T>("POST", path, body),
+    post: <T>(path: string, body?: unknown, opts?: { headers?: Record<string, string> }) => request<T>("POST", path, body, opts?.headers),
+    events,
     put: <T>(path: string, body?: unknown) => request<T>("PUT", path, body),
     patch: <T>(path: string, body?: unknown) => request<T>("PATCH", path, body),
     delete: <T = void>(path: string) => request<T>("DELETE", path),

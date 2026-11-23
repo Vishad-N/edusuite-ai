@@ -18,6 +18,31 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-054 · Phase 4 foundation: jobs API, BullMQ worker, fixture mode, PPT outline
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 4 · `apps/api/src/ai/*`, `apps/api/src/worker.ts`, `packages/shared/src/ai.ts`, `infra/*`, `apps/desktop/src/{api/ai.ts,api/client.ts,components/{AiGenerate,CreditsChip}.tsx,components/PptMaker.jsx}`
+- **Status:** Decided by agent; packages approved by developer (DN-053).
+- **Decision:**
+  - **Jobs API:** `POST /ai/jobs` (requires an `Idempotency-Key` header). It checks the type's permission and input, then charges credits in the same transaction as the job row (402 when credits run short). It queues the job, or fails and refunds it (503) if queueing fails. A repeated key returns the same job, 200, uncharged.
+  - **Reading jobs:** `GET /ai/jobs/:id` is for the starter or admins; anyone else gets 404. `GET /ai/jobs/:id/events` is SSE: it re-reads the row every second and ends at a terminal status (move to Redis pub/sub at scale). `GET /ai/mode` serves the fixture badge.
+  - **Worker:** `dist/src/worker.js`, a separate compose service; only it holds the key. BullMQ allows 3 attempts with exponential backoff. Rate limits, 5xx and connection errors are retried; 4xx, refusals and invalid output are not. A final failure marks the job failed and refunds once. Usage and cost go to `ai_usage`.
+  - **Claude calls:** `claude-opus-5-5` (`AI_MODEL`), streamed, with structured outputs from the job's zod schema (checked again with zod), a prompt-cached system prompt, adaptive thinking (the model default), effort per job, and server-side refusal fallbacks (`server-side-fallback-2026-07-01`, `fallbacks: "default"`).
+  - **`AI_MODE`:**
+    - `fixture` (the default): a recorded answer at `fixtures/ai/<type>/<sha256>.json`, otherwise a predictable sample
+    - `record`: calls Claude and saves the answer as a fixture
+    - `live`: calls Claude
+
+    Production refuses anything but `live`. An empty key counts as unset.
+  - **Migration `20261123010000_ai_job_progress`:** adds `error_code`, `result`, `progress_done`, `progress_total` and `fixture` to `ai_jobs`.
+  - **First job, `ppt_outline`:** PptMaker has "AI से स्लाइड बनाएँ · N क्रेडिट" with live progress and the result filled in unsaved. The free empty outline stays. The header shows an "AI फिक्स्चर मोड" badge when AI is not live, and after a fixture run the screen says plainly that it was a sample answer, not AI. PptMaker's screenshot banner no longer promises an "AI screenshot detector … in 30 seconds".
+- **Verified so far:** API tests 87 (11 new: charging, idempotency, 402 with nothing written, permissions, a fixture run, who can read a job, retry then a single refund, queue failure refunds, SSE). Desktop tests 36 (SSE reader, headers). Shared 36. Typecheck and build pass; compose validates.
+- **End-to-end** in the real Electron app against Docker with the worker container in fixture mode:
+  - the badge is shown; the button is disabled until a topic is typed, then reads "AI से स्लाइड बनाएँ · 1 क्रेडिट"
+  - the worker logs the job as succeeded; the editor fills 5 slides titled by the topic, the document title fills, and the status is "unsaved"; the fixture note is shown
+  - the header chip drops by exactly 1
+- **Not verified:** a live Claude call (no key configured yet). Use `AI_MODE=record` once with a key to check output quality and save fixtures.
+- **Next:** the deck-to-interactive-quiz job (DN-055), using the developer's prompt filled per institute and the `biol.html` engine as a neutral template.
+
 ### DN-053 · AI credits per institute, managed by an EduSuite operator role
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 4 prerequisite · `packages/shared/src/{permissions,credits}.ts`, `apps/api/src/credits`, `apps/api/prisma` (migration `20261123000000_ai_credits`), `apps/desktop/src/components/{PlatformCredits,CreditsChip}.tsx`
