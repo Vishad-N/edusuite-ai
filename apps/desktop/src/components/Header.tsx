@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Calendar, LogOut, MapPin, PhoneCall, Settings } from "lucide-react";
 import { EDUSUITE_MARK } from "../utils/branding.ts";
 import { academicSession } from "../utils/academicSession.ts";
+import { CreditsChip } from "./CreditsChip.tsx";
 import { ConfirmDialog } from "./ui/index.ts";
 import type { LegacyUser } from "../App.tsx";
 
@@ -67,6 +68,8 @@ export default function Header({ instituteName, branchName, phone, lang, onLangu
           {langButton("hi", "हिन्दी")}
           {langButton("en", "English")}
         </div>
+
+        <CreditsChip role={currentUser.role} />
 
         {phone && (
           <div className="hidden xl:flex items-center gap-1.5 px-2 py-1 rounded-lg border border-amber-400/25 text-amber-200 text-[11px] font-semibold">

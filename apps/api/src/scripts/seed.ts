@@ -50,7 +50,20 @@ const OTHER = {
   ] satisfies SeedUser[],
 };
 
-type SeedInstitute = typeof DEMO | typeof OTHER;
+/** The EduSuite operator (DN-053): manages every institute's AI credits. */
+const OPERATOR = {
+  code: "EDUSUITE",
+  name: "EduSuite",
+  branches: [{ code: "HQ", name: "EduSuite HQ", city: "" }],
+  users: [
+    { code: "DEMO-PA", email: "operator@edusuite.test", phone: "+919000000201", displayName: "EduSuite ऑपरेटर", fullName: "EduSuite Operator", role: "platform_admin", password: "Demo-Operator-2026!", branch: "HQ" },
+  ] satisfies SeedUser[],
+};
+
+/** Local starting credits for the demo institutes, granted once through the ledger. */
+const STARTING_CREDITS: Record<string, number> = { DEMO: 200, OTHR: 20 };
+
+type SeedInstitute = typeof DEMO | typeof OTHER | typeof OPERATOR;
 
 async function seedInstitute(db: PrismaClient, spec: SeedInstitute): Promise<void> {
   const institute = await db.institute.upsert({
@@ -98,6 +111,15 @@ async function seedInstitute(db: PrismaClient, spec: SeedInstitute): Promise<voi
       });
     }
   }
+  const credits = STARTING_CREDITS[spec.code];
+  if (credits && (await db.creditLedger.count({ where: { instituteId: institute.id } })) === 0) {
+    await db.$transaction(async (tx) => {
+      const updated = await tx.institute.update({ where: { id: institute.id }, data: { creditBalance: { increment: credits } } });
+      await tx.creditLedger.create({
+        data: { instituteId: institute.id, kind: "grant", delta: credits, balanceAfter: updated.creditBalance, note: "स्थानीय डेमो क्रेडिट" },
+      });
+    });
+  }
   console.log(`Seeded ${spec.code}: ${spec.branches.length} branches, ${spec.users.length} users.`);
 }
 
@@ -112,6 +134,7 @@ async function main(): Promise<void> {
   try {
     await seedInstitute(db, DEMO);
     await seedInstitute(db, OTHER);
+    await seedInstitute(db, OPERATOR);
     // Never print passwords; they are in this file for whoever needs them.
     console.log("Done. Test logins and passwords are listed in apps/api/src/scripts/seed.ts.");
   } finally {

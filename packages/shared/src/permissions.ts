@@ -6,15 +6,25 @@
  * so the menu and the server can never disagree.
  */
 
+/** Roles inside an institute. These are the only roles the users API can give (DN-034). */
 export const ROLES = ["superadmin", "branch_admin", "teacher", "typist", "counselor"] as const;
-export type Role = (typeof ROLES)[number];
+export type InstituteRole = (typeof ROLES)[number];
+
+/**
+ * The EduSuite operator (DN-053): sits above all institutes and manages their AI
+ * credits. Created only with a server command, never through the users API.
+ */
+export const PLATFORM_ROLE = "platform_admin" as const;
+export const ALL_ROLES = [...ROLES, PLATFORM_ROLE] as const;
+export type Role = (typeof ALL_ROLES)[number];
 
 /**
  * How far a grant reaches.
  * - `institute`: every branch of the user's own institute.
  * - `branch`: only the user's own branch(es).
+ * - `platform`: every institute (the EduSuite operator only; never used to scope tenant data).
  */
-export type Scope = "institute" | "branch";
+export type Scope = "institute" | "branch" | "platform";
 
 export const PERMISSIONS = [
   "users.manage",
@@ -29,6 +39,7 @@ export const PERMISSIONS = [
   "audit.view",
   "dashboard.view",
   "teacher_desk.view",
+  "platform.credits",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -36,6 +47,7 @@ type Matrix = Record<Permission, Partial<Record<Role, Scope>>>;
 
 const I = "institute" as const;
 const B = "branch" as const;
+const P = "platform" as const;
 
 export const PERMISSION_MATRIX: Matrix = {
   // Plan: Super ✓, Branch "branch". DN-009: block instead of delete.
@@ -55,6 +67,8 @@ export const PERMISSION_MATRIX: Matrix = {
   // DN-008: Dashboard for everyone; TeacherDesk for Super, Branch and Teacher.
   "dashboard.view": { superadmin: I, branch_admin: B, teacher: B, typist: B, counselor: B },
   "teacher_desk.view": { superadmin: I, branch_admin: B, teacher: B },
+  // DN-053: only the EduSuite operator grants credits and sets prices.
+  "platform.credits": { platform_admin: P },
 };
 
 /** Returns the scope the role holds for this permission, or `null` if it has none. */
@@ -82,6 +96,7 @@ export const SCREEN_PERMISSIONS = {
   receipt: "students.fees",
   image: "image_studio",
   notice: "notices",
+  platform: "platform.credits",
 } as const satisfies Record<string, Permission>;
 
 export type ScreenId = keyof typeof SCREEN_PERMISSIONS;
@@ -104,6 +119,8 @@ export const AI_JOB_PERMISSIONS = {
   notice_draft: "notices",
   book_chapter: "ai.content",
   poster_copy: "image_studio.ai_copy",
+  // DN-053: a PDF deck becomes an interactive bilingual quiz.
+  deck_quiz: "ai.content",
 } as const satisfies Record<string, Permission>;
 
 export type AiJobType = keyof typeof AI_JOB_PERMISSIONS;

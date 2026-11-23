@@ -25,6 +25,8 @@ enum UserRole {
   teacher
   typist
   counselor
+  /// The EduSuite operator; manages credits for every institute (DN-053).
+  platform_admin
 }
 
 enum UserStatus {
@@ -57,6 +59,8 @@ enum AiJobType {
   notice_draft
   poster_copy
   pptx_build
+  /// A PDF deck becomes an interactive bilingual quiz (DN-053).
+  deck_quiz
 }
 
 enum AiJobStatus {
@@ -65,6 +69,26 @@ enum AiJobStatus {
   succeeded
   failed
   cancelled
+}
+
+/// Ledger entry kinds (DN-053).
+enum CreditKind {
+  /// The operator added credits.
+  grant
+  /// The operator took credits away (correction).
+  adjust
+  /// Credits taken when a job was created.
+  job_charge
+  /// Credits given back when a job failed.
+  job_refund
+}
+
+/// How a job type's price is counted (DN-053).
+enum CreditUnit {
+  /// A flat price per run.
+  job
+  /// Per input item, e.g. per screenshot.
+  item
 }
 
 enum StudentStatus {
@@ -94,19 +118,22 @@ model Institute {
   code                String   @unique
   branding            Json     @default("{}")
   aiMonthlyTokenQuota Int      @default(0) @map("ai_monthly_token_quota")
+  /// AI credits left (DN-053). Changed only together with a credit_ledger row; never below zero (check constraint).
+  creditBalance       Int      @default(0) @map("credit_balance")
   createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  branches    Branch[]
-  users       AppUser[]
-  documents   Document[]
-  files       File[]
-  aiJobs      AiJob[]
-  aiUsage     AiUsage[]
-  questions   Question[]
-  students    Student[]
-  feeReceipts FeeReceipt[]
-  auditLogs   AuditLog[]
+  branches     Branch[]
+  users        AppUser[]
+  documents    Document[]
+  files        File[]
+  aiJobs       AiJob[]
+  aiUsage      AiUsage[]
+  questions    Question[]
+  students     Student[]
+  feeReceipts  FeeReceipt[]
+  auditLogs    AuditLog[]
+  creditLedger CreditLedger[]
 
   @@map("institutes")
 }
@@ -155,8 +182,8 @@ model AppUser {
   createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-  institute         Institute    @relation(fields: [instituteId], references: [id])
-  branch            Branch       @relation("HomeBranch", fields: [branchId], references: [id])
+  institute         Institute       @relation(fields: [instituteId], references: [id])
+  branch            Branch          @relation("HomeBranch", fields: [branchId], references: [id])
   /// Extra branches the user may pick at login (DN-015).
   branches          UserBranch[]
   sessions          Session[]
@@ -164,9 +191,11 @@ model AppUser {
   files             File[]
   aiJobs            AiJob[]
   questions         Question[]
-  receiptsIssued    FeeReceipt[] @relation("ReceiptIssuedBy")
-  receiptsCancelled FeeReceipt[] @relation("ReceiptCancelledBy")
+  receiptsIssued    FeeReceipt[]    @relation("ReceiptIssuedBy")
+  receiptsCancelled FeeReceipt[]    @relation("ReceiptCancelledBy")
   auditLogs         AuditLog[]
+  creditEntries     CreditLedger[]
+  creditPrices      AiCreditPrice[]
 
   @@index([instituteId, role])
   @@map("app_users")
@@ -271,14 +300,17 @@ model AiJob {
   /// The document this job produced, if any.
   documentId     String?     @map("document_id") @db.Uuid
   idempotencyKey String      @map("idempotency_key")
+  /// Credits taken when the job was created (DN-053); refunded if it fails.
+  creditsCharged Int         @default(0) @map("credits_charged")
   createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz
   startedAt      DateTime?   @map("started_at") @db.Timestamptz
   finishedAt     DateTime?   @map("finished_at") @db.Timestamptz
 
-  institute Institute @relation(fields: [instituteId], references: [id])
-  user      AppUser   @relation(fields: [userId], references: [id])
-  document  Document? @relation(fields: [documentId], references: [id])
-  usage     AiUsage[]
+  institute     Institute      @relation(fields: [instituteId], references: [id])
+  user          AppUser        @relation(fields: [userId], references: [id])
+  document      Document?      @relation(fields: [documentId], references: [id])
+  usage         AiUsage[]
+  creditEntries CreditLedger[]
 
   @@unique([instituteId, idempotencyKey])
   @@index([instituteId, createdAt])
@@ -303,6 +335,44 @@ model AiUsage {
   /// Monthly quota checks sum usage by institute and month.
   @@index([instituteId, createdAt])
   @@map("ai_usage")
+}
+
+/// Every change to an institute's credit balance (DN-053). Append-only.
+model CreditLedger {
+  id           String     @id @default(uuid()) @db.Uuid
+  instituteId  String     @map("institute_id") @db.Uuid
+  kind         CreditKind
+  /// Positive adds, negative takes away.
+  delta        Int
+  /// The institute's balance right after this entry.
+  balanceAfter Int        @map("balance_after")
+  note         String?
+  aiJobId      String?    @map("ai_job_id") @db.Uuid
+  /// Who made a grant or adjustment; null for job charges and refunds.
+  actorId      String?    @map("actor_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
+
+  institute Institute @relation(fields: [instituteId], references: [id])
+  aiJob     AiJob?    @relation(fields: [aiJobId], references: [id])
+  actor     AppUser?  @relation(fields: [actorId], references: [id])
+
+  /// A job is charged once and refunded at most once.
+  @@unique([aiJobId, kind])
+  @@index([instituteId, createdAt])
+  @@map("credit_ledger")
+}
+
+/// Prices the operator changed; job types without a row use DEFAULT_CREDIT_PRICES (DN-053).
+model AiCreditPrice {
+  jobType     AiJobType  @id @map("job_type")
+  credits     Int
+  unit        CreditUnit
+  updatedById String     @map("updated_by") @db.Uuid
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  updatedBy AppUser @relation(fields: [updatedById], references: [id])
+
+  @@map("ai_credit_prices")
 }
 
 model Question {

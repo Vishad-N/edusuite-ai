@@ -18,6 +18,51 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-053 · AI credits per institute, managed by an EduSuite operator role
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 4 prerequisite · `packages/shared/src/{permissions,credits}.ts`, `apps/api/src/credits`, `apps/api/prisma` (migration `20261123000000_ai_credits`), `apps/desktop/src/components/{PlatformCredits,CreditsChip}.tsx`
+- **Status:** Decided by developer (operator role, priced per job type, packages approved); details decided by agent
+- **What was unclear:** The developer asked for "a credit system for individual institutes so each uses a limited number of uploads, managed through the admin". There was no role above an institute, and the plan's limit was a monthly token quota.
+- **Options considered:** Who manages: A) an EduSuite operator role outside institutes, with an admin screen. B) Each institute's super admin. C) The operator, via a command only. What costs credits: A) every AI job, priced per type. B) Only deck-to-quiz uploads. C) A flat 1 per job.
+- **Decision:** A and A. The developer also approved `@anthropic-ai/sdk` and `bullmq` for Phase 4, and PDF-only decks for now.
+  - **Role:** `platform_admin` (scope `platform`) holds only `platform.credits`. It is not in `ROLES`, so the users API can never create or assign it (tested). It is created with `createSuperAdmin --platform` in a dedicated operator institute, which the command refuses if that institute has any staff. `scopeWhere` refuses the platform scope, so it can never be used to read institute data. The operator lands on the credits screen and sees nothing else.
+  - **Data:** `institutes.credit_balance` (CHECK ≥ 0) and an append-only `credit_ledger` (kinds: grant, adjust, job_charge, job_refund; `balance_after`; reason; actor; job). A unique (job, kind) pair means a job is charged once and refunded at most once. `ai_jobs.credits_charged` is added. `ai_credit_prices` holds only the prices the operator changed; every other job type uses `DEFAULT_CREDIT_PRICES` (in code, because Postgres can't use a new enum value in the migration that adds it). New job type `deck_quiz` (DN-054).
+  - **Moving credits:** one transaction with a conditional update (`balance >= amount`), so concurrent spends can't go below zero. Tested: ten parallel spends against a balance of 5 give exactly five successes and 0 left; the database also refuses a direct negative write.
+  - **Default prices** (operator-editable, please review): PPT outline 1, paper 2, screenshot MCQ 1 per screenshot, DPP 1, lesson 1, doubt 1, YouTube 1, notice 1, book chapter 2, poster copy 1, deck quiz 10. A price is "per job" or "per item". Changes apply to new jobs.
+  - **API:**
+    - `GET /credits`: own balance and the prices of job types the caller may start
+    - `GET /credits/ledger`: own history, for admins with `audit.view`
+    - `GET /platform/institutes`: customer institutes with balance and use in the last 30 days; the operator's own institute is excluded
+    - `GET` and `POST /platform/institutes/:id/credits`: history, and add or take away credits with a required reason of 3–300 characters (409 `CREDITS_ADJUST_TOO_LARGE` below zero)
+    - `GET /platform/credit-prices` and `PUT /platform/credit-prices/:jobType`
+
+    Grants, adjustments and price changes are audited. `CreditsService.chargeJob` (402 `CREDITS_EXHAUSTED`) and `refundJob` are ready for the Phase 4 jobs API.
+  - **Desktop:**
+    - an operator screen with institutes and balances, an add/take-away dialog (reason required, shows the balance after, can't take away more than the balance), paged history, and an editable price table
+    - an "AI क्रेडिट: N" chip in the header for roles that can start any AI job (it turns red below 10)
+    - `ApiClient.put`
+  - **Seed:** an operator institute `EDUSUITE` with `DEMO-PA`, and starting credits written through the ledger (DEMO 200, OTHR 20).
+  - The token quota (`ai_monthly_token_quota`) stays in the schema; credits are what limit use.
+- **Reason:** Credits are the unit the operator sells; the ledger makes every change explainable, and the database guarantees the balance can't go negative.
+- **Verified:** API tests 76 (8 new):
+  - only the operator reaches the platform routes (403 and 401 otherwise)
+  - customer list excludes the operator institute, which can't be credited
+  - grant and adjust update the balance, ledger (paged newest first) and audit; taking away too much is refused; zero amounts and missing reasons are refused
+  - balance and per-role prices: a counselor sees only notice drafting; the other institute has its own balance
+  - admins see the history and teachers don't
+  - price change seen by the institute; unknown job types answer 404
+  - the race test
+  - the users API refuses `platform_admin`
+
+  Shared tests 33. End-to-end in the real Electron app against Docker:
+  - the operator lands on `#/platform` with only that menu item; its own institute isn't listed
+  - adding 50 with a reason shows the preview and moves 200 → 250; the history row shows the reason and the operator's name
+  - taking away more than the balance is blocked in the form; a price change saves
+  - the teacher's header shows "AI क्रेडिट: 250" and `#/platform` bounces to the dashboard; the super admin has no operator menu
+  - a counselor sees the chip, because notice drafting uses credits
+- **Affects:** the files above, `apps/api/src/{common/errors.ts,auth/{scope,crypto}.ts,scripts/{seed,createSuperAdmin}.ts,app.module.ts}`, `packages/shared/src/{auth,users}.ts`, `apps/desktop/src/{App.tsx,api/client.ts,components/{Header.tsx,Sidebar.jsx,UserManagement.tsx}}`, test fixtures
+- **Revisit if:** Institutes should buy credits themselves (add payments, with approval), credits should expire, or branches need their own sub-limits.
+
 ### DN-052 · Product is EduSuite AI; documents carry only the signed-in institute's own name; installer renamed
 - **Date:** 2026-11-23
 - **Phase / area:** Branding · `apps/desktop/{package.json,index.html,build/*,public/*}`, `src/utils/{branding.ts,academicSession.ts,motionHtmlGenerator.js,motionTemplate.js,pptxGenerator.js,mediaHelper.js}`, Header, LoginScreen, Sidebar, ScreenshotToPpt and the screens that used the logo

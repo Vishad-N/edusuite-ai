@@ -38,6 +38,7 @@ const ROLE_LABEL: Record<Role, string> = {
   teacher: "शिक्षक",
   typist: "DTP / टाइपिस्ट",
   counselor: "काउंसलर",
+  platform_admin: "EduSuite ऑपरेटर",
 };
 
 const FIELD_LABEL: Record<string, string> = {

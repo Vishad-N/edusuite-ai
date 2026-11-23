@@ -10,6 +10,8 @@ import type { AuthUser } from "./authUser";
 export function scopeWhere(user: AuthUser, permission: Permission): { instituteId: string; branchId?: string } {
   const scope = scopeFor(user.role, permission);
   if (!scope) throw new ApiHttpException(403, "FORBIDDEN");
+  // The operator's platform scope never scopes institute data (DN-053).
+  if (scope === "platform") throw new ApiHttpException(403, "FORBIDDEN");
   return scope === "institute"
     ? { instituteId: user.instituteId }
     : { instituteId: user.instituteId, branchId: user.branchId };
