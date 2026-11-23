@@ -18,6 +18,26 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-056 · AI question papers (`paper_generate`): blueprint by counts, fixed marks per kind
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 4 · `packages/shared/src/ai.ts`, `apps/api/src/ai/paperGenerate.ts`, `apps/desktop/src/components/QuestionPaperMaker.jsx`
+- **Status:** Decided by agent
+- **What was unclear:** The plan lists "job paper_generate + question bank" second in the AI order. It doesn't say what the teacher specifies, how marks are set, or whether generated questions go into the `questions` table.
+- **Options considered / Decision:**
+  - **Input:** subject, class (the screen's existing field), topics (required), how many MCQs, short-answer and long-answer questions (1–60 in all; defaults 10 / 5 / 2), difficulty (mixed by default: easy first) and language (hi, en, both).
+  - **Marks:** fixed per kind (MCQ 1, short 3, long 5, `PAPER_MARKS`), shown before generating with the total. After generating, the screen sets maximum marks to the real total. Section names and marks can still be edited.
+  - **Output:** one section per kind, in MCQ → short → long order. MCQs have four options and an answer that starts with the letter; the others have a model answer or worked solution, which fills the answer key. `finish` drops MCQs without four non-empty options and empty questions; a paper with nothing usable fails and is refunded.
+  - **Prompt rules:** cover only the given topics, spread across them; no repeated facts; plausible distractors, no "all/none of the above"; never invent data; the teacher reviews.
+  - **Screen:** an "AI से पेपर बनाएँ" box (topics, counts, difficulty, language, cost from DN-053: 2 credits). The result fills the editor unsaved (title too, if empty). The free empty layout stays as "खाली पेपर ढाँचा बनाएँ (मुफ़्त)".
+  - **Question bank:** not yet. Generated questions live in the saved paper document only; adding them to `questions` (for reuse and de-duplication) is a follow-up.
+- **Reason:** Counts by kind match how teachers plan a paper, and fixed marks keep the total predictable before paying.
+- **Verified:**
+  - Shared 43 tests (defaults, 0 and >60 questions refused) and API 92 tests (normalization order and drops; a fixture run charges 2 and returns 4 MCQ + 2 short).
+  - Desktop typecheck, lint and build pass.
+  - End-to-end in Electron against Docker (fixture mode): the button stays disabled until subject and topics are filled; "कुल 7 प्रश्न · 15 अंक"; generating takes 2 credits; the editor and preview fill with 3 sections, MCQ options as "A) …", title and max marks 15, status "unsaved".
+- **Not verified:** a live Claude run.
+- **Revisit if:** institutes need other marks per kind or other question kinds (assertion–reason, match the following), or the question bank is built.
+
 ### DN-055 · Deck → interactive quiz: Claude reads the PDF, a fixed template builds the HTML
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 4 · `packages/shared/{src/deckQuiz.ts,src/branding.ts,templates/deck-quiz.html,scripts/gen-deck-quiz-template.mjs}`, `apps/api/src/ai/{deckQuiz.ts,definitions.ts,processor.ts,jobs.service.ts,runner.ts}`, `apps/api/src/files/storage.ts`, `apps/desktop/src/components/DeckQuiz.tsx`, `docs/prompts/deck-to-interactive-quiz.md`
