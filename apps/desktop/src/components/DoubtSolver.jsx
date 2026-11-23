@@ -1,216 +1,183 @@
 import React, { useState } from "react";
-import {
-  HelpCircle,
-  Sparkles,
-  Copy,
-  Check,
-  RefreshCw,
-  Zap,
-  AlertTriangle,
-  Lightbulb,
-  CheckCircle2,
-  FileQuestion,
-} from "lucide-react";
-import confetti from "canvas-confetti";
+import { Copy, Check, Zap, AlertTriangle, Lightbulb, CheckCircle2 } from "lucide-react";
+import { DocumentBar } from "./DocumentBar.tsx";
+import { Button, Field, Input, PageHeader, Textarea } from "./ui/index.ts";
+
+const lines = (value) =>
+  value
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
 
 export default function DoubtSolver({ activeInstitute }) {
-  const [doubtText, setDoubtText] = useState(
-    "एक रेलगाड़ी 180 किमी/घंटा की गति से चल रही है। 250 मीटर लम्बे प्लेटफॉर्म को पार करने में उसे 15 सेकंड का समय लगता है। रेलगाड़ी की लम्बाई ज्ञात कीजिए।"
-  );
-  const [subject, setSubject] = useState("Mathematics (Speed & Distance)");
-  const [isSolving, setIsSolving] = useState(false);
+  const [doubtText, setDoubtText] = useState("");
+  const [subject, setSubject] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [stepsText, setStepsText] = useState("");
+  const [shortcutTrick, setShortcutTrick] = useState("");
+  const [commonMistake, setCommonMistake] = useState("");
+  const [similarText, setSimilarText] = useState("");
   const [copied, setCopied] = useState(false);
+  const [docTitle, setDocTitle] = useState("");
 
-  const [solution, setSolution] = useState({
-    answer: "500 मीटर (500 Meters)",
-    steps: [
-      "Step 1 (चाल को m/s में बदलें): गति = 180 किमी/घंटा = 180 × (5/18) = 50 मीटर/सेकंड।",
-      "Step 2 (कुल तय दूरी): दूरी = चाल × समय = 50 × 15 = 750 मीटर।",
-      "Step 3 (रेलगाड़ी की लम्बाई): जब रेलगाड़ी किसी प्लेटफॉर्म को पार करती है, तो तय दूरी = (रेलगाड़ी की लम्बाई + प्लेटफॉर्म की लम्बाई)।",
-      "अतः, रेलगाड़ी की लम्बाई = कुल दूरी - प्लेटफॉर्म की लम्बाई = 750 - 250 = 500 मीटर।",
-    ],
-    shortcutTrick:
-      "🚀 10-Second Shortcut: चाल = 180 = 50 m/s. 15 सेकंड में दूरी = 50 × 15 = 750. बस 750 में से 250 घटा दें = 500 मीटर उत्तर!",
-    commonMistake:
-      "⚠️ आम गलती: छात्र प्रायः किमी/घंटा को m/s में बदलना भूल जाते हैं (5/18 से गुणा करना अनिवार्य है)।",
-    similarQuestions: [
-      "120 मीटर लम्बी ट्रेन 54 किमी/घंटा की गति से एक खंभे को कितने समय में पार करेगी? (उत्तर: 8 सेकंड)",
-      "300 मीटर लम्बी ट्रेन 200 मीटर लम्बे पुल को 25 सेकंड में पार करती है। ट्रेन की चाल किमी/घंटे में बताएं। (उत्तर: 72 किमी/घंटा)",
-    ],
-  });
+  const steps = lines(stepsText);
+  const similarQuestions = lines(similarText);
 
-  const handleSolve = () => {
-    setIsSolving(true);
-    setTimeout(() => {
-      setIsSolving(false);
-      confetti({ particleCount: 35, spread: 50, origin: { y: 0.7 } });
-    }, 700);
+  // What gets saved (shape: DoubtContentSchema in packages/shared/documents.ts).
+  const documentContent = {
+    question: doubtText,
+    subject,
+    answer,
+    steps,
+    ...(shortcutTrick.trim() && { shortcutTrick }),
+    ...(commonMistake.trim() && { commonMistake }),
+    similarQuestions,
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     let clean = `DOUBT SOLUTION - ${activeInstitute.name}\n\n`;
     clean += `प्रश्न: ${doubtText}\n\n`;
-    clean += `सही उत्तर: ${solution.answer}\n\n`;
-    clean += `हल (Step-by-Step):\n`;
-    solution.steps.forEach((s) => (clean += `${s}\n`));
-    clean += `\n${solution.shortcutTrick}\n\n${solution.commonMistake}\n`;
-
-    navigator.clipboard.writeText(clean);
+    clean += `सही उत्तर: ${answer}\n\n`;
+    if (steps.length) clean += `हल (Step-by-Step):\n${steps.join("\n")}\n`;
+    if (shortcutTrick.trim()) clean += `\nशॉर्टकट ट्रिक: ${shortcutTrick}\n`;
+    if (commonMistake.trim()) clean += `\nआम गलती: ${commonMistake}\n`;
+    if (similarQuestions.length) clean += `\nसमान अभ्यास प्रश्न:\n${similarQuestions.map((q) => `• ${q}`).join("\n")}\n`;
+    await navigator.clipboard.writeText(clean);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const reset = (content) => {
+    setDoubtText(content?.question ?? "");
+    setSubject(content?.subject ?? "");
+    setAnswer(content?.answer ?? "");
+    setStepsText((content?.steps ?? []).join("\n"));
+    setShortcutTrick(content?.shortcutTrick ?? "");
+    setCommonMistake(content?.commonMistake ?? "");
+    setSimilarText((content?.similarQuestions ?? []).join("\n"));
+  };
+
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-violet-50 text-violet-600 border border-violet-200">
-              <Lightbulb className="w-5 h-5" />
-            </span>
-            <h2 className="text-xl font-bold text-slate-900">
-              डाउट सॉल्वर & शॉर्टकट ट्रिक असिस्टेंट
-            </h2>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 border border-violet-200">
-              Instant Explainer
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            किसी भी छात्र के डाउट का चरणबद्ध हिंदी हल, 10-सेकंड की शॉर्टकट ट्रिक एवं समान प्रश्न प्राप्त करें।
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleCopy}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md transition transform active:scale-95"
+      <PageHeader
+        icon={<Lightbulb className="size-6" />}
+        title="डाउट सॉल्वर & शॉर्टकट ट्रिक"
+        badge="WhatsApp Ready"
+        description="छात्र के डाउट का चरणबद्ध हल, शॉर्टकट ट्रिक और समान प्रश्न लिखें, व्हाट्सएप के लिए कॉपी करें, सेव करें और बाद में फिर से खोलें।"
+        actions={
+          <Button
+            variant="primary"
+            icon={copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            onClick={() => void handleCopy()}
           >
-            {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-            <span>{copied ? "व्हाट्सएप के लिए कॉपी हो गया!" : "हल कॉपी करें (WhatsApp)"}</span>
-          </button>
-        </div>
-      </div>
+            {copied ? "व्हाट्सएप के लिए कॉपी हो गया!" : "हल कॉपी करें (WhatsApp)"}
+          </Button>
+        }
+      />
+
+      <DocumentBar
+        type="doubt"
+        title={docTitle}
+        onTitleChange={setDocTitle}
+        content={documentContent}
+        onOpen={(content) => reset(content)}
+        onNew={() => {
+          reset(null);
+          setDocTitle("");
+        }}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Input */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              छात्र का प्रश्न / डाउट दर्ज करें
-            </h3>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">
-                संदेह या प्रश्न का विवरण
-              </label>
-              <textarea
-                rows={5}
-                value={doubtText}
-                onChange={(e) => setDoubtText(e.target.value)}
-                placeholder="प्रश्न यहां पेस्ट करें (हिंदी या इंग्लिश)..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-violet-500 focus:bg-white leading-relaxed transition"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">
-                विषय (Subject)
-              </label>
-              <input
-                type="text"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-violet-500 focus:bg-white transition"
-              />
-            </div>
-
-            <button
-              onClick={handleSolve}
-              disabled={isSolving}
-              className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 transition disabled:opacity-50 transform active:scale-98"
-            >
-              {isSolving ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>शॉर्टकट ट्रिक खोजी जा रही है...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>हल निकालें & शॉर्टकट ट्रिक बनाएं</span>
-                </>
-              )}
-            </button>
+          <div className="space-y-4 rounded-card border border-line bg-surface p-4 text-ink">
+            <h3 className="text-label font-semibold">छात्र का प्रश्न और हल</h3>
+            <p className="text-caption text-muted">अभी हल खुद लिखें। AI से हल अगले चरण में आएगा।</p>
+            <Field label="छात्र का प्रश्न / डाउट">
+              <Textarea rows={4} value={doubtText} onChange={(e) => setDoubtText(e.target.value)} placeholder="प्रश्न यहाँ लिखें या पेस्ट करें" />
+            </Field>
+            <Field label="विषय">
+              <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="उदा. गणित (चाल और दूरी)" />
+            </Field>
+            <Field label="सही उत्तर">
+              <Input value={answer} onChange={(e) => setAnswer(e.target.value)} />
+            </Field>
+            <Field label="चरणबद्ध हल" hint="हर लाइन एक चरण">
+              <Textarea rows={5} value={stepsText} onChange={(e) => setStepsText(e.target.value)} />
+            </Field>
+            <Field label="शॉर्टकट ट्रिक (वैकल्पिक)">
+              <Textarea rows={2} value={shortcutTrick} onChange={(e) => setShortcutTrick(e.target.value)} />
+            </Field>
+            <Field label="आम गलती (वैकल्पिक)">
+              <Textarea rows={2} value={commonMistake} onChange={(e) => setCommonMistake(e.target.value)} />
+            </Field>
+            <Field label="समान अभ्यास प्रश्न (वैकल्पिक)" hint="हर लाइन एक प्रश्न">
+              <Textarea rows={3} value={similarText} onChange={(e) => setSimilarText(e.target.value)} />
+            </Field>
           </div>
         </div>
 
         {/* Output Solution */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
-            {/* Final Answer Banner */}
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+          <div className="space-y-4 rounded-card border border-line bg-surface p-6 text-ink">
+            <div className="space-y-1">
+              {subject && <span className="text-caption font-semibold text-muted">{subject}</span>}
+              <p className="text-body font-semibold whitespace-pre-wrap">{doubtText || "छात्र का प्रश्न यहाँ दिखेगा।"}</p>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-card border border-success bg-success-subtle p-4">
               <div>
-                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-                  Correct Final Answer
-                </span>
-                <h3 className="text-base font-bold text-white mt-0.5">
-                  {solution.answer}
-                </h3>
+                <span className="text-caption font-semibold text-success">सही उत्तर</span>
+                <p className="mt-1 text-title font-bold">{answer || "—"}</p>
               </div>
-              <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+              <CheckCircle2 className="size-6 text-success" aria-hidden="true" />
             </div>
 
-            {/* Step-by-Step Breakdown */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                विस्तृत चरणबद्ध हल (Step-by-Step Solution)
-              </h4>
+            {steps.length > 0 && (
               <div className="space-y-2">
-                {solution.steps.map((st, i) => (
-                  <div
-                    key={i}
-                    className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-xs text-slate-200 leading-relaxed"
-                  >
-                    {st}
-                  </div>
-                ))}
+                <h3 className="text-label font-semibold">चरणबद्ध हल</h3>
+                <ol className="space-y-2">
+                  {steps.map((st, i) => (
+                    <li key={i} className="rounded-control border border-line p-3 text-label">
+                      {st}
+                    </li>
+                  ))}
+                </ol>
               </div>
-            </div>
+            )}
 
-            {/* 10-Second Shortcut Trick */}
-            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 space-y-1">
-              <div className="font-bold text-amber-300 flex items-center gap-1.5 text-xs">
-                <Zap className="w-4 h-4 text-amber-400" />
-                <span>फैकल्टी स्पेशल शॉर्टकट ट्रिक (Exam Time Saver):</span>
+            {shortcutTrick.trim() && (
+              <div className="space-y-1 rounded-card border border-line bg-accent-subtle p-4 text-label">
+                <div className="flex items-center gap-2 font-semibold">
+                  <Zap className="size-4" aria-hidden="true" />
+                  शॉर्टकट ट्रिक
+                </div>
+                <p className="whitespace-pre-wrap">{shortcutTrick}</p>
               </div>
-              <p className="leading-relaxed pl-5 font-mono text-[11px]">
-                {solution.shortcutTrick}
-              </p>
-            </div>
+            )}
 
-            {/* Common Mistakes */}
-            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-200 flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <span>{solution.commonMistake}</span>
-            </div>
-
-            {/* Similar Practice Questions */}
-            <div className="space-y-2 pt-2 border-t border-slate-800">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                समान अभ्यास प्रश्न (Similar Practice Questions for Students)
-              </h4>
-              <div className="space-y-2">
-                {solution.similarQuestions.map((sq, i) => (
-                  <div
-                    key={i}
-                    className="p-2.5 rounded-lg bg-slate-950 text-xs text-slate-300 border border-slate-800"
-                  >
-                    • {sq}
-                  </div>
-                ))}
+            {commonMistake.trim() && (
+              <div className="flex items-start gap-2 rounded-card border border-danger bg-danger-subtle p-4 text-label">
+                <AlertTriangle className="mt-1 size-4 shrink-0 text-danger" aria-hidden="true" />
+                <div>
+                  <span className="font-semibold">आम गलती: </span>
+                  <span className="whitespace-pre-wrap">{commonMistake}</span>
+                </div>
               </div>
-            </div>
+            )}
+
+            {similarQuestions.length > 0 && (
+              <div className="space-y-2 border-t border-line pt-3">
+                <h3 className="text-label font-semibold">समान अभ्यास प्रश्न</h3>
+                <ul className="space-y-2">
+                  {similarQuestions.map((sq, i) => (
+                    <li key={i} className="rounded-control border border-line p-2 text-label">
+                      • {sq}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>
