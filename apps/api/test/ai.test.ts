@@ -1,7 +1,7 @@
 import { after, before, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { AiJobSchema, DeckQuizSchema, PaperGenerateOutputSchema, IMPLEMENTED_AI_JOBS, PptOutlineOutputSchema, buildDeckQuizHtml } from "@edusuite/shared";
+import { AiJobSchema, DeckQuizSchema, McqExtractResultSchema, PaperGenerateOutputSchema, IMPLEMENTED_AI_JOBS, PptOutlineOutputSchema, buildDeckQuizHtml } from "@edusuite/shared";
 import { STORAGE } from "../src/files/storage";
 import { FakeStorage, PNG_BYTES } from "./helpers/fakeStorage";
 import type { JobContext, JobDefinition } from "../src/ai/definitions";
@@ -290,5 +290,58 @@ describe("AI jobs API (real Postgres)", { skip }, () => {
     assert.equal(await p.process(job2.id, { attemptsMade: 0, maxAttempts: 3 }), "failed");
     assert.equal((await t.db.aiJob.findUniqueOrThrow({ where: { id: job2.id } })).errorCode, "AI_INPUT_FILE_INVALID");
     assert.equal(await balance(t.fx.instA.id), before, "refunded");
+  });
+
+  const JPEG = (size = 128) => {
+    const b = new Uint8Array(size);
+    b.set([0xff, 0xd8, 0xff, 0xe0]);
+    return b;
+  };
+  const shots = (fileIds: string[]) => ({ type: "mcq_extract", input: { fileIds, subject: "इतिहास" } });
+
+  test("mcq_extract refuses non-images and other institutes' files before charging", async () => {
+    const before = await balance(t.fx.instA.id);
+    const good = await upload(teacher, "image/png", PNG_BYTES(64));
+    const pdf = await upload(teacher, "application/pdf", PDF());
+    const foreign = await upload(otherAdmin, "image/png", PNG_BYTES(64));
+    for (const bad of [pdf, foreign, randomUUID()]) {
+      const res = await start(teacher, randomUUID(), shots([good, bad]));
+      assert.equal(res.json().code, "AI_INPUT_FILE_INVALID", bad);
+    }
+    assert.equal(await balance(t.fx.instA.id), before);
+    assert.equal((await start(counselor, randomUUID(), shots([good]))).statusCode, 403);
+  });
+
+  test("mcq_extract charges per screenshot and returns one item per file, in order", async () => {
+    const ids = [await upload(teacher, "image/png", PNG_BYTES(64)), await upload(teacher, "image/jpeg", JPEG()), await upload(teacher, "image/png", PNG_BYTES(80))];
+    const before = await balance(t.fx.instA.id);
+    const job = AiJobSchema.parse((await start(teacher, randomUUID(), shots(ids))).json());
+    assert.equal(job.creditsCharged, 3);
+    assert.equal(await balance(t.fx.instA.id), before - 3);
+    assert.equal(await processor.process(job.id, { attemptsMade: 0, maxAttempts: 3 }), "succeeded");
+    const result = McqExtractResultSchema.parse(AiJobSchema.parse((await t.call("GET", `/api/v1/ai/jobs/${job.id}`, teacher)).json()).result);
+    assert.deepEqual(result.items.map((i) => i.fileId), ids);
+    assert.deepEqual(result.items.map((i) => i.answerFromImage), [true, false, true]);
+  });
+
+  test("mcq_extract sends each image with its type; a screenshot Claude skips comes back as not found", async () => {
+    const png = PNG_BYTES(70);
+    const jpg = JPEG(90);
+    const ids = [await upload(teacher, "image/png", png), await upload(teacher, "image/jpeg", jpg)];
+    let sent: Array<{ type: string; text?: string; source?: { media_type: string; data: string } }> = [];
+    const peek = { mode: "live", run: async (def: JobDefinition<never, unknown>, input: never, ctx: JobContext) => {
+      sent = (await def.user(input, ctx)) as typeof sent;
+      const out = def.fixture(input, ctx) as { items: unknown[] };
+      return { output: { items: out.items.slice(0, 1) }, fixture: false, usage: [] };
+    } } as unknown as AiRunner;
+    const p = new AiProcessor(t.app.get(PrismaService), t.app.get(CreditsService), peek, storage);
+    const job = AiJobSchema.parse((await start(teacher, randomUUID(), shots(ids))).json());
+    assert.equal(await p.process(job.id, { attemptsMade: 0, maxAttempts: 3 }), "succeeded");
+    assert.deepEqual(sent.map((b) => b.type), ["text", "image", "text", "image", "text"]);
+    assert.equal(sent[1]!.source!.media_type, "image/png");
+    assert.deepEqual(new Uint8Array(Buffer.from(sent[3]!.source!.data, "base64")), jpg);
+    assert.equal(sent[3]!.source!.media_type, "image/jpeg");
+    const result = McqExtractResultSchema.parse((await t.db.aiJob.findUniqueOrThrow({ where: { id: job.id } })).result);
+    assert.deepEqual(result.items.map((i) => i.found), [true, false]);
   });
 });

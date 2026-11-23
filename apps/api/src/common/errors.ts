@@ -67,8 +67,8 @@ export const ERROR_MESSAGES = {
     en: "This AI feature isn't available yet.",
   },
   AI_INPUT_FILE_INVALID: {
-    hi: "यह फ़ाइल उपयोग नहीं हो सकती। 20 MB तक की PDF चुनें और अपलोड पूरा होने दें।",
-    en: "This file can't be used. Choose a PDF of up to 20 MB and let the upload finish.",
+    hi: "यह फ़ाइल उपयोग नहीं हो सकती। सही प्रकार और आकार की फ़ाइल चुनें और अपलोड पूरा होने दें।",
+    en: "This file can't be used. Choose a file of the right type and size and let the upload finish.",
   },
 
   AUTH_INVALID: { hi: "ID या पासवर्ड गलत है।", en: "The ID or password is incorrect." },

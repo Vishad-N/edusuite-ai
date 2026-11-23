@@ -4,7 +4,7 @@ import { AiJobCreateSchema, IMPLEMENTED_AI_JOBS, PAPER_MAX_QUESTIONS, PptOutline
 import { AI_JOB_PERMISSIONS } from "./permissions.ts";
 
 test("implemented job types are known, permissioned job types", () => {
-  assert.deepEqual(IMPLEMENTED_AI_JOBS, ["ppt_outline", "paper_generate", "deck_quiz"]);
+  assert.deepEqual(IMPLEMENTED_AI_JOBS, ["ppt_outline", "paper_generate", "mcq_extract", "deck_quiz"]);
   for (const t of IMPLEMENTED_AI_JOBS) assert.ok(t in AI_JOB_PERMISSIONS, t);
 });
 
@@ -38,4 +38,13 @@ test("paper_generate input gets defaults and needs 1 to 60 questions", () => {
   assert.ok(bad({ mcqCount: 0, shortCount: 0, longCount: 0 }), "no questions");
   assert.ok(bad({ mcqCount: 50, shortCount: 30, longCount: 10 }), `more than ${PAPER_MAX_QUESTIONS}`);
   assert.ok(bad({ topics: "" }));
+});
+test("mcq_extract is priced per screenshot and takes 1 to 20 distinct files", () => {
+  const ids = Array.from({ length: 3 }, () => crypto.randomUUID());
+  const job = AiJobCreateSchema.parse({ type: "mcq_extract", input: { fileIds: ids } });
+  assert.equal(jobItemCount(job), 3);
+  const bad = (fileIds: string[]) => !AiJobCreateSchema.safeParse({ type: "mcq_extract", input: { fileIds } }).success;
+  assert.ok(bad([]));
+  assert.ok(bad([ids[0]!, ids[0]!]), "duplicates");
+  assert.ok(bad(Array.from({ length: 21 }, () => crypto.randomUUID())));
 });

@@ -43,7 +43,7 @@ export class AiProcessor {
 
     try {
       const result = await this.runner.run(def, input, this.context(job.instituteId, job.institute.name));
-      const output = def.finish ? def.finish(result.output as never) : result.output;
+      const output = def.finish ? def.finish(result.output as never, input) : result.output;
       await db.$transaction(async (tx) => {
         await tx.aiJob.update({
           where: { id: aiJobId },
@@ -92,10 +92,10 @@ export class AiProcessor {
     return {
       instituteId,
       instituteName,
-      readFile: async (fileId, mime) => {
-        const file = await this.prisma.db.file.findFirst({ where: { id: fileId, instituteId, mime, uploadedAt: { not: null } } });
+      readFile: async (fileId, mimes) => {
+        const file = await this.prisma.db.file.findFirst({ where: { id: fileId, instituteId, mime: { in: [...mimes] }, uploadedAt: { not: null } } });
         if (!file) throw new AiJobError("AI_INPUT_FILE_INVALID", false);
-        return this.storage.read(file.bucketKey);
+        return { bytes: await this.storage.read(file.bucketKey), mime: file.mime };
       },
     };
   }

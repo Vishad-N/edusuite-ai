@@ -2,14 +2,15 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { z } from "zod";
 import { deckQuiz } from "./deckQuiz";
 import { paperGenerate } from "./paperGenerate";
+import { mcqExtract } from "./mcqExtract";
 import { PptOutlineInputSchema, PptOutlineOutputSchema, type AiJobType, type PptOutlineInput, type PptOutlineOutput } from "@edusuite/shared";
 
 /** What a job's prompt may use besides its input: the signed-in institute (DN-052) and its files. */
 export type JobContext = {
   instituteId: string;
   instituteName: string;
-  /** Bytes of an uploaded, verified file of this institute (DN-040); throws AI_INPUT_FILE_INVALID otherwise. */
-  readFile: (fileId: string, mime: string) => Promise<Uint8Array>;
+  /** An uploaded, verified file of this institute with one of these types (DN-040); throws AI_INPUT_FILE_INVALID otherwise. */
+  readFile: (fileId: string, mimes: readonly string[]) => Promise<{ bytes: Uint8Array; mime: string }>;
 };
 
 /** Checks done before credits are taken (the user is told at once, not after a failed job). */
@@ -32,7 +33,7 @@ export type JobDefinition<I = unknown, O = unknown> = {
   /** Optional check of the input before the job is charged and queued; throws an ApiHttpException. */
   precheck?: (input: I, ctx: JobPrecheck) => Promise<void>;
   /** Optional last step on the validated output (e.g. dropping unusable items); returns the stored result. */
-  finish?: (output: O) => unknown;
+  finish?: (output: O, input: I) => unknown;
   /** How many progress steps the job reports. */
   steps: (input: I) => number;
   /** Fixture mode: a deterministic answer built from the input (used when no recording exists). */
@@ -95,5 +96,6 @@ export const pptOutline: JobDefinition<PptOutlineInput, PptOutlineOutput> = {
 export const JOB_DEFINITIONS: Partial<Record<AiJobType, JobDefinition<never, unknown>>> = {
   ppt_outline: pptOutline as unknown as JobDefinition<never, unknown>,
   paper_generate: paperGenerate as unknown as JobDefinition<never, unknown>,
+  mcq_extract: mcqExtract as unknown as JobDefinition<never, unknown>,
   deck_quiz: deckQuiz as unknown as JobDefinition<never, unknown>,
 };
