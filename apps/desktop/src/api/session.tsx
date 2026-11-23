@@ -58,7 +58,7 @@ function deviceId(): string {
 
 const language = () => {
   try {
-    return localStorage.getItem("satyadhi_lang") === "en" ? "en" : "hi";
+    return localStorage.getItem("edusuite_lang") === "en" ? "en" : "hi";
   } catch {
     return "hi";
   }

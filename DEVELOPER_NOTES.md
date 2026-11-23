@@ -18,6 +18,45 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-052 · Product is EduSuite AI; documents carry only the signed-in institute's own name; installer renamed
+- **Date:** 2026-11-23
+- **Phase / area:** Branding · `apps/desktop/{package.json,index.html,build/*,public/*}`, `src/utils/{branding.ts,academicSession.ts,motionHtmlGenerator.js,motionTemplate.js,pptxGenerator.js,mediaHelper.js}`, Header, LoginScreen, Sidebar, ScreenshotToPpt and the screens that used the logo
+- **Status:** Decided by developer (three choices, below)
+- **What was unclear:** Satyadhi Sharma Classes' name, Indore address, helpline and logo were built in as defaults, so any institute using the app would show or print another institute's details:
+  - PPT and motion-file exports, including ad slides with a fixed "MPTET Biology" title slide
+  - the MCQ preview, the sidebar footer and the header helpline
+  - the logo fallback on every screen, the login and header logo
+  - the window title, the installer name and the app icons
+
+  Whether the product itself is "EduSuite" or "Satyadhi Sharma Tech" was the developer's call.
+- **Options considered / Decision:** The developer chose:
+  - the **EduSuite** brand for the app itself
+  - an **initials badge** when an institute has no logo (logo upload is its own change)
+  - **renaming the installer now**
+
+  What changed:
+  - **App:** window title "EduSuite AI"; an EduSuite mark (amber "E" on navy, `branding.ts`) on the login screen and in the header; new icons rendered from that mark (`build/icon.png` 1024, `build/icon.ico` and `public/icon.ico` 16–256 as PNG-in-ICO, `public/logo.png`).
+  - **Installer:** `appId` `com.edusuite.desktop`, `productName` and shortcut "EduSuite AI", DMG title and author renamed. The Mac workflow artifact is now `EduSuite-AI-macOS-Installer`.
+  - **Effect of the rename:** the app's data folder changes, so existing installs start fresh: the saved sign-in, language and device id are gone, and users sign in again. The language key is now `edusuite_lang`.
+  - **Institute's own details:** the sidebar footer shows the institute's initials, name and current branch. The header helpline shows the institute's own phone (hidden if it has none). The header session ("सत्र 2026-27") is worked out from today's date, with the session starting in April (`academicSession.ts`).
+  - **Documents:** every screen uses `instituteLogo(activeInstitute)`: the institute's logo if it has one, otherwise a navy-and-amber badge with the first letter of its first two words (Devanagari conjuncts kept whole).
+    - PPT generator: footers and brand use only the institute's name and, for the MCQ deck, its city and phone.
+    - Motion template: title slide, header brand, finale line and art caption come from the set (title, subject, exam tag, faculty, question count) and the institute. All ad slides are removed (pre-roll, every 5 questions, outro); their images were never shipped.
+    - MCQ preview: footer and badge use the institute's own name, city and phone.
+  - **Safer motion export:** values are inserted with a function (so a `$&` in a title stays text) and escaped for both HTML and JS template literals (`& < > " ' \` $ \\`). Question JSON escapes `<`, so it can't close the script block. Tests cover both.
+  - **Removed:** the embedded logo (`src/assets/logoData.js`), its generator (`scripts/makeLogo.cjs`), the unused `src/assets/{logo,hero}.png`, `public/{favicon.png,favicon.svg,icons.svg}` (`favicon.png` was the old logo and shipped in every installer), and the unused brand strings in `translations.js`. The `createSuperAdmin` usage example uses demo names.
+  - **Kept on purpose:** the MCQ dark theme's id `satyadhi_dark` stays as an internal value, because saved MCQ sets store it; only its label changed. Planning documents (`docs/architecture/*`, `AGENT_README.md`, `master-build-prompt.md`) still say "EduSuite / Satyadhi Sharma Tech"; they are the developer's documents and were not edited. The plan's code-signing `publisherName` is a Phase 6 decision.
+- **Reason:** A multi-institute product can't print one institute's name, address and helpline on another's papers.
+- **Verified:**
+  - Unit tests: desktop 34 (initials, logo fallback, escaping, motion file with no Satyadhi text, no ad slides and no unfilled placeholders, real question count, academic session); API 69; shared 29.
+  - Electron security self-check still passes.
+  - End-to-end in the real Electron app against Docker:
+    - window title "EduSuite AI"; login screen shows only the EduSuite mark and no Satyadhi text
+    - as the demo institute: no banned text anywhere; sidebar footer "डेमो कोचिंग संस्थान | मेन ब्रांच"; header "सत्र 2026-27"; dashboard badge "डेको"; the notice circular is clean
+    - as the second seeded institute: its own name in the header and sidebar, with no banned text
+- **Affects:** the files above; anyone with an older build installed (fresh sign-in)
+- **Revisit if:** Logo upload is added (store the file id in `branding`, then `instituteLogo` uses it), or the product name changes again before Phase 6 signing.
+
 ### DN-051 · `GET /stats/dashboard`; Dashboard and TeacherDesk show real work; sample data removed
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 3 · `apps/api/src/stats`, `packages/shared/src/stats.ts`, `apps/desktop/src/components/{Dashboard.jsx,TeacherDesk.jsx,RecentDocuments.tsx,DocumentBar.tsx}`, `App.tsx`, `translations.js`

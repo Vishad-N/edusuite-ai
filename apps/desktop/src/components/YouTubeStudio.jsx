@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Video, Copy, Check, Sliders, FileText, Wand2 } from "lucide-react";
-import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { instituteLogo } from "../utils/branding.ts";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { Button, Field, Input, PageHeader, Textarea } from "./ui/index.ts";
 
@@ -155,7 +155,7 @@ export default function YouTubeStudio({ activeInstitute }) {
             <div className="flex items-center justify-between z-10">
               <div className="flex items-center gap-2.5">
                 <img
-                  src={activeInstitute?.logo || SATYADHI_LOGO}
+                  src={instituteLogo(activeInstitute)}
                   alt=""
                   className="w-10 h-10 rounded-full bg-amber-300 ring-2 ring-amber-400 shadow-lg object-contain"
                 />

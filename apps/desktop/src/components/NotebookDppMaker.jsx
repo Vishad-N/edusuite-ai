@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FileSpreadsheet, Printer, Plus, Trash2 } from "lucide-react";
-import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { instituteLogo } from "../utils/branding.ts";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 
@@ -154,7 +154,7 @@ export default function NotebookDppMaker({ activeInstitute }) {
           <div className="border-b-2 border-slate-900 pb-3 mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img
-                src={activeInstitute?.logo || SATYADHI_LOGO}
+                src={instituteLogo(activeInstitute)}
                 alt=""
                 className="w-11 h-11 rounded-full object-contain bg-amber-300 ring-2 ring-amber-400 shadow"
               />

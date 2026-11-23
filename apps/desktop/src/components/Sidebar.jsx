@@ -17,13 +17,14 @@ import {
   Users,
   Crown,
 } from "lucide-react";
+import { initialsOf } from "../utils/branding.ts";
 
 /**
  * Left navigation. Shows only the screens the user's role may open
  * (`allowedScreens` comes from packages/shared/permissions.ts, the same list
  * the API's permission guard uses).
  */
-export default function Sidebar({ activeTab, setActiveTab, t, allowedScreens }) {
+export default function Sidebar({ activeTab, setActiveTab, t, allowedScreens, instituteName, branchName }) {
   const allNavGroups = [
     {
       group: t.grpDashboard,
@@ -192,15 +193,15 @@ export default function Sidebar({ activeTab, setActiveTab, t, allowedScreens }) 
       {/* Bottom Profile / Institute Info */}
       <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2 shrink-0">
         <div className="flex items-center gap-2.5 px-2 py-1">
-          <div className="w-8 h-8 rounded-lg bg-amber-400 flex items-center justify-center text-slate-950 font-black text-xs shadow-sm">
-            SSC
+          <div className="w-8 h-8 shrink-0 rounded-lg bg-amber-400 flex items-center justify-center text-slate-950 font-black text-xs shadow-sm">
+            {initialsOf(instituteName)}
           </div>
           <div className="min-w-0 flex-1">
             <h4 className="text-xs font-bold text-slate-900 truncate">
-              {t.sidebarInstitute}
+              {instituteName}
             </h4>
             <p className="text-[10px] text-slate-500">
-              {t.sidebarSub}
+              {branchName}
             </p>
           </div>
         </div>

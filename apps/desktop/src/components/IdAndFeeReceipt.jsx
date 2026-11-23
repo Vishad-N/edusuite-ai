@@ -12,7 +12,7 @@ import {
   Building,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { instituteLogo } from "../utils/branding.ts";
 import { Button, PageHeader } from "./ui/index.ts";
 
 export default function IdAndFeeReceipt({ activeInstitute }) {
@@ -174,7 +174,7 @@ export default function IdAndFeeReceipt({ activeInstitute }) {
               <div className="bg-gradient-to-r from-amber-500 via-orange-600 to-amber-600 p-4 text-center text-slate-950 relative">
                 <div className="flex items-center justify-center gap-2">
                   <img
-                    src={activeInstitute?.logo || SATYADHI_LOGO}
+                    src={instituteLogo(activeInstitute)}
                     alt="Logo"
                     className="w-10 h-10 rounded-full object-contain bg-amber-300 shadow ring-2 ring-white"
                   />
@@ -238,7 +238,7 @@ export default function IdAndFeeReceipt({ activeInstitute }) {
               <div className="border-b-2 border-slate-900 pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <img
-                    src={activeInstitute?.logo || SATYADHI_LOGO}
+                    src={instituteLogo(activeInstitute)}
                     alt="Logo"
                     className="w-11 h-11 rounded-full object-contain bg-amber-300 ring-2 ring-amber-400 shadow"
                   />

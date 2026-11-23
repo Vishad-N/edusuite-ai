@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Satyadhi Sharma Classes & Tech - macOS 1-Click Desktop Launcher
+# EduSuite AI - macOS 1-Click Desktop Launcher
 # Works on all Apple Silicon (M1, M2, M3, M4) and Intel Macs
 # ==============================================================================
 
@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 
 echo ""
 echo "======================================================================="
-echo "   Satyadhi Sharma Classes & Tech — macOS Desktop Studio"
+echo "   EduSuite AI — macOS Desktop Studio"
 echo "======================================================================="
 echo ""
 
@@ -33,5 +33,5 @@ if [ ! -d "dist" ]; then
     npm run build
 fi
 
-echo "🚀 Starting Satyadhi Sharma Tech Desktop App on Mac..."
+echo "🚀 Starting EduSuite AI Desktop App on Mac..."
 npx electron .

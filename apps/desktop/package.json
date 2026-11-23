@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "All-in-One Desktop Studio for Schools & Coaching Institutes",
-  "author": "Satyadhi Sharma Tech",
+  "author": "EduSuite",
   "type": "module",
   "main": "electron/main.cjs",
   "engines": {
@@ -20,11 +20,11 @@
     "dist:nsis": "vite build && electron-builder --win nsis",
     "dist:mac": "vite build && electron-builder --mac dmg zip",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "tsc -p tsconfig.test.json && node --conditions=source --test \".test-dist/**/*.test.js\" \"electron/*.test.cjs\""
+    "test": "tsc -p tsconfig.test.json && node --conditions=source --test \".test-dist/**/*.test.js\" \"src/**/*.test.mjs\" \"electron/*.test.cjs\""
   },
   "build": {
-    "appId": "com.satyadhisharma.tech",
-    "productName": "Satyadhi Sharma Tech",
+    "appId": "com.edusuite.desktop",
+    "productName": "EduSuite AI",
     "directories": {
       "output": "release"
     },
@@ -50,7 +50,7 @@
       "identity": null
     },
     "dmg": {
-      "title": "Satyadhi Sharma Tech Installer",
+      "title": "EduSuite AI Installer",
       "contents": [
         {
           "x": 130,
@@ -69,7 +69,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Satyadhi Sharma Tech",
+      "shortcutName": "EduSuite AI",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerHeaderIcon": "build/icon.ico"

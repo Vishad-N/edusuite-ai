@@ -36,7 +36,7 @@ jobs:
       - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Satyadhi-Sharma-Tech-macOS-Installer
+          name: EduSuite-AI-macOS-Installer
           path: |
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip

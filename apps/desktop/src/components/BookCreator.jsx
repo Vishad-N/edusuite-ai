@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { BookMarked, Printer, Copy, Check, Sparkles, FileText, Sliders, Bookmark, Plus, Trash2 } from "lucide-react";
-import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { instituteLogo } from "../utils/branding.ts";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { Button, ConfirmDialog, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 
@@ -341,7 +341,7 @@ export default function BookCreator({ activeInstitute }) {
           <div className={pageClass("cover")}>
             <div className={`w-full aspect-[1/1.3] max-w-md mx-auto rounded-3xl p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden bg-gradient-to-br ${theme.gradient} text-white select-none`}>
               <div className="flex items-center gap-3 z-10 border-b border-white/20 pb-4">
-                <img src={activeInstitute?.logo || SATYADHI_LOGO} alt="" className="w-12 h-12 rounded-full object-contain bg-amber-300 shadow-lg" />
+                <img src={instituteLogo(activeInstitute)} alt="" className="w-12 h-12 rounded-full object-contain bg-amber-300 shadow-lg" />
                 <div>
                   <p className={`text-sm font-extrabold tracking-wider uppercase ${theme.accent}`}>{activeInstitute.name}</p>
                   {activeInstitute.city && <p className="text-[10px] text-slate-300">{activeInstitute.city}</p>}

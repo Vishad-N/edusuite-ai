@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FileQuestion, Printer, Copy, Check, Sparkles, Sliders, Plus, Trash2 } from "lucide-react";
-import { SATYADHI_LOGO } from "../utils/mediaHelper";
+import { instituteLogo } from "../utils/branding.ts";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 
@@ -216,7 +216,7 @@ export default function QuestionPaperMaker({ activeInstitute }) {
           <div className="text-center border-b-2 border-slate-900 pb-4 mb-5">
             <div className="flex items-center justify-center gap-3 mb-2">
               <img
-                src={activeInstitute?.logo || SATYADHI_LOGO}
+                src={instituteLogo(activeInstitute)}
                 alt=""
                 className="w-12 h-12 rounded-full object-contain bg-amber-300 ring-2 ring-amber-400 shadow"
               />
