@@ -31,3 +31,28 @@
 
 	reverse_proxy garage:3900
 }
+
+# Desktop update feed and download page (Phase 6, DN-062). The release workflow copies
+# the installer, blockmap and latest.yml into /srv/edusuite/updates/desktop on the VPS.
+{$UPDATES_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+
+	handle /desktop/* {
+		root * /srv/updates
+		# The feed must never be cached, or apps would miss a new version.
+		@feed path /desktop/latest.yml
+		header @feed Cache-Control "no-cache"
+		file_server
+	}
+
+	handle {
+		root * /srv/site
+		file_server
+	}
+}

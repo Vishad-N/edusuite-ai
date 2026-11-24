@@ -14,6 +14,7 @@ const { buildAppCsp, resolveApiOrigin } = require('./electron/security.cjs')
  */
 function contentSecurityPolicy() {
   let dev = false
+  const apiOrigin = () => resolveApiOrigin(process.env.EDUSUITE_API_URL, 'http://localhost:3000')
   return {
     name: 'edusuite-csp',
     configResolved(config) {
@@ -21,7 +22,7 @@ function contentSecurityPolicy() {
     },
     transformIndexHtml(html) {
       const csp = buildAppCsp({
-        apiOrigin: resolveApiOrigin(process.env.EDUSUITE_API_URL, 'http://localhost:3000'),
+        apiOrigin: apiOrigin(),
         // Presigned uploads go straight to storage, and images load from it (DN-040).
         fileOrigins: [resolveApiOrigin(process.env.EDUSUITE_FILES_URL, 'http://localhost:3900')],
         dev,
@@ -31,6 +32,11 @@ function contentSecurityPolicy() {
         '<meta charset="UTF-8" />',
         `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${csp}" />`,
       )
+    },
+    // The main process reads the same API address from here, so a packaged app
+    // can only talk to the server it was built for (DN-062).
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'app-config.json', source: JSON.stringify({ apiOrigin: apiOrigin() }) })
     },
   }
 }

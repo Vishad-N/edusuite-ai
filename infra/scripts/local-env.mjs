@@ -21,6 +21,7 @@ const values = {
   GARAGE_ADMIN_TOKEN: hex(32),
   S3_ACCESS_KEY_ID: `GK${hex(12)}`,
   S3_SECRET_ACCESS_KEY: hex(32),
+  RESTIC_PASSWORD: hex(32),
 };
 
 let text = readFileSync(join(infra, ".env.example"), "utf8");

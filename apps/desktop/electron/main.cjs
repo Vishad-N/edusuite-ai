@@ -12,12 +12,22 @@ const {
   resolveApiOrigin,
 } = require("./security.cjs");
 const { createTokenVault } = require("./tokenVault.cjs");
+const { createUpdater } = require("./updates.cjs");
 
 const DIST_INDEX = path.join(__dirname, "../dist/index.html");
 // Development only: load Vite's dev server instead of the built files.
 const DEV_SERVER_URL = !app.isPackaged ? process.env.ELECTRON_DEV_SERVER_URL : undefined;
-// Phase 6 replaces this default with the production API address at build time.
-const API_ORIGIN = resolveApiOrigin(process.env.EDUSUITE_API_URL, "http://localhost:3000");
+// The API address is fixed at build time (dist/app-config.json, written by vite.config.js from
+// EDUSUITE_API_URL; DN-062). An env override is honoured only when not packaged.
+const API_ORIGIN = resolveApiOrigin((!app.isPackaged && process.env.EDUSUITE_API_URL) || readBuildConfig().apiOrigin, "http://localhost:3000");
+
+function readBuildConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, "../dist/app-config.json"), "utf8"));
+  } catch {
+    return {};
+  }
+}
 
 // The motion player gets its own origin (DN-036). Registered before app is ready.
 protocol.registerSchemesAsPrivileged([
@@ -32,6 +42,8 @@ if (!app.requestSingleInstanceLock()) {
 /** @type {BrowserWindow | null} */
 let mainWindow = null;
 const motionDocs = new Map();
+/** @type {ReturnType<typeof createUpdater> | null} */
+let updater = null;
 
 function appUrl() {
   return DEV_SERVER_URL ?? `file://${DIST_INDEX.replace(/\\/g, "/")}`;
@@ -96,8 +108,8 @@ function registerIpc() {
 
   handle("app:version", () => app.getVersion());
   handle("app:config", () => ({ apiBaseUrl: `${API_ORIGIN}/api/v1`, platform: process.platform }));
-  // Phase 6 wires electron-updater; until then there is nothing to report.
-  handle("update:status", () => ({ state: "not-configured" }));
+  handle("update:status", () => (updater ? updater.status() : { state: "not-configured" }));
+  handle("update:install", () => (updater ? updater.install() : false));
 
   handle("auth:getToken", () => vault.get());
   handle("auth:setToken", (_e, token) => vault.set(token));
@@ -225,6 +237,7 @@ app.whenReady().then(() => {
   hardenSession();
   registerIpc();
   createWindow();
+  startUpdates();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -233,3 +246,22 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+
+/** Auto-update only in the installed app (DN-062); never in development or smoke runs. */
+function startUpdates() {
+  const enabled = app.isPackaged && process.env.EDUSUITE_SMOKE !== "1" && (process.platform === "win32" || process.platform === "darwin");
+  let autoUpdater = null;
+  if (enabled) {
+    try {
+      ({ autoUpdater } = require("electron-updater"));
+    } catch (err) {
+      console.warn("electron-updater unavailable", err);
+    }
+  }
+  updater = createUpdater({
+    autoUpdater,
+    enabled: enabled && autoUpdater !== null,
+    onChange: (status) => mainWindow?.webContents.send("update:changed", status),
+  });
+  updater.start();
+}

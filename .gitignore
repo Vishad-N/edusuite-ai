@@ -34,3 +34,5 @@ apps/api/src/generated
 
 # Desktop component test build output
 .test-dist
+release-test
+/updates
