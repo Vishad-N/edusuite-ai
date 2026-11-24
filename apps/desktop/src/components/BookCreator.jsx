@@ -5,12 +5,13 @@ import { BookChapterOutputSchema } from "@edusuite/shared";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { AiGenerate } from "./AiGenerate.tsx";
 import { Button, ConfirmDialog, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
+import { tx } from "../i18n/index.ts";
 
-const COVER_THEMES = [
-  { id: "amber", label: "गोल्डन फ्लेम", swatch: "bg-amber-400", gradient: "from-slate-950 via-slate-900 to-amber-900", accent: "text-amber-300" },
-  { id: "navy", label: "रॉयल नेवी", swatch: "bg-blue-600", gradient: "from-slate-950 via-blue-950 to-indigo-900", accent: "text-sky-300" },
-  { id: "emerald", label: "फॉरेस्ट ग्रीन", swatch: "bg-emerald-600", gradient: "from-slate-950 via-emerald-950 to-teal-900", accent: "text-emerald-300" },
-];
+const COVER_THEMES = () => ([
+  { id: "amber", label: tx("गोल्डन फ्लेम"), swatch: "bg-amber-400", gradient: "from-slate-950 via-slate-900 to-amber-900", accent: "text-amber-300" },
+  { id: "navy", label: tx("रॉयल नेवी"), swatch: "bg-blue-600", gradient: "from-slate-950 via-blue-950 to-indigo-900", accent: "text-sky-300" },
+  { id: "emerald", label: tx("फॉरेस्ट ग्रीन"), swatch: "bg-emerald-600", gradient: "from-slate-950 via-emerald-950 to-teal-900", accent: "text-emerald-300" },
+]);
 const CHAPTER_COUNTS = [3, 5, 8];
 
 const lines = (value) =>
@@ -26,7 +27,7 @@ const paragraphs = (value) =>
     .filter(Boolean);
 
 const blankQuestion = () => ({ q: "", optionsText: "", ans: "" });
-const blankChapter = (n) => ({ title: `अध्याय ${n}`, subtitle: "", theoryText: "", highlightsText: "", practice: [] });
+const blankChapter = (n) => ({ title: tx("अध्याय {0}", [n]), subtitle: "", theoryText: "", highlightsText: "", practice: [] });
 const chapterHasContent = (ch) =>
   ch.subtitle.trim() || ch.theoryText.trim() || ch.highlightsText.trim() || ch.practice.some((p) => p.q.trim() || p.ans.trim());
 
@@ -66,7 +67,7 @@ export default function BookCreator({ activeInstitute }) {
     })),
   };
   const totalQuestions = book.chapters.reduce((n, ch) => n + ch.practiceQuestions.length, 0);
-  const theme = COVER_THEMES.find((t) => t.id === coverTheme) ?? COVER_THEMES[0];
+  const theme = COVER_THEMES().find((t) => t.id === coverTheme) ?? COVER_THEMES()[0];
 
   const load = (content) => {
     setTitle(content?.title ?? "");
@@ -75,7 +76,7 @@ export default function BookCreator({ activeInstitute }) {
     setSubject(content?.subject ?? "");
     setAuthor(content?.author ?? "");
     setEdition(content?.edition ?? "");
-    setCoverTheme(COVER_THEMES.some((t) => t.id === content?.coverColor) ? content.coverColor : "amber");
+    setCoverTheme(COVER_THEMES().some((t) => t.id === content?.coverColor) ? content.coverColor : "amber");
     const loaded = (content?.chapters ?? []).map((ch) => ({
       title: ch.title,
       subtitle: ch.subtitle ?? "",
@@ -103,7 +104,7 @@ export default function BookCreator({ activeInstitute }) {
     if (book.subtitle) clean += `SUBTITLE: ${book.subtitle}\n`;
     clean += `TARGET EXAM: ${book.targetExam} | EDITION: ${book.edition}\n`;
     clean += `AUTHOR: ${book.author}\n\n`;
-    clean += `TABLE OF CONTENTS (अनुक्रमणिका):\n`;
+    clean += tx("TABLE OF CONTENTS (अनुक्रमणिका):\n");
     book.chapters.forEach((ch) => (clean += `Chapter ${ch.number}: ${ch.title}\n`));
     clean += `\n`;
     book.chapters.forEach((ch) => {
@@ -153,16 +154,16 @@ export default function BookCreator({ activeInstitute }) {
     <div className="space-y-6">
       <PageHeader
         icon={<BookMarked className="size-6" />}
-        title="स्टडी बुक & मॉड्यूल स्टूडियो"
-        badge="किताब / मॉड्यूल मेकर"
-        description="संस्थान की स्टडी बुक: कवर, विषय-सूची, अध्याय की थ्योरी, परीक्षा बिंदु और अभ्यास प्रश्न लिखें, सेव करें और पूरी किताब प्रिंट करें।"
+        title={tx("स्टडी बुक & मॉड्यूल स्टूडियो")}
+        badge={tx("किताब / मॉड्यूल मेकर")}
+        description={tx("संस्थान की स्टडी बुक: कवर, विषय-सूची, अध्याय की थ्योरी, परीक्षा बिंदु और अभ्यास प्रश्न लिखें, सेव करें और पूरी किताब प्रिंट करें।")}
         actions={
           <>
             <Button icon={copiedText ? <Check className="size-4" /> : <Copy className="size-4" />} onClick={() => void handleCopyManuscript()}>
-              {copiedText ? "कॉपी हो गया!" : "वर्ड के लिए कॉपी करें"}
+              {copiedText ? tx("कॉपी हो गया!") : tx("वर्ड के लिए कॉपी करें")}
             </Button>
             <Button variant="primary" icon={<Printer className="size-4" />} onClick={() => window.print()}>
-              पूरी किताब प्रिंट करें (PDF)
+              {tx("पूरी किताब प्रिंट करें (PDF)")}
             </Button>
           </>
         }
@@ -187,32 +188,32 @@ export default function BookCreator({ activeInstitute }) {
           <div className="space-y-4 rounded-card border border-line bg-surface p-4 text-ink">
             <h3 className="flex items-center gap-2 text-label font-semibold">
               <Sliders className="size-4" aria-hidden="true" />
-              किताब की जानकारी
+              {tx("किताब की जानकारी")}
             </h3>
-            <Field label="किताब का नाम">
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="उदा. मध्य प्रदेश सामान्य ज्ञान" />
+            <Field label={tx("किताब का नाम")}>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={tx("उदा. मध्य प्रदेश सामान्य ज्ञान")} />
             </Field>
-            <Field label="उप-शीर्षक (वैकल्पिक)">
+            <Field label={tx("उप-शीर्षक (वैकल्पिक)")}>
               <Input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="लक्षित परीक्षा">
-                <Input value={targetExam} onChange={(e) => setTargetExam(e.target.value)} placeholder="उदा. MPPSC, Vyapam" />
+              <Field label={tx("लक्षित परीक्षा")}>
+                <Input value={targetExam} onChange={(e) => setTargetExam(e.target.value)} placeholder={tx("उदा. MPPSC, Vyapam")} />
               </Field>
-              <Field label="विषय">
+              <Field label={tx("विषय")}>
                 <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
               </Field>
-              <Field label="लेखक / फैकल्टी">
+              <Field label={tx("लेखक / फैकल्टी")}>
                 <Input value={author} onChange={(e) => setAuthor(e.target.value)} />
               </Field>
-              <Field label="संस्करण">
-                <Input value={edition} onChange={(e) => setEdition(e.target.value)} placeholder="उदा. 2026-27" />
+              <Field label={tx("संस्करण")}>
+                <Input value={edition} onChange={(e) => setEdition(e.target.value)} placeholder={tx("उदा. 2026-27")} />
               </Field>
             </div>
-            <div role="group" aria-label="कवर डिज़ाइन थीम" className="space-y-2 border-t border-line pt-3">
-              <p className="text-label font-semibold">कवर डिज़ाइन थीम</p>
+            <div role="group" aria-label={tx("कवर डिज़ाइन थीम")} className="space-y-2 border-t border-line pt-3">
+              <p className="text-label font-semibold">{tx("कवर डिज़ाइन थीम")}</p>
               <div className="grid grid-cols-3 gap-2">
-                {COVER_THEMES.map((th) => (
+                {COVER_THEMES().map((th) => (
                   <Button key={th.id} size="sm" variant={coverTheme === th.id ? "primary" : "secondary"} aria-pressed={coverTheme === th.id} onClick={() => setCoverTheme(th.id)}>
                     <span className={`size-3 rounded-full ${th.swatch}`} aria-hidden="true"></span>
                     {th.label}
@@ -221,25 +222,25 @@ export default function BookCreator({ activeInstitute }) {
               </div>
             </div>
             <div className="flex flex-wrap items-end gap-3 border-t border-line pt-3">
-              <Field label="कुल अध्याय" className="w-40">
+              <Field label={tx("कुल अध्याय")} className="w-40">
                 <Select value={chapterCount} onChange={(e) => setChapterCount(Number(e.target.value))}>
                   {CHAPTER_COUNTS.map((n) => (
                     <option key={n} value={n}>
-                      {n} अध्याय
+                      {n} {tx("अध्याय")}
                     </option>
                   ))}
                 </Select>
               </Field>
               <Button variant="primary" icon={<Sparkles className="size-4" />} onClick={() => (chapters.some(chapterHasContent) ? setConfirmOutline(true) : makeOutline())}>
-                अध्याय ढाँचा बनाएँ
+                {tx("अध्याय ढाँचा बनाएँ")}
               </Button>
             </div>
-            <p className="text-caption text-muted">यह खाली अध्याय बनाता है। हर अध्याय की सामग्री आप लिखें या नीचे AI से लिखवाएँ।</p>
+            <p className="text-caption text-muted">{tx("यह खाली अध्याय बनाता है। हर अध्याय की सामग्री आप लिखें या नीचे AI से लिखवाएँ।")}</p>
           </div>
 
           <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-label font-semibold">अध्याय लिखें</h3>
+              <h3 className="text-label font-semibold">{tx("अध्याय लिखें")}</h3>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -250,7 +251,7 @@ export default function BookCreator({ activeInstitute }) {
                     setEditIndex(chapters.length);
                   }}
                 >
-                  नया अध्याय
+                  {tx("नया अध्याय")}
                 </Button>
                 <Button
                   size="sm"
@@ -263,11 +264,11 @@ export default function BookCreator({ activeInstitute }) {
                     setActiveView("index");
                   }}
                 >
-                  अध्याय हटाएँ
+                  {tx("अध्याय हटाएँ")}
                 </Button>
               </div>
             </div>
-            <Field label="अध्याय चुनें">
+            <Field label={tx("अध्याय चुनें")}>
               <Select
                 value={editIndex}
                 onChange={(e) => {
@@ -278,30 +279,30 @@ export default function BookCreator({ activeInstitute }) {
               >
                 {chapters.map((ch, i) => (
                   <option key={i} value={i}>
-                    {i + 1}. {ch.title || "बिना नाम का अध्याय"}
+                    {i + 1}. {ch.title || tx("बिना नाम का अध्याय")}
                   </option>
                 ))}
               </Select>
             </Field>
-            <Field label="अध्याय का शीर्षक">
+            <Field label={tx("अध्याय का शीर्षक")}>
               <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
             </Field>
             <div className="space-y-3 rounded-control border border-line p-3">
-              <p className="text-label font-semibold">AI से यह अध्याय लिखवाएँ</p>
+              <p className="text-label font-semibold">{tx("AI से यह अध्याय लिखवाएँ")}</p>
               <div className="grid grid-cols-2 gap-2">
-                <Field label="अभ्यास MCQ">
+                <Field label={tx("अभ्यास MCQ")}>
                   <Input type="number" min={0} max={20} value={aiQuestions} onChange={(e) => setAiQuestions(Math.max(0, Math.min(20, Math.trunc(Number(e.target.value) || 0))))} />
                 </Field>
-                <Field label="भाषा">
+                <Field label={tx("भाषा")}>
                   <Select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)}>
-                    <option value="hi">हिन्दी</option>
+                    <option value="hi">{tx("हिन्दी")}</option>
                     <option value="en">English</option>
-                    <option value="both">हिन्दी + English शब्द</option>
+                    <option value="both">{tx("हिन्दी + English शब्द")}</option>
                   </Select>
                 </Field>
               </div>
               <AiGenerate
-                label={`AI से अध्याय ${editIndex + 1} लिखें`}
+                label={tx("AI से अध्याय {0} लिखें", [editIndex + 1])}
                 build={() =>
                   editing.title.trim().length >= 2
                     ? {
@@ -317,50 +318,50 @@ export default function BookCreator({ activeInstitute }) {
                       }
                     : null
                 }
-                confirmReplace={chapterHasContent(editing) ? { title: "अध्याय की सामग्री बदल जाएगी", message: `AI अध्याय ${editIndex + 1} की थ्योरी, परीक्षा बिंदु और अभ्यास प्रश्नों की जगह नई सामग्री लिखेगा।` } : null}
+                confirmReplace={chapterHasContent(editing) ? { title: tx("अध्याय की सामग्री बदल जाएगी"), message: tx("AI अध्याय {0} की थ्योरी, परीक्षा बिंदु और अभ्यास प्रश्नों की जगह नई सामग्री लिखेगा।", [editIndex + 1]) } : null}
                 onResult={fillChapterFromAi}
-                hint="अध्याय का शीर्षक साफ़ लिखें (जैसे “कोशिका की संरचना”)। AI पूरा होने तक दूसरा अध्याय न चुनें। छापने से पहले जाँच लें।"
+                hint={tx("अध्याय का शीर्षक साफ़ लिखें (जैसे “कोशिका की संरचना”)। AI पूरा होने तक दूसरा अध्याय न चुनें। छापने से पहले जाँच लें।")}
               />
             </div>
-            <Field label="अध्याय का उप-शीर्षक (वैकल्पिक)">
+            <Field label={tx("अध्याय का उप-शीर्षक (वैकल्पिक)")}>
               <Input value={editing.subtitle} onChange={(e) => setEditing({ ...editing, subtitle: e.target.value })} />
             </Field>
-            <Field label="थ्योरी" hint="पैराग्राफ़ के बीच एक खाली लाइन छोड़ें">
+            <Field label={tx("थ्योरी")} hint={tx("पैराग्राफ़ के बीच एक खाली लाइन छोड़ें")}>
               <Textarea rows={8} value={editing.theoryText} onChange={(e) => setEditing({ ...editing, theoryText: e.target.value })} />
             </Field>
-            <Field label="परीक्षा उपयोगी बिंदु" hint="हर लाइन एक बिंदु">
+            <Field label={tx("परीक्षा उपयोगी बिंदु")} hint={tx("हर लाइन एक बिंदु")}>
               <Textarea rows={3} value={editing.highlightsText} onChange={(e) => setEditing({ ...editing, highlightsText: e.target.value })} />
             </Field>
 
             <div className="space-y-3 border-t border-line pt-3">
-              <p className="text-label font-semibold">अभ्यास प्रश्न ({editing.practice.length})</p>
+              <p className="text-label font-semibold">{tx("अभ्यास प्रश्न (")}{editing.practice.length})</p>
               {editing.practice.map((p, qi) => (
                 <div key={qi} className="space-y-2 rounded-control border border-line p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-label font-semibold">प्रश्न {qi + 1}</span>
+                    <span className="text-label font-semibold">{tx("प्रश्न")} {qi + 1}</span>
                     <Button
                       size="sm"
                       variant="ghost"
                       icon={<Trash2 className="size-4" />}
-                      aria-label={`अभ्यास प्रश्न ${qi + 1} हटाएँ`}
+                      aria-label={tx("अभ्यास प्रश्न {0} हटाएँ", [qi + 1])}
                       onClick={() => setEditing({ ...editing, practice: editing.practice.filter((_, i) => i !== qi) })}
                     >
-                      हटाएँ
+                      {tx("हटाएँ")}
                     </Button>
                   </div>
-                  <Field label={`अभ्यास प्रश्न ${qi + 1} का पाठ`}>
+                  <Field label={tx("अभ्यास प्रश्न {0} का पाठ", [qi + 1])}>
                     <Textarea rows={2} value={p.q} onChange={(e) => setPractice(qi, { ...p, q: e.target.value })} />
                   </Field>
-                  <Field label="विकल्प" hint="हर लाइन एक विकल्प">
+                  <Field label={tx("विकल्प")} hint={tx("हर लाइन एक विकल्प")}>
                     <Textarea rows={4} value={p.optionsText} onChange={(e) => setPractice(qi, { ...p, optionsText: e.target.value })} />
                   </Field>
-                  <Field label="उत्तर / व्याख्या">
+                  <Field label={tx("उत्तर / व्याख्या")}>
                     <Input value={p.ans} onChange={(e) => setPractice(qi, { ...p, ans: e.target.value })} />
                   </Field>
                 </div>
               ))}
               <Button size="sm" icon={<Plus className="size-4" />} disabled={editing.practice.length >= 500} onClick={() => setEditing({ ...editing, practice: [...editing.practice, blankQuestion()] })}>
-                नया अभ्यास प्रश्न
+                {tx("नया अभ्यास प्रश्न")}
               </Button>
             </div>
           </div>
@@ -368,12 +369,12 @@ export default function BookCreator({ activeInstitute }) {
 
         {/* Right: Book Reader / Page Viewer */}
         <div className="lg:col-span-7 space-y-4">
-          <div role="group" aria-label="किताब के पेज" className="flex items-center gap-2 overflow-x-auto pb-2 no-print">
+          <div role="group" aria-label={tx("किताब के पेज")} className="flex items-center gap-2 overflow-x-auto pb-2 no-print">
             <Button size="sm" variant={activeView === "cover" ? "primary" : "secondary"} aria-pressed={activeView === "cover"} icon={<Bookmark className="size-4" />} onClick={() => setActiveView("cover")}>
-              कवर
+              {tx("कवर")}
             </Button>
             <Button size="sm" variant={activeView === "index" ? "primary" : "secondary"} aria-pressed={activeView === "index"} icon={<FileText className="size-4" />} onClick={() => setActiveView("index")}>
-              विषय-सूची
+              {tx("विषय-सूची")}
             </Button>
             {book.chapters.map((ch, idx) => (
               <Button
@@ -386,7 +387,7 @@ export default function BookCreator({ activeInstitute }) {
                   setEditIndex(idx);
                 }}
               >
-                अध्याय {ch.number}
+                {tx("अध्याय")} {ch.number}
               </Button>
             ))}
           </div>
@@ -404,21 +405,21 @@ export default function BookCreator({ activeInstitute }) {
 
               <div className="my-auto py-6 z-10 space-y-4 text-center">
                 {targetExam && <div className={`inline-block px-3 py-1 rounded-full border border-white/30 text-[11px] font-bold tracking-widest uppercase ${theme.accent}`}>{targetExam}</div>}
-                <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight uppercase leading-tight drop-shadow-md">{title || "किताब का नाम"}</h2>
+                <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight uppercase leading-tight drop-shadow-md">{title || tx("किताब का नाम")}</h2>
                 {subtitle && <p className="text-xs text-slate-200 max-w-xs mx-auto font-medium">{subtitle}</p>}
                 <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
-                  <span className="text-[11px] px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-600 text-slate-100">📖 {book.chapters.length} अध्याय</span>
-                  {totalQuestions > 0 && <span className="text-[11px] px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-600 text-slate-100">❓ {totalQuestions} अभ्यास प्रश्न</span>}
+                  <span className="text-[11px] px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-600 text-slate-100">📖 {book.chapters.length} {tx("अध्याय")}</span>
+                  {totalQuestions > 0 && <span className="text-[11px] px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-600 text-slate-100">❓ {totalQuestions} {tx("अभ्यास प्रश्न")}</span>}
                 </div>
               </div>
 
               <div className="pt-4 border-t border-white/20 flex items-center justify-between text-xs z-10">
                 <div>
-                  <p className="text-[10px] text-slate-300 uppercase">लेखक / फैकल्टी</p>
+                  <p className="text-[10px] text-slate-300 uppercase">{tx("लेखक / फैकल्टी")}</p>
                   <p className="font-semibold text-slate-100">{author || "—"}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] text-slate-300 uppercase">संस्करण</p>
+                  <p className="text-[10px] text-slate-300 uppercase">{tx("संस्करण")}</p>
                   <p className={`font-semibold ${theme.accent}`}>{edition || "—"}</p>
                 </div>
               </div>
@@ -430,7 +431,7 @@ export default function BookCreator({ activeInstitute }) {
             <div className="bg-white text-slate-900 rounded-2xl p-6 md:p-8 shadow-2xl border border-slate-200 min-h-[480px]">
               <div className="text-center border-b-2 border-slate-900 pb-4 mb-6">
                 <p className="text-sm font-bold uppercase tracking-wider text-slate-800">{activeInstitute.name}</p>
-                <h2 className="text-xl font-black uppercase text-slate-950">विषय-सूची</h2>
+                <h2 className="text-xl font-black uppercase text-slate-950">{tx("विषय-सूची")}</h2>
                 <p className="text-xs text-slate-600">{title}</p>
               </div>
               <ol className="space-y-3">
@@ -470,7 +471,7 @@ export default function BookCreator({ activeInstitute }) {
               <div className="bg-white text-slate-900 rounded-2xl p-6 md:p-10 shadow-2xl border border-slate-200 min-h-[500px] overflow-y-auto max-h-[700px] print:max-h-none print:overflow-visible select-text space-y-6">
                 <div className="border-b-2 border-slate-900 pb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">अध्याय {ch.number}</span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">{tx("अध्याय")} {ch.number}</span>
                     <span className="text-xs text-slate-500 font-medium">{title}</span>
                   </div>
                   <h2 className="text-xl md:text-2xl font-black text-slate-950">{ch.title}</h2>
@@ -486,7 +487,7 @@ export default function BookCreator({ activeInstitute }) {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500 no-print">इस अध्याय की थ्योरी अभी नहीं लिखी।</p>
+                  <p className="text-sm text-slate-500 no-print">{tx("इस अध्याय की थ्योरी अभी नहीं लिखी।")}</p>
                 )}
 
                 {ch.highlights.length > 0 && (
@@ -501,11 +502,11 @@ export default function BookCreator({ activeInstitute }) {
 
                 {ch.practiceQuestions.length > 0 && (
                   <div className="pt-4 border-t-2 border-slate-200 space-y-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 bg-slate-100 px-3 py-1.5 rounded">अध्याय अभ्यास प्रश्न</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 bg-slate-100 px-3 py-1.5 rounded">{tx("अध्याय अभ्यास प्रश्न")}</h3>
                     {ch.practiceQuestions.map((pq, qIdx) => (
                       <div key={qIdx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
                         <div className="font-bold text-slate-900 whitespace-pre-wrap">
-                          प्र. {qIdx + 1}: {pq.q}
+                          {tx("प्र.")} {qIdx + 1}: {pq.q}
                         </div>
                         {pq.options.length > 0 && (
                           <div className="grid grid-cols-2 gap-1.5 pl-2 text-slate-700">
@@ -516,7 +517,7 @@ export default function BookCreator({ activeInstitute }) {
                         )}
                         {pq.ans && (
                           <div className="pt-1.5 border-t border-slate-200 text-[11px] text-emerald-800 font-semibold">
-                            <span className="text-slate-600">उत्तर:</span> {pq.ans}
+                            <span className="text-slate-600">{tx("उत्तर:")}</span> {pq.ans}
                           </div>
                         )}
                       </div>
@@ -533,9 +534,9 @@ export default function BookCreator({ activeInstitute }) {
 
       <ConfirmDialog
         open={confirmOutline}
-        title="लिखे हुए अध्याय हट जाएँगे"
-        message={`नया ढाँचा ${chapterCount} खाली अध्याय बनाएगा और अभी लिखी सामग्री हटा देगा। आगे बढ़ें?`}
-        confirmLabel="हाँ, नया ढाँचा बनाएँ"
+        title={tx("लिखे हुए अध्याय हट जाएँगे")}
+        message={tx("नया ढाँचा {0} खाली अध्याय बनाएगा और अभी लिखी सामग्री हटा देगा। आगे बढ़ें?", [chapterCount])}
+        confirmLabel={tx("हाँ, नया ढाँचा बनाएँ")}
         tone="danger"
         onConfirm={makeOutline}
         onCancel={() => setConfirmOutline(false)}

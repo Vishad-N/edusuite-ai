@@ -5,6 +5,7 @@ import { NoticeDraftOutputSchema } from "@edusuite/shared";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { AiGenerate } from "./AiGenerate.tsx";
 import { Button, ConfirmDialog, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
+import { tx } from "../i18n/index.ts";
 
 /**
  * Starting points for common notices, filled with this institute's own name and phone.
@@ -12,25 +13,25 @@ import { Button, ConfirmDialog, Field, Input, PageHeader, Select, Textarea } fro
  */
 function templates(inst) {
   const name = inst.name;
-  const phone = inst.phone ? ` ${inst.phone}` : " [फ़ोन नंबर]";
+  const phone = inst.phone ? ` ${inst.phone}` : tx(" [फ़ोन नंबर]");
   return [
     {
-      category: "फीस रिमाइंडर",
-      title: "फीस जमा करने की सूचना",
-      whatsappText: `📢 *${name} – फीस रिमाइंडर*\n\nप्रिय विद्यार्थी / अभिभावक,\nचालू बैच की किस्त *[तारीख]* तक जमा करना अनिवार्य है।\n\n💳 भुगतान: [UPI / काउंटर]\nकिसी भी जानकारी के लिए संपर्क करें:${phone}\n\nधन्यवाद,\n*${name}*`,
-      formalText: `विषय: फीस जमा करने की समय-सीमा\n\nसभी विद्यार्थियों एवं अभिभावकों को सूचित किया जाता है कि चालू सत्र की बकाया फीस [तारीख] तक जमा करें।\n\nभुगतान के तरीके: [UPI / काउंटर]\nसंपर्क:${phone}`,
+      category: tx("फीस रिमाइंडर"),
+      title: tx("फीस जमा करने की सूचना"),
+      whatsappText: tx("📢 *{0} – फीस रिमाइंडर*\n\nप्रिय विद्यार्थी / अभिभावक,\nचालू बैच की किस्त *[तारीख]* तक जमा करना अनिवार्य है।\n\n💳 भुगतान: [UPI / काउंटर]\nकिसी भी जानकारी के लिए संपर्क करें:{1}\n\nधन्यवाद,\n*{2}*", [name, phone, name]),
+      formalText: tx("विषय: फीस जमा करने की समय-सीमा\n\nसभी विद्यार्थियों एवं अभिभावकों को सूचित किया जाता है कि चालू सत्र की बकाया फीस [तारीख] तक जमा करें।\n\nभुगतान के तरीके: [UPI / काउंटर]\nसंपर्क:{0}", [phone]),
     },
     {
-      category: "अभिभावक-शिक्षक बैठक",
-      title: "अभिभावक-शिक्षक बैठक की सूचना",
-      whatsappText: `🤝 *अभिभावक-शिक्षक बैठक*\n\nआदरणीय अभिभावक,\nआपके बच्चे की प्रगति पर चर्चा के लिए बैठक रखी गई है।\n\n🗓️ *तारीख:* [तारीख]\n⏰ *समय:* [समय]\n📍 *स्थान:* [स्थान]\n\n*${name}*`,
-      formalText: `विषय: अभिभावक-शिक्षक बैठक\n\nसभी अभिभावकों को सूचित किया जाता है कि [तारीख] को [समय] बजे [स्थान] पर अभिभावक-शिक्षक बैठक आयोजित की जाएगी। टेस्ट परिणाम और फैकल्टी की राय व्यक्तिगत रूप से साझा की जाएगी।\n\nसंपर्क:${phone}`,
+      category: tx("अभिभावक-शिक्षक बैठक"),
+      title: tx("अभिभावक-शिक्षक बैठक की सूचना"),
+      whatsappText: tx("🤝 *अभिभावक-शिक्षक बैठक*\n\nआदरणीय अभिभावक,\nआपके बच्चे की प्रगति पर चर्चा के लिए बैठक रखी गई है।\n\n🗓️ *तारीख:* [तारीख]\n⏰ *समय:* [समय]\n📍 *स्थान:* [स्थान]\n\n*{0}*", [name]),
+      formalText: tx("विषय: अभिभावक-शिक्षक बैठक\n\nसभी अभिभावकों को सूचित किया जाता है कि [तारीख] को [समय] बजे [स्थान] पर अभिभावक-शिक्षक बैठक आयोजित की जाएगी। टेस्ट परिणाम और फैकल्टी की राय व्यक्तिगत रूप से साझा की जाएगी।\n\nसंपर्क:{0}", [phone]),
     },
     {
-      category: "प्रवेश सूचना",
-      title: "नए बैच में प्रवेश प्रारंभ",
-      whatsappText: `🚀 *नए बैच शुरू*\n\n*${name}*\n\n📚 कोर्स: [कोर्स / परीक्षा]\n📅 बैच शुरू: [तारीख]\n📞 पूछताछ / डेमो क्लास:${phone}\n📍 पता: [पता]`,
-      formalText: `विषय: नए बैच में प्रवेश प्रारंभ\n\n[कोर्स / परीक्षा] के नए बैच [तारीख] से प्रारंभ हो रहे हैं। प्रवेश के लिए संस्थान के कार्यालय में संपर्क करें।\n\nसंपर्क:${phone}`,
+      category: tx("प्रवेश सूचना"),
+      title: tx("नए बैच में प्रवेश प्रारंभ"),
+      whatsappText: tx("🚀 *नए बैच शुरू*\n\n*{0}*\n\n📚 कोर्स: [कोर्स / परीक्षा]\n📅 बैच शुरू: [तारीख]\n📞 पूछताछ / डेमो क्लास:{1}\n📍 पता: [पता]", [name, phone]),
+      formalText: tx("विषय: नए बैच में प्रवेश प्रारंभ\n\n[कोर्स / परीक्षा] के नए बैच [तारीख] से प्रारंभ हो रहे हैं। प्रवेश के लिए संस्थान के कार्यालय में संपर्क करें।\n\nसंपर्क:{0}", [phone]),
     },
   ];
 }
@@ -87,13 +88,13 @@ export default function NoticeHub({ activeInstitute }) {
     <div className="space-y-6">
       <PageHeader
         icon={<MessageSquareShare className="size-6" />}
-        title="नोटिस & व्हाट्सएप सर्कुलर"
+        title={tx("नोटिस & व्हाट्सएप सर्कुलर")}
         badge="Parent Broadcast"
-        description="फीस रिमाइंडर, अभिभावक-शिक्षक बैठक, छुट्टी और परीक्षा की सूचनाएँ लिखें, व्हाट्सएप के लिए कॉपी या प्रिंट करें, सेव करें और बाद में फिर से खोलें।"
+        description={tx("फीस रिमाइंडर, अभिभावक-शिक्षक बैठक, छुट्टी और परीक्षा की सूचनाएँ लिखें, व्हाट्सएप के लिए कॉपी या प्रिंट करें, सेव करें और बाद में फिर से खोलें।")}
         actions={
           <>
             <Button icon={<Printer className="size-4" />} onClick={() => window.print()}>
-              प्रिंट करें
+              {tx("प्रिंट करें")}
             </Button>
             <Button
               variant="primary"
@@ -101,7 +102,7 @@ export default function NoticeHub({ activeInstitute }) {
               icon={copied ? <Check className="size-4" /> : <Copy className="size-4" />}
               onClick={() => void handleCopy()}
             >
-              {copied ? "कॉपी हो गया!" : mode === "whatsapp" ? "व्हाट्सएप के लिए कॉपी करें" : "सर्कुलर कॉपी करें"}
+              {copied ? tx("कॉपी हो गया!") : mode === "whatsapp" ? tx("व्हाट्सएप के लिए कॉपी करें") : tx("सर्कुलर कॉपी करें")}
             </Button>
           </>
         }
@@ -123,8 +124,8 @@ export default function NoticeHub({ activeInstitute }) {
         {/* Editor */}
         <div className="lg:col-span-5 space-y-4 no-print">
           <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
-            <h3 className="text-label font-semibold">तैयार ढाँचे से शुरू करें</h3>
-            <p className="text-caption text-muted">[ब्रैकेट] वाली जगह अपनी जानकारी भरें।</p>
+            <h3 className="text-label font-semibold">{tx("तैयार ढाँचे से शुरू करें")}</h3>
+            <p className="text-caption text-muted">{tx("[ब्रैकेट] वाली जगह अपनी जानकारी भरें।")}</p>
             <div className="flex flex-wrap gap-2">
               {templates(activeInstitute).map((t) => (
                 <Button key={t.category} size="sm" icon={<FileText className="size-4" />} onClick={() => (hasText ? setPendingTemplate(t) : applyTemplate(t))}>
@@ -135,19 +136,19 @@ export default function NoticeHub({ activeInstitute }) {
           </div>
 
           <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
-            <h3 className="text-label font-semibold">AI से सूचना लिखवाएँ</h3>
-            <Field label="सूचना में क्या कहना है" hint="तारीख, समय, राशि, किसके लिए; जो नहीं लिखेंगे वह [ब्रैकेट] में आएगा">
-              <Textarea rows={3} value={details} maxLength={2000} onChange={(e) => setDetails(e.target.value)} placeholder="उदा. 26 नवंबर को गुरु नानक जयंती पर सभी बैच की छुट्टी रहेगी" />
+            <h3 className="text-label font-semibold">{tx("AI से सूचना लिखवाएँ")}</h3>
+            <Field label={tx("सूचना में क्या कहना है")} hint={tx("तारीख, समय, राशि, किसके लिए; जो नहीं लिखेंगे वह [ब्रैकेट] में आएगा")}>
+              <Textarea rows={3} value={details} maxLength={2000} onChange={(e) => setDetails(e.target.value)} placeholder={tx("उदा. 26 नवंबर को गुरु नानक जयंती पर सभी बैच की छुट्टी रहेगी")} />
             </Field>
-            <Field label="भाषा">
+            <Field label={tx("भाषा")}>
               <Select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)}>
-                <option value="hi">हिन्दी</option>
+                <option value="hi">{tx("हिन्दी")}</option>
                 <option value="en">English</option>
-                <option value="both">हिन्दी + English</option>
+                <option value="both">{tx("हिन्दी + English")}</option>
               </Select>
             </Field>
             <AiGenerate
-              label="AI से सूचना बनाएँ"
+              label={tx("AI से सूचना बनाएँ")}
               build={() =>
                 details.trim().length >= 5
                   ? {
@@ -161,28 +162,28 @@ export default function NoticeHub({ activeInstitute }) {
                     }
                   : null
               }
-              confirmReplace={hasText ? { title: "लिखा संदेश बदल जाएगा", message: "AI का मसौदा अभी लिखे शीर्षक, व्हाट्सएप संदेश और सर्कुलर की जगह ले लेगा।" } : null}
+              confirmReplace={hasText ? { title: tx("लिखा संदेश बदल जाएगा"), message: tx("AI का मसौदा अभी लिखे शीर्षक, व्हाट्सएप संदेश और सर्कुलर की जगह ले लेगा।") } : null}
               onResult={fillFromAi}
-              hint="श्रेणी और तारीख नीचे भरें तो AI उन्हें भी इस्तेमाल करेगा। भेजने से पहले जाँच लें।"
+              hint={tx("श्रेणी और तारीख नीचे भरें तो AI उन्हें भी इस्तेमाल करेगा। भेजने से पहले जाँच लें।")}
             />
           </div>
 
           <div className="space-y-4 rounded-card border border-line bg-surface p-4 text-ink">
             <div className="grid grid-cols-2 gap-3">
-              <Field label="श्रेणी">
-                <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="उदा. छुट्टी" />
+              <Field label={tx("श्रेणी")}>
+                <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder={tx("उदा. छुट्टी")} />
               </Field>
-              <Field label="तारीख">
-                <Input value={date} onChange={(e) => setDate(e.target.value)} placeholder="उदा. 25 नवंबर 2026" />
+              <Field label={tx("तारीख")}>
+                <Input value={date} onChange={(e) => setDate(e.target.value)} placeholder={tx("उदा. 25 नवंबर 2026")} />
               </Field>
             </div>
-            <Field label="सूचना का शीर्षक">
+            <Field label={tx("सूचना का शीर्षक")}>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} />
             </Field>
-            <Field label="व्हाट्सएप संदेश" hint="*शब्द* व्हाट्सएप में बोल्ड दिखता है">
+            <Field label={tx("व्हाट्सएप संदेश")} hint={tx("*शब्द* व्हाट्सएप में बोल्ड दिखता है")}>
               <Textarea rows={8} value={whatsappText} onChange={(e) => setWhatsappText(e.target.value)} />
             </Field>
-            <Field label="औपचारिक सर्कुलर (प्रिंट के लिए)">
+            <Field label={tx("औपचारिक सर्कुलर (प्रिंट के लिए)")}>
               <Textarea rows={8} value={formalText} onChange={(e) => setFormalText(e.target.value)} />
             </Field>
           </div>
@@ -190,20 +191,20 @@ export default function NoticeHub({ activeInstitute }) {
 
         {/* Preview Panel */}
         <div className="lg:col-span-7 space-y-4">
-          <div role="group" aria-label="प्रिव्यू" className="flex flex-wrap items-center gap-2 no-print">
+          <div role="group" aria-label={tx("प्रिव्यू")} className="flex flex-wrap items-center gap-2 no-print">
             <Button size="sm" variant={mode === "whatsapp" ? "primary" : "secondary"} aria-pressed={mode === "whatsapp"} onClick={() => setMode("whatsapp")}>
-              💬 व्हाट्सएप संदेश
+              {tx("💬 व्हाट्सएप संदेश")}
             </Button>
             <Button size="sm" variant={mode === "formal" ? "primary" : "secondary"} aria-pressed={mode === "formal"} onClick={() => setMode("formal")}>
-              📜 औपचारिक सर्कुलर
+              {tx("📜 औपचारिक सर्कुलर")}
             </Button>
           </div>
 
           {mode === "whatsapp" ? (
             <div className="space-y-3 rounded-card border border-line bg-surface p-6 text-ink">
-              <p className="text-caption text-muted">व्हाट्सएप ग्रुप या ब्रॉडकास्ट में सीधे पेस्ट करें।</p>
+              <p className="text-caption text-muted">{tx("व्हाट्सएप ग्रुप या ब्रॉडकास्ट में सीधे पेस्ट करें।")}</p>
               <div className="max-w-md rounded-2xl border border-success bg-success-subtle p-4 text-label whitespace-pre-wrap select-text">
-                {whatsappText || "व्हाट्सएप संदेश यहाँ दिखेगा।"}
+                {whatsappText || tx("व्हाट्सएप संदेश यहाँ दिखेगा।")}
               </div>
             </div>
           ) : (
@@ -214,7 +215,7 @@ export default function NoticeHub({ activeInstitute }) {
                   <div className="text-left">
                     <h2 className="text-base font-black uppercase text-slate-900">{activeInstitute.name}</h2>
                     <p className="text-[11px] text-slate-600">
-                      {[activeInstitute.city, activeInstitute.phone && `फ़ोन: ${activeInstitute.phone}`].filter(Boolean).join(" • ")}
+                      {[activeInstitute.city, activeInstitute.phone && tx("फ़ोन: {0}", [activeInstitute.phone])].filter(Boolean).join(" • ")}
                     </p>
                   </div>
                 </div>
@@ -222,15 +223,15 @@ export default function NoticeHub({ activeInstitute }) {
 
               <div className="flex justify-between gap-4 text-xs text-slate-700">
                 <span className="font-bold">{title}</span>
-                {date && <span>दिनांक: {date}</span>}
+                {date && <span>{tx("दिनांक:")} {date}</span>}
               </div>
 
-              <div className="text-sm whitespace-pre-wrap leading-relaxed text-slate-800">{formalText || "औपचारिक सर्कुलर यहाँ दिखेगा।"}</div>
+              <div className="text-sm whitespace-pre-wrap leading-relaxed text-slate-800">{formalText || tx("औपचारिक सर्कुलर यहाँ दिखेगा।")}</div>
 
               <div className="pt-8 flex justify-end">
                 <div className="text-right text-xs">
                   <div className="h-10"></div>
-                  <div className="font-bold border-t border-slate-400 pt-1">अधिकृत हस्ताक्षर</div>
+                  <div className="font-bold border-t border-slate-400 pt-1">{tx("अधिकृत हस्ताक्षर")}</div>
                   <div className="text-[10px] text-slate-500">{activeInstitute.name}</div>
                 </div>
               </div>
@@ -241,9 +242,9 @@ export default function NoticeHub({ activeInstitute }) {
 
       <ConfirmDialog
         open={pendingTemplate !== null}
-        title="लिखा हुआ संदेश बदल जाएगा"
-        message={`"${pendingTemplate?.category ?? ""}" का ढाँचा अभी लिखे शीर्षक, श्रेणी और दोनों संदेशों की जगह ले लेगा। आगे बढ़ें?`}
-        confirmLabel="हाँ, ढाँचा भरें"
+        title={tx("लिखा हुआ संदेश बदल जाएगा")}
+        message={tx("\"{0}\" का ढाँचा अभी लिखे शीर्षक, श्रेणी और दोनों संदेशों की जगह ले लेगा। आगे बढ़ें?", [pendingTemplate?.category ?? ""])}
+        confirmLabel={tx("हाँ, ढाँचा भरें")}
         tone="danger"
         onConfirm={() => pendingTemplate && applyTemplate(pendingTemplate)}
         onCancel={() => setPendingTemplate(null)}

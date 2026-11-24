@@ -5,6 +5,7 @@ import { YoutubeMetaOutputSchema } from "@edusuite/shared";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { AiGenerate } from "./AiGenerate.tsx";
 import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
+import { tx } from "../i18n/index.ts";
 
 const THEMES = [
   { id: "red-dark", label: "Red & Black" },
@@ -31,7 +32,7 @@ function CopyButton({ text, label, disabled }) {
         setTimeout(() => setCopied(false), 2000);
       }}
     >
-      {copied ? "कॉपी हो गया!" : label}
+      {copied ? tx("कॉपी हो गया!") : label}
     </Button>
   );
 }
@@ -90,9 +91,9 @@ export default function YouTubeStudio({ activeInstitute }) {
     <div className="space-y-6">
       <PageHeader
         icon={<Video className="size-6" />}
-        title="YouTube लाइव क्लास & थंबनेल स्टूडियो"
+        title={tx("YouTube लाइव क्लास & थंबनेल स्टूडियो")}
         badge="16:9"
-        description="YouTube लाइव कक्षाओं के लिए 16:9 थंबनेल का डिज़ाइन, वीडियो टाइटल, डिस्क्रिप्शन और टैग्स तैयार करें, सेव करें और बाद में फिर से खोलें।"
+        description={tx("YouTube लाइव कक्षाओं के लिए 16:9 थंबनेल का डिज़ाइन, वीडियो टाइटल, डिस्क्रिप्शन और टैग्स तैयार करें, सेव करें और बाद में फिर से खोलें।")}
       />
 
       <DocumentBar
@@ -113,27 +114,27 @@ export default function YouTubeStudio({ activeInstitute }) {
           <div className="space-y-4 rounded-card border border-line bg-surface p-4 text-ink">
             <h3 className="flex items-center gap-2 text-label font-semibold">
               <Sliders className="size-4" aria-hidden="true" />
-              थंबनेल एवं लाइव क्लास सेटिंग्स
+              {tx("थंबनेल एवं लाइव क्लास सेटिंग्स")}
             </h3>
-            <Field label="मुख्य बड़ा टाइटल (Headline)">
-              <Input value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="उदा. MP GK महामैराथन 2026" />
+            <Field label={tx("मुख्य बड़ा टाइटल (Headline)")}>
+              <Input value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder={tx("उदा. MP GK महामैराथन 2026")} />
             </Field>
-            <Field label="पंचलाइन (Subtitle)">
+            <Field label={tx("पंचलाइन (Subtitle)")}>
               <Input value={punchline} onChange={(e) => setPunchline(e.target.value)} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="शिक्षक / फैकल्टी">
+              <Field label={tx("शिक्षक / फैकल्टी")}>
                 <Input value={facultyName} onChange={(e) => setFacultyName(e.target.value)} />
               </Field>
-              <Field label="लाइव टाइमिंग बैज">
-                <Input value={liveBadge} onChange={(e) => setLiveBadge(e.target.value)} placeholder="उदा. 🔴 LIVE @ 8:00 PM" />
+              <Field label={tx("लाइव टाइमिंग बैज")}>
+                <Input value={liveBadge} onChange={(e) => setLiveBadge(e.target.value)} placeholder={tx("उदा. 🔴 LIVE @ 8:00 PM")} />
               </Field>
             </div>
-            <Field label="नीचे का बैज">
-              <Input value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="उदा. PDF नोट्स फ्री" />
+            <Field label={tx("नीचे का बैज")}>
+              <Input value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder={tx("उदा. PDF नोट्स फ्री")} />
             </Field>
-            <div role="group" aria-label="थंबनेल कलर थीम" className="space-y-2 border-t border-line pt-3">
-              <p className="text-label font-semibold">थंबनेल कलर थीम</p>
+            <div role="group" aria-label={tx("थंबनेल कलर थीम")} className="space-y-2 border-t border-line pt-3">
+              <p className="text-label font-semibold">{tx("थंबनेल कलर थीम")}</p>
               <div className="grid grid-cols-3 gap-2">
                 {THEMES.map((th) => (
                   <Button key={th.id} size="sm" variant={bgTheme === th.id ? "primary" : "secondary"} aria-pressed={bgTheme === th.id} onClick={() => setBgTheme(th.id)}>
@@ -148,8 +149,8 @@ export default function YouTubeStudio({ activeInstitute }) {
         {/* Right: Live 16:9 Thumbnail Canvas & SEO Metadata */}
         <div className="lg:col-span-7 space-y-5">
           <div className="flex items-center justify-between text-label font-semibold text-ink">
-            <span>16:9 थंबनेल प्रिव्यू</span>
-            <span className="text-caption text-muted">थंबनेल का स्क्रीनशॉट लेकर उपयोग करें; PNG डाउनलोड बाद में आएगा।</span>
+            <span>{tx("16:9 थंबनेल प्रिव्यू")}</span>
+            <span className="text-caption text-muted">{tx("थंबनेल का स्क्रीनशॉट लेकर उपयोग करें; PNG डाउनलोड बाद में आएगा।")}</span>
           </div>
 
           {/* 16:9 Thumbnail Canvas */}
@@ -185,7 +186,7 @@ export default function YouTubeStudio({ activeInstitute }) {
             {/* Middle Big Bold Hindi Typography */}
             <div className="my-auto py-2 z-10 space-y-2">
               <p className="text-2xl md:text-3xl lg:text-4xl font-black text-amber-300 tracking-tight leading-tight uppercase drop-shadow-[0_4px_10px_rgba(0,0,0,0.9)]">
-                {headline || "मुख्य टाइटल"}
+                {headline || tx("मुख्य टाइटल")}
               </p>
               {punchline && <div className="inline-block px-3 py-1 rounded-xl bg-white text-slate-950 text-xs md:text-sm font-black shadow-xl">⚡ {punchline}</div>}
             </div>
@@ -206,27 +207,27 @@ export default function YouTubeStudio({ activeInstitute }) {
           <div className="space-y-4 rounded-card border border-line bg-surface p-4 text-ink">
             <h3 className="flex items-center gap-2 text-label font-semibold">
               <FileText className="size-4" aria-hidden="true" />
-              YouTube वीडियो टाइटल, डिस्क्रिप्शन और टैग्स
+              {tx("YouTube वीडियो टाइटल, डिस्क्रिप्शन और टैग्स")}
             </h3>
-            <Field label="वीडियो टाइटल" hint={`${videoTitle.length}/100 अक्षर (YouTube की सीमा 100)`}>
+            <Field label={tx("वीडियो टाइटल")} hint={tx("{0}/100 अक्षर (YouTube की सीमा 100)", [videoTitle.length])}>
               <Input value={videoTitle} maxLength={200} onChange={(e) => setVideoTitle(e.target.value)} />
             </Field>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" icon={<Wand2 className="size-4" />} disabled={!suggestedTitle} onClick={() => setVideoTitle(suggestedTitle)}>
-                थंबनेल से टाइटल भरें
+                {tx("थंबनेल से टाइटल भरें")}
               </Button>
-              <CopyButton text={videoTitle} label="टाइटल कॉपी करें" disabled={!videoTitle.trim()} />
+              <CopyButton text={videoTitle} label={tx("टाइटल कॉपी करें")} disabled={!videoTitle.trim()} />
             </div>
             <div className="space-y-2 rounded-control border border-line p-3">
-              <Field label="AI की भाषा">
+              <Field label={tx("AI की भाषा")}>
                 <Select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)}>
-                  <option value="hi">हिन्दी</option>
+                  <option value="hi">{tx("हिन्दी")}</option>
                   <option value="en">English</option>
-                  <option value="both">हिन्दी + English</option>
+                  <option value="both">{tx("हिन्दी + English")}</option>
                 </Select>
               </Field>
               <AiGenerate
-                label="AI से टाइटल, डिस्क्रिप्शन और टैग्स"
+                label={tx("AI से टाइटल, डिस्क्रिप्शन और टैग्स")}
                 build={() =>
                   headline.trim().length >= 2
                     ? {
@@ -242,21 +243,21 @@ export default function YouTubeStudio({ activeInstitute }) {
                 }
                 confirmReplace={
                   videoTitle.trim() || description.trim() || tagsText.trim()
-                    ? { title: "लिखा टाइटल बदल जाएगा", message: "AI अभी लिखे टाइटल, डिस्क्रिप्शन और टैग्स की जगह नए लिखेगा।" }
+                    ? { title: tx("लिखा टाइटल बदल जाएगा"), message: tx("AI अभी लिखे टाइटल, डिस्क्रिप्शन और टैग्स की जगह नए लिखेगा।") }
                     : null
                 }
                 onResult={fillFromAi}
-                hint="पहले थंबनेल का मुख्य टाइटल लिखें।"
+                hint={tx("पहले थंबनेल का मुख्य टाइटल लिखें।")}
               />
             </div>
-            <Field label="वीडियो डिस्क्रिप्शन">
+            <Field label={tx("वीडियो डिस्क्रिप्शन")}>
               <Textarea rows={6} value={description} onChange={(e) => setDescription(e.target.value)} />
             </Field>
-            <CopyButton text={description} label="डिस्क्रिप्शन कॉपी करें" disabled={!description.trim()} />
-            <Field label="टैग्स" hint="कॉमा (,) से अलग करें">
-              <Input value={tagsText} onChange={(e) => setTagsText(e.target.value)} placeholder="उदा. mppsc 2026, mp gk, live class" />
+            <CopyButton text={description} label={tx("डिस्क्रिप्शन कॉपी करें")} disabled={!description.trim()} />
+            <Field label={tx("टैग्स")} hint={tx("कॉमा (,) से अलग करें")}>
+              <Input value={tagsText} onChange={(e) => setTagsText(e.target.value)} placeholder={tx("उदा. mppsc 2026, mp gk, live class")} />
             </Field>
-            <CopyButton text={tags.join(", ")} label="टैग्स कॉपी करें" disabled={tags.length === 0} />
+            <CopyButton text={tags.join(", ")} label={tx("टैग्स कॉपी करें")} disabled={tags.length === 0} />
           </div>
         </div>
       </div>

@@ -5,37 +5,38 @@ import { PAPER_MARKS } from "@edusuite/shared";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { AiGenerate } from "./AiGenerate.tsx";
 import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
+import { tx } from "../i18n/index.ts";
 
 const GRADES = ["MPPSC Pre + Mains", "SSC CGL / GD", "Vyapam / Sub-Inspector", "Class 10", "Class 12"];
-const MARKS = [
-  { value: 20, label: "20 (क्विक टेस्ट)" },
-  { value: 40, label: "40 (यूनिट टेस्ट)" },
-  { value: 50, label: "50 (मिड-टर्म)" },
-  { value: 80, label: "80 (फुल बोर्ड)" },
-];
+const MARKS = () => ([
+  { value: 20, label: tx("20 (क्विक टेस्ट)") },
+  { value: 40, label: tx("40 (यूनिट टेस्ट)") },
+  { value: 50, label: tx("50 (मिड-टर्म)") },
+  { value: 80, label: tx("80 (फुल बोर्ड)") },
+]);
 
-const SECTION_NAMES = {
-  mcq: `बहुविकल्पीय प्रश्न (${PAPER_MARKS.mcq} अंक प्रत्येक)`,
-  short: `लघु उत्तरीय प्रश्न (${PAPER_MARKS.short} अंक प्रत्येक)`,
-  long: `दीर्घ उत्तरीय / आंकिक प्रश्न (${PAPER_MARKS.long} अंक प्रत्येक)`,
-};
-const DIFFICULTIES = [
-  { value: "mixed", label: "मिश्रित (आसान से कठिन)" },
-  { value: "easy", label: "आसान" },
-  { value: "medium", label: "मध्यम" },
-  { value: "hard", label: "कठिन" },
-];
-const LANGUAGES = [
-  { value: "hi", label: "हिन्दी" },
+const SECTION_NAMES = () => ({
+  mcq: tx("बहुविकल्पीय प्रश्न ({0} अंक प्रत्येक)", [PAPER_MARKS.mcq]),
+  short: tx("लघु उत्तरीय प्रश्न ({0} अंक प्रत्येक)", [PAPER_MARKS.short]),
+  long: tx("दीर्घ उत्तरीय / आंकिक प्रश्न ({0} अंक प्रत्येक)", [PAPER_MARKS.long]),
+});
+const DIFFICULTIES = () => ([
+  { value: "mixed", label: tx("मिश्रित (आसान से कठिन)") },
+  { value: "easy", label: tx("आसान") },
+  { value: "medium", label: tx("मध्यम") },
+  { value: "hard", label: tx("कठिन") },
+]);
+const LANGUAGES = () => ([
+  { value: "hi", label: tx("हिन्दी") },
   { value: "en", label: "English" },
-  { value: "both", label: "हिन्दी + English" },
-];
+  { value: "both", label: tx("हिन्दी + English") },
+]);
 const count = (v, max) => Math.max(0, Math.min(max, Math.trunc(Number(v) || 0)));
 
 const blankQuestion = (mcq) => ({ q: "", options: mcq ? ["A) ", "B) ", "C) ", "D) "] : [], ans: "" });
 
 /** A blank paper: one empty section to start from (no sample content, Phase 3). */
-const blankSections = () => [{ name: "खंड A", questions: [blankQuestion(false)] }];
+const blankSections = () => [{ name: tx("खंड A"), questions: [blankQuestion(false)] }];
 
 /** Lines the teacher left empty (or just "A) ") aren't real options. */
 const realOptions = (options) => (options ?? []).map((o) => o.trim()).filter((o) => o && !/^[A-D]\)$/.test(o));
@@ -44,7 +45,7 @@ export default function QuestionPaperMaker({ activeInstitute }) {
   const [examTitle, setExamTitle] = useState("");
   const [grade, setGrade] = useState("Class 10");
   const [subject, setSubject] = useState("");
-  const [duration, setDuration] = useState("90 मिनट");
+  const [duration, setDuration] = useState(tx("90 मिनट"));
   const [totalMarks, setTotalMarks] = useState(40);
   const [showAnswerKey, setShowAnswerKey] = useState(true);
   const [copiedText, setCopiedText] = useState(false);
@@ -66,7 +67,7 @@ export default function QuestionPaperMaker({ activeInstitute }) {
     const letters = ["A", "B", "C", "D"];
     setSections(
       result.sections.map((s, i) => ({
-        name: `खंड ${String.fromCharCode(65 + i)}: ${SECTION_NAMES[s.kind]}`,
+        name: tx("खंड {0}: {1}", [String.fromCharCode(65 + i), SECTION_NAMES()[s.kind]]),
         questions: s.questions.map((q) => ({ q: q.q, options: q.options.map((o, k) => `${letters[k]}) ${o}`), ans: q.answer })),
       })),
     );
@@ -97,12 +98,12 @@ export default function QuestionPaperMaker({ activeInstitute }) {
   // Free option: the usual three-section structure with empty questions for the teacher to fill.
   const handleGenerate = () => {
     setSections([
-      { name: "खंड A: बहुविकल्पीय प्रश्न (1 अंक प्रत्येक)", questions: [blankQuestion(true), blankQuestion(true), blankQuestion(true)] },
-      { name: "खंड B: लघु उत्तरीय प्रश्न (3 अंक प्रत्येक)", questions: [blankQuestion(false), blankQuestion(false)] },
-      { name: "खंड C: दीर्घ उत्तरीय / आंकिक प्रश्न (5 अंक)", questions: [blankQuestion(false)] },
+      { name: tx("खंड A: बहुविकल्पीय प्रश्न (1 अंक प्रत्येक)"), questions: [blankQuestion(true), blankQuestion(true), blankQuestion(true)] },
+      { name: tx("खंड B: लघु उत्तरीय प्रश्न (3 अंक प्रत्येक)"), questions: [blankQuestion(false), blankQuestion(false)] },
+      { name: tx("खंड C: दीर्घ उत्तरीय / आंकिक प्रश्न (5 अंक)"), questions: [blankQuestion(false)] },
     ]);
     setSectionIndex(0);
-    if (!docTitle.trim()) setDocTitle(examTitle.trim() || `${subject || "टेस्ट"} पेपर`);
+    if (!docTitle.trim()) setDocTitle(examTitle.trim() || tx("{0} पेपर", [subject || tx("टेस्ट")]));
   };
 
   const handleCopyCleanText = async () => {
@@ -138,16 +139,16 @@ export default function QuestionPaperMaker({ activeInstitute }) {
     <div className="space-y-6">
       <PageHeader
         icon={<FileQuestion className="size-6" />}
-        title="परीक्षा पेपर & आंसर-की मेकर"
+        title={tx("परीक्षा पेपर & आंसर-की मेकर")}
         badge="Print / Word Ready"
-        description="सेक्शन-वार MCQ, लघु एवं दीर्घ उत्तरीय प्रश्न और आंसर-की के साथ टेस्ट पेपर बनाएँ, सेव करें और बाद में फिर से खोलें।"
+        description={tx("सेक्शन-वार MCQ, लघु एवं दीर्घ उत्तरीय प्रश्न और आंसर-की के साथ टेस्ट पेपर बनाएँ, सेव करें और बाद में फिर से खोलें।")}
         actions={
           <>
             <Button icon={copiedText ? <Check className="size-4" /> : <Copy className="size-4" />} onClick={() => void handleCopyCleanText()}>
-              {copiedText ? "वर्ड के लिए कॉपी हो गया!" : "वर्ड के लिए कॉपी करें"}
+              {copiedText ? tx("वर्ड के लिए कॉपी हो गया!") : tx("वर्ड के लिए कॉपी करें")}
             </Button>
             <Button variant="primary" icon={<Printer className="size-4" />} onClick={() => window.print()}>
-              टेस्ट पेपर प्रिंट करें (PDF)
+              {tx("टेस्ट पेपर प्रिंट करें (PDF)")}
             </Button>
           </>
         }
@@ -178,7 +179,7 @@ export default function QuestionPaperMaker({ activeInstitute }) {
         onNew={() => {
           setExamTitle("");
           setSubject("");
-          setDuration("90 मिनट");
+          setDuration(tx("90 मिनट"));
           setTotalMarks(40);
           setShowAnswerKey(true);
           setDocTitle("");
@@ -193,70 +194,70 @@ export default function QuestionPaperMaker({ activeInstitute }) {
           <div className="space-y-4 rounded-card border border-line bg-surface p-4 text-ink">
             <h3 className="flex items-center gap-2 text-label font-semibold">
               <Sliders className="size-4" aria-hidden="true" />
-              परीक्षा ब्लूप्रिंट एवं सेटिंग्स
+              {tx("परीक्षा ब्लूप्रिंट एवं सेटिंग्स")}
             </h3>
-            <Field label="परीक्षा / टेस्ट का नाम">
-              <Input value={examTitle} onChange={(e) => setExamTitle(e.target.value)} placeholder="उदा. मिड-टर्म परीक्षा 2026" />
+            <Field label={tx("परीक्षा / टेस्ट का नाम")}>
+              <Input value={examTitle} onChange={(e) => setExamTitle(e.target.value)} placeholder={tx("उदा. मिड-टर्म परीक्षा 2026")} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="लक्षित क्लास / बैच">
+              <Field label={tx("लक्षित क्लास / बैच")}>
                 <Select value={grade} onChange={(e) => setGrade(e.target.value)}>
                   {(GRADES.includes(grade) ? GRADES : [grade, ...GRADES]).map((g) => (
                     <option key={g}>{g}</option>
                   ))}
                 </Select>
               </Field>
-              <Field label="विषय">
-                <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="उदा. रसायन विज्ञान" />
+              <Field label={tx("विषय")}>
+                <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={tx("उदा. रसायन विज्ञान")} />
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="अधिकतम अंक">
+              <Field label={tx("अधिकतम अंक")}>
                 <Select value={totalMarks} onChange={(e) => setTotalMarks(Number(e.target.value))}>
-                  {(MARKS.some((m) => m.value === totalMarks) ? MARKS : [{ value: totalMarks, label: `${totalMarks} अंक` }, ...MARKS]).map((m) => (
+                  {(MARKS().some((m) => m.value === totalMarks) ? MARKS() : [{ value: totalMarks, label: tx("{0} अंक", [totalMarks]) }, ...MARKS()]).map((m) => (
                     <option key={m.value} value={m.value}>
                       {m.label}
                     </option>
                   ))}
                 </Select>
               </Field>
-              <Field label="समय">
+              <Field label={tx("समय")}>
                 <Input value={duration} onChange={(e) => setDuration(e.target.value)} />
               </Field>
             </div>
             <label className="flex items-center justify-between gap-3 rounded-control border border-line p-3 text-label">
-              आंसर-की और हल शामिल करें
+              {tx("आंसर-की और हल शामिल करें")}
               <input type="checkbox" checked={showAnswerKey} onChange={(e) => setShowAnswerKey(e.target.checked)} className="size-4" />
             </label>
             <div className="space-y-3 rounded-control border border-line p-3">
-              <p className="text-label font-semibold">AI से पेपर बनाएँ</p>
-              <Field label="कौन-से अध्याय / टॉपिक" hint="जैसे: अम्ल, क्षार और लवण; pH स्केल">
+              <p className="text-label font-semibold">{tx("AI से पेपर बनाएँ")}</p>
+              <Field label={tx("कौन-से अध्याय / टॉपिक")} hint={tx("जैसे: अम्ल, क्षार और लवण; pH स्केल")}>
                 <Textarea rows={2} value={topics} maxLength={1000} onChange={(e) => setTopics(e.target.value)} />
               </Field>
               <div className="grid grid-cols-3 gap-2">
                 <Field label="MCQ">
                   <Input type="number" min={0} max={50} value={mcqCount} onChange={(e) => setMcqCount(count(e.target.value, 50))} />
                 </Field>
-                <Field label="लघु उत्तरीय">
+                <Field label={tx("लघु उत्तरीय")}>
                   <Input type="number" min={0} max={30} value={shortCount} onChange={(e) => setShortCount(count(e.target.value, 30))} />
                 </Field>
-                <Field label="दीर्घ उत्तरीय">
+                <Field label={tx("दीर्घ उत्तरीय")}>
                   <Input type="number" min={0} max={10} value={longCount} onChange={(e) => setLongCount(count(e.target.value, 10))} />
                 </Field>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Field label="कठिनाई">
+                <Field label={tx("कठिनाई")}>
                   <Select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
-                    {DIFFICULTIES.map((d) => (
+                    {DIFFICULTIES().map((d) => (
                       <option key={d.value} value={d.value}>
                         {d.label}
                       </option>
                     ))}
                   </Select>
                 </Field>
-                <Field label="भाषा">
+                <Field label={tx("भाषा")}>
                   <Select value={language} onChange={(e) => setLanguage(e.target.value)}>
-                    {LANGUAGES.map((l) => (
+                    {LANGUAGES().map((l) => (
                       <option key={l.value} value={l.value}>
                         {l.label}
                       </option>
@@ -265,11 +266,11 @@ export default function QuestionPaperMaker({ activeInstitute }) {
                 </Field>
               </div>
               <p className="text-caption text-muted">
-                कुल {aiTotal} प्रश्न · {aiMarks} अंक (MCQ {PAPER_MARKS.mcq}, लघु {PAPER_MARKS.short}, दीर्घ {PAPER_MARKS.long} अंक प्रति प्रश्न)
-                {(aiTotal < 1 || aiTotal > 60) && <span className="text-danger"> · 1 से 60 प्रश्न चुनें</span>}
+                {tx("कुल")} {aiTotal} {tx("प्रश्न ·")} {aiMarks} {tx("अंक (MCQ")} {PAPER_MARKS.mcq}{tx(", लघु")} {PAPER_MARKS.short}{tx(", दीर्घ")} {PAPER_MARKS.long} {tx("अंक प्रति प्रश्न)")}
+                {(aiTotal < 1 || aiTotal > 60) && <span className="text-danger"> {tx("· 1 से 60 प्रश्न चुनें")}</span>}
               </p>
               <AiGenerate
-                label="AI से पेपर बनाएँ"
+                label={tx("AI से पेपर बनाएँ")}
                 build={() =>
                   subject.trim().length >= 2 && topics.trim().length >= 2 && aiTotal >= 1 && aiTotal <= 60
                     ? {
@@ -288,11 +289,11 @@ export default function QuestionPaperMaker({ activeInstitute }) {
                     : null
                 }
                 onResult={fillFromAi}
-                hint="पहले विषय और टॉपिक लिखें। AI के प्रश्न और आंसर-की संपादक में भरे जाएँगे, सेव नहीं होंगे; प्रिंट से पहले जाँच लें।"
+                hint={tx("पहले विषय और टॉपिक लिखें। AI के प्रश्न और आंसर-की संपादक में भरे जाएँगे, सेव नहीं होंगे; प्रिंट से पहले जाँच लें।")}
               />
             </div>
             <Button className="w-full" icon={<Sparkles className="size-4" />} onClick={handleGenerate}>
-              खाली पेपर ढाँचा बनाएँ (मुफ़्त)
+              {tx("खाली पेपर ढाँचा बनाएँ (मुफ़्त)")}
             </Button>
           </div>
 
@@ -303,7 +304,7 @@ export default function QuestionPaperMaker({ activeInstitute }) {
             onSelect={setSectionIndex}
             onChange={(next) => updateSection(sectionIndex, next)}
             onAddSection={() => {
-              setSections((all) => [...all, { name: `खंड ${String.fromCharCode(65 + all.length)}`, questions: [blankQuestion(false)] }]);
+              setSections((all) => [...all, { name: tx("खंड {0}", [String.fromCharCode(65 + all.length)]), questions: [blankQuestion(false)] }]);
               setSectionIndex(sections.length);
             }}
             onDeleteSection={() => {
@@ -329,7 +330,7 @@ export default function QuestionPaperMaker({ activeInstitute }) {
               </div>
             </div>
             <div className="mt-3 text-sm font-bold uppercase tracking-wider text-slate-900 bg-slate-100 py-1 rounded">
-              {paper.title || "परीक्षा का नाम"}
+              {paper.title || tx("परीक्षा का नाम")}
             </div>
 
             {/* Meta Row */}
@@ -408,26 +409,26 @@ function SectionEditor({ sections, index, section, onSelect, onChange, onAddSect
   return (
     <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-label font-semibold">प्रश्न लिखें</h3>
+        <h3 className="text-label font-semibold">{tx("प्रश्न लिखें")}</h3>
         <div className="flex gap-2">
           <Button size="sm" icon={<Plus className="size-4" />} onClick={onAddSection} disabled={sections.length >= 20}>
-            नया खंड
+            {tx("नया खंड")}
           </Button>
           <Button size="sm" variant="ghost" icon={<Trash2 className="size-4" />} onClick={onDeleteSection} disabled={sections.length <= 1}>
-            खंड हटाएँ
+            {tx("खंड हटाएँ")}
           </Button>
         </div>
       </div>
-      <Field label="खंड चुनें">
+      <Field label={tx("खंड चुनें")}>
         <Select value={index} onChange={(e) => onSelect(Number(e.target.value))}>
           {sections.map((s, i) => (
             <option key={i} value={i}>
-              {i + 1}. {s.name || "बिना नाम का खंड"}
+              {i + 1}. {s.name || tx("बिना नाम का खंड")}
             </option>
           ))}
         </Select>
       </Field>
-      <Field label="खंड का शीर्षक">
+      <Field label={tx("खंड का शीर्षक")}>
         <Input value={section.name} onChange={(e) => onChange({ ...section, name: e.target.value })} />
       </Field>
 
@@ -435,29 +436,29 @@ function SectionEditor({ sections, index, section, onSelect, onChange, onAddSect
         {section.questions.map((q, qIndex) => (
           <li key={qIndex} className="space-y-2 rounded-control border border-line p-3">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-label font-semibold">प्रश्न {qIndex + 1}</span>
+              <span className="text-label font-semibold">{tx("प्रश्न")} {qIndex + 1}</span>
               <Button
                 size="sm"
                 variant="ghost"
                 icon={<Trash2 className="size-4" />}
-                aria-label={`प्रश्न ${qIndex + 1} हटाएँ`}
+                aria-label={tx("प्रश्न {0} हटाएँ", [qIndex + 1])}
                 disabled={section.questions.length <= 1}
                 onClick={() => onChange({ ...section, questions: section.questions.filter((_, i) => i !== qIndex) })}
               >
-                हटाएँ
+                {tx("हटाएँ")}
               </Button>
             </div>
-            <Field label={`प्रश्न ${qIndex + 1} का पाठ`}>
+            <Field label={tx("प्रश्न {0} का पाठ", [qIndex + 1])}>
               <Textarea rows={2} value={q.q} onChange={(e) => setQuestion(qIndex, { ...q, q: e.target.value })} />
             </Field>
-            <Field label="विकल्प (वैकल्पिक)" hint="हर लाइन एक विकल्प; MCQ न हो तो खाली छोड़ें">
+            <Field label={tx("विकल्प (वैकल्पिक)")} hint={tx("हर लाइन एक विकल्प; MCQ न हो तो खाली छोड़ें")}>
               <Textarea
                 rows={4}
                 value={q.options.join("\n")}
                 onChange={(e) => setQuestion(qIndex, { ...q, options: e.target.value === "" ? [] : e.target.value.split("\n") })}
               />
             </Field>
-            <Field label="उत्तर / हल">
+            <Field label={tx("उत्तर / हल")}>
               <Textarea rows={2} value={q.ans} onChange={(e) => setQuestion(qIndex, { ...q, ans: e.target.value })} />
             </Field>
           </li>
@@ -465,10 +466,10 @@ function SectionEditor({ sections, index, section, onSelect, onChange, onAddSect
       </ol>
       <div className="flex flex-wrap gap-2">
         <Button size="sm" icon={<Plus className="size-4" />} onClick={() => onChange({ ...section, questions: [...section.questions, blankQuestion(false)] })}>
-          नया प्रश्न
+          {tx("नया प्रश्न")}
         </Button>
         <Button size="sm" icon={<Plus className="size-4" />} onClick={() => onChange({ ...section, questions: [...section.questions, blankQuestion(true)] })}>
-          नया MCQ
+          {tx("नया MCQ")}
         </Button>
       </div>
     </div>

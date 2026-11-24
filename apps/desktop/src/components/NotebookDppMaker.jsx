@@ -5,12 +5,13 @@ import { DppGenerateResultSchema } from "@edusuite/shared";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { AiGenerate } from "./AiGenerate.tsx";
 import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
+import { tx } from "../i18n/index.ts";
 
-const TEMPLATES = [
-  { id: "dpp", label: "📝 डेली प्रैक्टिस पेपर (DPP)" },
-  { id: "notebook", label: "📓 छात्र क्लास नोटबुक पेज" },
-  { id: "omr", label: "⭕ 50/100 प्रश्नों की OMR शीट" },
-];
+const TEMPLATES = () => ([
+  { id: "dpp", label: tx("📝 डेली प्रैक्टिस पेपर (DPP)") },
+  { id: "notebook", label: tx("📓 छात्र क्लास नोटबुक पेज") },
+  { id: "omr", label: tx("⭕ 50/100 प्रश्नों की OMR शीट") },
+]);
 
 const blankQuestion = () => ({ q: "", hint: "" });
 
@@ -52,12 +53,12 @@ export default function NotebookDppMaker({ activeInstitute }) {
     <div className="space-y-6">
       <PageHeader
         icon={<FileSpreadsheet className="size-6" />}
-        title="डेली DPP, स्टूडेंट नोटबुक & OMR स्टूडियो"
-        badge="डेली प्रैक्टिस मटेरियल"
-        description="क्लास में बाँटने के लिए DPP शीट, कॉर्नेल नोटबुक पेज और ऑफ़लाइन टेस्ट के लिए 50/100 प्रश्नों की OMR शीट बनाएँ, सेव करें और बाद में फिर से खोलें।"
+        title={tx("डेली DPP, स्टूडेंट नोटबुक & OMR स्टूडियो")}
+        badge={tx("डेली प्रैक्टिस मटेरियल")}
+        description={tx("क्लास में बाँटने के लिए DPP शीट, कॉर्नेल नोटबुक पेज और ऑफ़लाइन टेस्ट के लिए 50/100 प्रश्नों की OMR शीट बनाएँ, सेव करें और बाद में फिर से खोलें।")}
         actions={
           <Button variant="primary" icon={<Printer className="size-4" />} onClick={() => window.print()}>
-            शीट प्रिंट करें (PDF)
+            {tx("शीट प्रिंट करें (PDF)")}
           </Button>
         }
       />
@@ -89,8 +90,8 @@ export default function NotebookDppMaker({ activeInstitute }) {
       />
 
       {/* Switcher: DPP vs Notebook vs OMR */}
-      <div role="group" aria-label="शीट का प्रकार" className="flex flex-wrap items-center gap-2 no-print">
-        {TEMPLATES.map((t) => (
+      <div role="group" aria-label={tx("शीट का प्रकार")} className="flex flex-wrap items-center gap-2 no-print">
+        {TEMPLATES().map((t) => (
           <Button key={t.id} variant={templateType === t.id ? "primary" : "secondary"} aria-pressed={templateType === t.id} onClick={() => setTemplateType(t.id)}>
             {t.label}
           </Button>
@@ -101,66 +102,66 @@ export default function NotebookDppMaker({ activeInstitute }) {
         {/* Left Form Controls */}
         <div className="lg:col-span-4 space-y-4 no-print">
           <div className="space-y-4 rounded-card border border-line bg-surface p-4 text-ink">
-            <h3 className="text-label font-semibold">शीट सेटिंग्स</h3>
-            <Field label="टॉपिक एवं नंबर">
-              <Input value={dppTopic} onChange={(e) => setDppTopic(e.target.value)} placeholder="उदा. प्रतिशत एवं लाभ-हानि DPP #14" />
+            <h3 className="text-label font-semibold">{tx("शीट सेटिंग्स")}</h3>
+            <Field label={tx("टॉपिक एवं नंबर")}>
+              <Input value={dppTopic} onChange={(e) => setDppTopic(e.target.value)} placeholder={tx("उदा. प्रतिशत एवं लाभ-हानि DPP #14")} />
             </Field>
-            <Field label="विषय">
-              <Input value={dppSubject} onChange={(e) => setDppSubject(e.target.value)} placeholder="उदा. गणित एवं तर्कशक्ति" />
+            <Field label={tx("विषय")}>
+              <Input value={dppSubject} onChange={(e) => setDppSubject(e.target.value)} placeholder={tx("उदा. गणित एवं तर्कशक्ति")} />
             </Field>
-            <Field label="लक्षित बैच">
-              <Input value={targetBatch} onChange={(e) => setTargetBatch(e.target.value)} placeholder="उदा. MPPSC Pre 2026" />
+            <Field label={tx("लक्षित बैच")}>
+              <Input value={targetBatch} onChange={(e) => setTargetBatch(e.target.value)} placeholder={tx("उदा. MPPSC Pre 2026")} />
             </Field>
             {templateType === "omr" && (
-              <Field label="प्रश्नों की संख्या (OMR)">
+              <Field label={tx("प्रश्नों की संख्या (OMR)")}>
                 <Select value={omrQuestionsCount} onChange={(e) => setOmrQuestionsCount(Number(e.target.value))}>
-                  {[50, 100].includes(omrQuestionsCount) ? null : <option value={omrQuestionsCount}>{omrQuestionsCount} प्रश्न</option>}
-                  <option value={50}>50 प्रश्न (क्लास टेस्ट / क्विज)</option>
-                  <option value={100}>100 प्रश्न (फुल मॉक टेस्ट)</option>
+                  {[50, 100].includes(omrQuestionsCount) ? null : <option value={omrQuestionsCount}>{omrQuestionsCount} {tx("प्रश्न")}</option>}
+                  <option value={50}>{tx("50 प्रश्न (क्लास टेस्ट / क्विज)")}</option>
+                  <option value={100}>{tx("100 प्रश्न (फुल मॉक टेस्ट)")}</option>
                 </Select>
               </Field>
             )}
             {templateType === "notebook" && (
               <p className="text-caption text-muted">
-                कॉर्नेल नोट-टेकिंग फॉर्मेट छात्रों को क्लास में व्यवस्थित नोट्स लेने एवं रिवीजन के लिए लेआउट देता है।
+                {tx("कॉर्नेल नोट-टेकिंग फॉर्मेट छात्रों को क्लास में व्यवस्थित नोट्स लेने एवं रिवीजन के लिए लेआउट देता है।")}
               </p>
             )}
           </div>
 
           {templateType === "dpp" && (
             <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
-              <h3 className="text-label font-semibold">DPP के प्रश्न</h3>
+              <h3 className="text-label font-semibold">{tx("DPP के प्रश्न")}</h3>
               <div className="space-y-3 rounded-control border border-line p-3">
-                <p className="text-label font-semibold">AI से DPP बनाएँ</p>
+                <p className="text-label font-semibold">{tx("AI से DPP बनाएँ")}</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <Field label="कितने प्रश्न">
+                  <Field label={tx("कितने प्रश्न")}>
                     <Input type="number" min={3} max={50} value={aiCount} onChange={(e) => setAiCount(Math.max(3, Math.min(50, Math.trunc(Number(e.target.value) || 3))))} />
                   </Field>
-                  <Field label="प्रश्न का प्रकार">
+                  <Field label={tx("प्रश्न का प्रकार")}>
                     <Select value={aiStyle} onChange={(e) => setAiStyle(e.target.value)}>
-                      <option value="mcq">सभी MCQ</option>
-                      <option value="short">लघु / आंकिक</option>
-                      <option value="mixed">मिश्रित</option>
+                      <option value="mcq">{tx("सभी MCQ")}</option>
+                      <option value="short">{tx("लघु / आंकिक")}</option>
+                      <option value="mixed">{tx("मिश्रित")}</option>
                     </Select>
                   </Field>
-                  <Field label="कठिनाई">
+                  <Field label={tx("कठिनाई")}>
                     <Select value={aiDifficulty} onChange={(e) => setAiDifficulty(e.target.value)}>
-                      <option value="mixed">आसान से कठिन</option>
-                      <option value="easy">आसान</option>
-                      <option value="medium">मध्यम</option>
-                      <option value="hard">कठिन</option>
+                      <option value="mixed">{tx("आसान से कठिन")}</option>
+                      <option value="easy">{tx("आसान")}</option>
+                      <option value="medium">{tx("मध्यम")}</option>
+                      <option value="hard">{tx("कठिन")}</option>
                     </Select>
                   </Field>
-                  <Field label="भाषा">
+                  <Field label={tx("भाषा")}>
                     <Select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)}>
-                      <option value="hi">हिन्दी</option>
+                      <option value="hi">{tx("हिन्दी")}</option>
                       <option value="en">English</option>
-                      <option value="both">हिन्दी + English</option>
+                      <option value="both">{tx("हिन्दी + English")}</option>
                     </Select>
                   </Field>
                 </div>
                 <AiGenerate
-                  label="AI से प्रश्न बनाएँ"
+                  label={tx("AI से प्रश्न बनाएँ")}
                   build={() =>
                     dppSubject.trim().length >= 2 && dppTopic.trim().length >= 2
                       ? {
@@ -178,37 +179,37 @@ export default function NotebookDppMaker({ activeInstitute }) {
                       : null
                   }
                   onResult={fillFromAi}
-                  hint="पहले टॉपिक और विषय लिखें। AI के प्रश्न आपके लिखे प्रश्नों के बाद जुड़ते हैं। उत्तर और संकेत केवल शिक्षक के लिए “संकेत” में आते हैं, शीट पर प्रिंट नहीं होते।"
+                  hint={tx("पहले टॉपिक और विषय लिखें। AI के प्रश्न आपके लिखे प्रश्नों के बाद जुड़ते हैं। उत्तर और संकेत केवल शिक्षक के लिए “संकेत” में आते हैं, शीट पर प्रिंट नहीं होते।")}
                 />
               </div>
-              <p className="text-caption text-muted">या प्रश्न खुद लिखें।</p>
+              <p className="text-caption text-muted">{tx("या प्रश्न खुद लिखें।")}</p>
               <ol className="space-y-3">
                 {questions.map((item, index) => (
                   <li key={index} className="space-y-2 rounded-control border border-line p-3">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-label font-semibold">प्रश्न {index + 1}</span>
+                      <span className="text-label font-semibold">{tx("प्रश्न")} {index + 1}</span>
                       <Button
                         size="sm"
                         variant="ghost"
                         icon={<Trash2 className="size-4" />}
-                        aria-label={`प्रश्न ${index + 1} हटाएँ`}
+                        aria-label={tx("प्रश्न {0} हटाएँ", [index + 1])}
                         disabled={questions.length <= 1}
                         onClick={() => setQuestions((all) => all.filter((_, i) => i !== index))}
                       >
-                        हटाएँ
+                        {tx("हटाएँ")}
                       </Button>
                     </div>
-                    <Field label={`प्रश्न ${index + 1} का पाठ`}>
+                    <Field label={tx("प्रश्न {0} का पाठ", [index + 1])}>
                       <Textarea rows={2} value={item.q} onChange={(e) => setQuestion(index, { ...item, q: e.target.value })} />
                     </Field>
-                    <Field label="संकेत / शॉर्टकट (वैकल्पिक)" hint="शिक्षक के लिए; शीट पर प्रिंट नहीं होता">
+                    <Field label={tx("संकेत / शॉर्टकट (वैकल्पिक)")} hint={tx("शिक्षक के लिए; शीट पर प्रिंट नहीं होता")}>
                       <Input value={item.hint} onChange={(e) => setQuestion(index, { ...item, hint: e.target.value })} />
                     </Field>
                   </li>
                 ))}
               </ol>
               <Button size="sm" icon={<Plus className="size-4" />} disabled={questions.length >= 200} onClick={() => setQuestions((all) => [...all, blankQuestion()])}>
-                नया प्रश्न
+                {tx("नया प्रश्न")}
               </Button>
             </div>
           )}
@@ -259,7 +260,7 @@ export default function NotebookDppMaker({ activeInstitute }) {
             <div className="space-y-4">
               <div className="bg-amber-50 p-2.5 rounded border border-amber-200 flex items-center justify-between text-xs font-bold text-amber-900">
                 <span>{dppTopic || "DPP"}</span>
-                <span>प्रश्न: {questions.length}</span>
+                <span>{tx("प्रश्न:")} {questions.length}</span>
               </div>
 
               <div className="space-y-4">

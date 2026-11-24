@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { AlertTriangle, Inbox } from "lucide-react";
 import { Button } from "./Button.tsx";
 import { cn } from "./cn.ts";
+import { tx } from "../../i18n/index.ts";
 
 export type EmptyStateProps = {
   title: ReactNode;
@@ -43,7 +44,7 @@ export function ErrorState({
   message,
   code,
   onRetry,
-  retryLabel = "फिर से कोशिश करें",
+  retryLabel = tx("फिर से कोशिश करें"),
   className,
 }: ErrorStateProps) {
   return (
@@ -76,7 +77,7 @@ export type SkeletonProps = {
 };
 
 /** Placeholder lines while content loads. The animation stops under reduced motion. */
-export function Skeleton({ lines = 3, label = "लोड हो रहा है…", className }: SkeletonProps) {
+export function Skeleton({ lines = 3, label = tx("लोड हो रहा है…"), className }: SkeletonProps) {
   return (
     <div role="status" aria-busy="true" className={cn("flex flex-col gap-3", className)}>
       <span className="sr-only">{label}</span>

@@ -6,6 +6,7 @@ import { CreditsChip } from "./CreditsChip.tsx";
 import { UpdateButton } from "./UpdateButton.tsx";
 import { ConfirmDialog } from "./ui/index.ts";
 import type { LegacyUser } from "../App.tsx";
+import { tx } from "../i18n/index.ts";
 
 type Props = {
   instituteName: string;

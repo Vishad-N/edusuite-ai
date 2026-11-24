@@ -4,14 +4,15 @@ import { DocumentBar } from "./DocumentBar.tsx";
 import { AiGenerate } from "./AiGenerate.tsx";
 import { LessonPlanOutputSchema } from "@edusuite/shared";
 import { Button, ConfirmDialog, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
+import { tx } from "../i18n/index.ts";
 
-const DURATIONS = [
-  { value: 3, label: "3 दिन (क्रैश मॉड्यूल)" },
-  { value: 5, label: "5 दिन (सामान्य 1 सप्ताह)" },
-  { value: 8, label: "8 दिन (विस्तृत)" },
-];
+const DURATIONS = () => ([
+  { value: 3, label: tx("3 दिन (क्रैश मॉड्यूल)") },
+  { value: 5, label: tx("5 दिन (सामान्य 1 सप्ताह)") },
+  { value: 8, label: tx("8 दिन (विस्तृत)") },
+]);
 
-const blankDay = (n) => ({ day: `दिन ${n}`, topic: "", activities: "", homework: "" });
+const blankDay = (n) => ({ day: tx("दिन {0}", [n]), topic: "", activities: "", homework: "" });
 
 export default function LessonPlanner({ activeInstitute }) {
   const [subject, setSubject] = useState("");
@@ -43,7 +44,7 @@ export default function LessonPlanner({ activeInstitute }) {
     const parsed = LessonPlanOutputSchema.safeParse(result);
     if (!parsed.success) return;
     setObjectivesText(parsed.data.objectives.join("\n"));
-    setSchedule(parsed.data.days.map((d, i) => ({ day: `दिन ${i + 1}`, ...d })));
+    setSchedule(parsed.data.days.map((d, i) => ({ day: tx("दिन {0}", [i + 1]), ...d })));
     setDayIndex(0);
     if (!docTitle.trim() && chapter.trim()) setDocTitle(chapter.trim());
   };
@@ -75,16 +76,16 @@ export default function LessonPlanner({ activeInstitute }) {
     <div className="space-y-6">
       <PageHeader
         icon={<BookOpen className="size-6" />}
-        title="लेसन प्लान & टीचर नोट्स"
+        title={tx("लेसन प्लान & टीचर नोट्स")}
         badge="Pedagogy"
-        description="अध्याय के सीखने के लक्ष्य, दिन-वार कक्षा गतिविधियाँ और होमवर्क लिखें, सेव करें और बाद में फिर से खोलें।"
+        description={tx("अध्याय के सीखने के लक्ष्य, दिन-वार कक्षा गतिविधियाँ और होमवर्क लिखें, सेव करें और बाद में फिर से खोलें।")}
         actions={
           <>
             <Button icon={copied ? <Check className="size-4" /> : <Copy className="size-4" />} onClick={() => void handleCopy()}>
-              {copied ? "कॉपी हो गया!" : "लेसन प्लान कॉपी करें"}
+              {copied ? tx("कॉपी हो गया!") : tx("लेसन प्लान कॉपी करें")}
             </Button>
             <Button variant="primary" icon={<Printer className="size-4" />} onClick={() => window.print()}>
-              प्रिंट करें
+              {tx("प्रिंट करें")}
             </Button>
           </>
         }
@@ -120,21 +121,21 @@ export default function LessonPlanner({ activeInstitute }) {
         {/* Input Panel */}
         <div className="lg:col-span-5 space-y-4 no-print">
           <div className="space-y-4 rounded-card border border-line bg-surface p-4 text-ink">
-            <h3 className="text-label font-semibold">पाठ्यक्रम की जानकारी</h3>
-            <Field label="अध्याय / यूनिट">
-              <Input value={chapter} onChange={(e) => setChapter(e.target.value)} placeholder="उदा. विद्युत चुंबकीय प्रेरण" />
+            <h3 className="text-label font-semibold">{tx("पाठ्यक्रम की जानकारी")}</h3>
+            <Field label={tx("अध्याय / यूनिट")}>
+              <Input value={chapter} onChange={(e) => setChapter(e.target.value)} placeholder={tx("उदा. विद्युत चुंबकीय प्रेरण")} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="विषय">
-                <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="उदा. भौतिकी" />
+              <Field label={tx("विषय")}>
+                <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={tx("उदा. भौतिकी")} />
               </Field>
-              <Field label="क्लास / बैच">
-                <Input value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="उदा. कक्षा 12" />
+              <Field label={tx("क्लास / बैच")}>
+                <Input value={grade} onChange={(e) => setGrade(e.target.value)} placeholder={tx("उदा. कक्षा 12")} />
               </Field>
             </div>
-            <Field label="पढ़ाने के कुल दिन">
+            <Field label={tx("पढ़ाने के कुल दिन")}>
               <Select value={durationDays} onChange={(e) => setDurationDays(Number(e.target.value))}>
-                {(DURATIONS.some((d) => d.value === durationDays) ? DURATIONS : [{ value: durationDays, label: `${durationDays} दिन` }, ...DURATIONS]).map((d) => (
+                {(DURATIONS().some((d) => d.value === durationDays) ? DURATIONS() : [{ value: durationDays, label: tx("{0} दिन", [durationDays]) }, ...DURATIONS()]).map((d) => (
                   <option key={d.value} value={d.value}>
                     {d.label}
                   </option>
@@ -142,19 +143,19 @@ export default function LessonPlanner({ activeInstitute }) {
               </Select>
             </Field>
             <div className="space-y-3 rounded-control border border-line p-3">
-              <p className="text-label font-semibold">AI से लेसन प्लान बनाएँ</p>
-              <Field label="किस पर ज़ोर दें (वैकल्पिक)" hint="जैसे: परीक्षा के आंकिक प्रश्न, प्रयोग, कमज़ोर छात्रों के लिए दोहराव">
+              <p className="text-label font-semibold">{tx("AI से लेसन प्लान बनाएँ")}</p>
+              <Field label={tx("किस पर ज़ोर दें (वैकल्पिक)")} hint={tx("जैसे: परीक्षा के आंकिक प्रश्न, प्रयोग, कमज़ोर छात्रों के लिए दोहराव")}>
                 <Input value={focus} maxLength={500} onChange={(e) => setFocus(e.target.value)} />
               </Field>
-              <Field label="भाषा">
+              <Field label={tx("भाषा")}>
                 <Select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)}>
-                  <option value="hi">हिन्दी</option>
+                  <option value="hi">{tx("हिन्दी")}</option>
                   <option value="en">English</option>
-                  <option value="both">हिन्दी + English शब्द</option>
+                  <option value="both">{tx("हिन्दी + English शब्द")}</option>
                 </Select>
               </Field>
               <AiGenerate
-                label="AI से लेसन प्लान बनाएँ"
+                label={tx("AI से लेसन प्लान बनाएँ")}
                 build={() =>
                   chapter.trim().length >= 2 && subject.trim().length >= 2
                     ? {
@@ -172,33 +173,33 @@ export default function LessonPlanner({ activeInstitute }) {
                 }
                 confirmReplace={
                   hasWrittenDays || objectives.length > 0
-                    ? { title: "लिखी योजना बदल जाएगी", message: "AI का लेसन प्लान अभी लिखे सीखने के लक्ष्य और दिन-वार योजना की जगह ले लेगा।" }
+                    ? { title: tx("लिखी योजना बदल जाएगी"), message: tx("AI का लेसन प्लान अभी लिखे सीखने के लक्ष्य और दिन-वार योजना की जगह ले लेगा।") }
                     : null
                 }
                 onResult={fillFromAi}
-                hint="पहले अध्याय, विषय और दिन चुनें। AI की योजना भरी जाएगी, सेव नहीं होगी; जाँचकर बदलें।"
+                hint={tx("पहले अध्याय, विषय और दिन चुनें। AI की योजना भरी जाएगी, सेव नहीं होगी; जाँचकर बदलें।")}
               />
             </div>
             <Button className="w-full" icon={<Sparkles className="size-4" />} onClick={() => (hasWrittenDays ? setConfirmTemplate(true) : handleTemplate())}>
-              खाली दिन-वार ढाँचा बनाएँ (मुफ़्त)
+              {tx("खाली दिन-वार ढाँचा बनाएँ (मुफ़्त)")}
             </Button>
             <ConfirmDialog
               open={confirmTemplate}
-              title="लिखे हुए दिन हट जाएँगे"
-              message={`नया ढाँचा ${durationDays} खाली दिन बनाएगा और अभी लिखी दिन-वार योजना हटा देगा। आगे बढ़ें?`}
-              confirmLabel="हाँ, नया ढाँचा बनाएँ"
+              title={tx("लिखे हुए दिन हट जाएँगे")}
+              message={tx("नया ढाँचा {0} खाली दिन बनाएगा और अभी लिखी दिन-वार योजना हटा देगा। आगे बढ़ें?", [durationDays])}
+              confirmLabel={tx("हाँ, नया ढाँचा बनाएँ")}
               tone="danger"
               onConfirm={handleTemplate}
               onCancel={() => setConfirmTemplate(false)}
             />
-            <Field label="सीखने के लक्ष्य" hint="हर लाइन एक लक्ष्य">
+            <Field label={tx("सीखने के लक्ष्य")} hint={tx("हर लाइन एक लक्ष्य")}>
               <Textarea rows={4} value={objectivesText} onChange={(e) => setObjectivesText(e.target.value)} />
             </Field>
           </div>
 
           <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-label font-semibold">दिन-वार योजना लिखें</h3>
+              <h3 className="text-label font-semibold">{tx("दिन-वार योजना लिखें")}</h3>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -209,7 +210,7 @@ export default function LessonPlanner({ activeInstitute }) {
                     setDayIndex(schedule.length);
                   }}
                 >
-                  नया दिन
+                  {tx("नया दिन")}
                 </Button>
                 <Button
                   size="sm"
@@ -221,32 +222,32 @@ export default function LessonPlanner({ activeInstitute }) {
                     setDayIndex((i) => Math.max(0, i - 1));
                   }}
                 >
-                  दिन हटाएँ
+                  {tx("दिन हटाएँ")}
                 </Button>
               </div>
             </div>
-            <Field label="दिन चुनें">
+            <Field label={tx("दिन चुनें")}>
               <Select value={dayIndex} onChange={(e) => setDayIndex(Number(e.target.value))}>
                 {schedule.map((d, i) => (
                   <option key={i} value={i}>
-                    {d.day || `दिन ${i + 1}`}
+                    {d.day || tx("दिन {0}", [i + 1])}
                     {d.topic && ` · ${d.topic}`}
                   </option>
                 ))}
               </Select>
             </Field>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Field label="दिन / पीरियड">
+              <Field label={tx("दिन / पीरियड")}>
                 <Input value={currentDay.day} onChange={(e) => setCurrentDay({ ...currentDay, day: e.target.value })} />
               </Field>
-              <Field label="टॉपिक" className="sm:col-span-2">
+              <Field label={tx("टॉपिक")} className="sm:col-span-2">
                 <Input value={currentDay.topic} onChange={(e) => setCurrentDay({ ...currentDay, topic: e.target.value })} />
               </Field>
             </div>
-            <Field label="कक्षा गतिविधियाँ">
+            <Field label={tx("कक्षा गतिविधियाँ")}>
               <Textarea rows={3} value={currentDay.activities} onChange={(e) => setCurrentDay({ ...currentDay, activities: e.target.value })} />
             </Field>
-            <Field label="होमवर्क / अभ्यास">
+            <Field label={tx("होमवर्क / अभ्यास")}>
               <Textarea rows={2} value={currentDay.homework} onChange={(e) => setCurrentDay({ ...currentDay, homework: e.target.value })} />
             </Field>
           </div>
@@ -258,21 +259,21 @@ export default function LessonPlanner({ activeInstitute }) {
             <div>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="rounded-control border border-line bg-page px-2 py-0.5 text-caption font-semibold text-muted">
-                  {[subject, grade].filter(Boolean).join(" • ") || "विषय • क्लास"}
+                  {[subject, grade].filter(Boolean).join(" • ") || tx("विषय • क्लास")}
                 </span>
                 <span className="text-caption text-muted">{activeInstitute.name}</span>
               </div>
-              <h2 className="mt-1 text-title font-bold">{chapter || "अध्याय का नाम"}</h2>
+              <h2 className="mt-1 text-title font-bold">{chapter || tx("अध्याय का नाम")}</h2>
             </div>
 
             {/* Learning Objectives Box */}
             <div className="space-y-2 rounded-card border border-line bg-page p-4">
               <div className="flex items-center gap-2 text-label font-semibold">
                 <FileCheck className="size-4" aria-hidden="true" />
-                सीखने के लक्ष्य
+                {tx("सीखने के लक्ष्य")}
               </div>
               {objectives.length === 0 ? (
-                <p className="text-caption text-muted">अभी कोई लक्ष्य नहीं लिखा।</p>
+                <p className="text-caption text-muted">{tx("अभी कोई लक्ष्य नहीं लिखा।")}</p>
               ) : (
                 <ul className="grid grid-cols-1 gap-2 text-label md:grid-cols-2">
                   {objectives.map((obj, i) => (
@@ -287,7 +288,7 @@ export default function LessonPlanner({ activeInstitute }) {
 
             {/* Day Wise Timeline Cards */}
             <div className="space-y-3">
-              <div className="text-label font-semibold text-muted">दिन-वार योजना</div>
+              <div className="text-label font-semibold text-muted">{tx("दिन-वार योजना")}</div>
               {schedule.map((item, idx) => (
                 <div key={idx} className="space-y-2 rounded-card border border-line p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -296,12 +297,12 @@ export default function LessonPlanner({ activeInstitute }) {
                   </div>
                   {item.activities && (
                     <p className="text-label whitespace-pre-wrap">
-                      <strong>कक्षा में:</strong> {item.activities}
+                      <strong>{tx("कक्षा में:")}</strong> {item.activities}
                     </p>
                   )}
                   {item.homework && (
                     <p className="rounded-control border border-line bg-accent-subtle p-2 text-label whitespace-pre-wrap">
-                      <strong>होमवर्क / अभ्यास:</strong> {item.homework}
+                      <strong>{tx("होमवर्क / अभ्यास:")}</strong> {item.homework}
                     </p>
                   )}
                 </div>

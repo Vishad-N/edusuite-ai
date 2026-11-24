@@ -10,6 +10,7 @@ import type {
   PlatformInstitute,
 } from "@edusuite/shared";
 import { useSession } from "./session.tsx";
+import { tx } from "../i18n/index.ts";
 
 /** The signed-in institute's credit balance and prices (DN-053). */
 export function useCredits(enabled = true) {
@@ -64,17 +65,17 @@ export function useSetPrice() {
   });
 }
 
-/** Hindi names of AI job types, for prices and history. */
+/** Names of AI job types, for prices and history; getters so they follow the UI language (DN-064). */
 export const JOB_TYPE_LABELS: Record<AiJobType, string> = {
-  ppt_outline: "लेक्चर PPT ढाँचा",
-  paper_generate: "टेस्ट पेपर",
-  mcq_extract: "स्क्रीनशॉट से MCQ (प्रति स्क्रीनशॉट)",
-  dpp_generate: "DPP",
-  lesson_plan: "लेसन प्लान",
-  doubt_solve: "डाउट हल",
-  youtube_meta: "YouTube टाइटल व विवरण",
-  notice_draft: "नोटिस",
-  book_chapter: "किताब अध्याय",
-  poster_copy: "पोस्टर टेक्स्ट",
-  deck_quiz: "PDF डेक से इंटरैक्टिव क्विज़",
+  get ppt_outline() { return tx("लेक्चर PPT ढाँचा"); },
+  get paper_generate() { return tx("टेस्ट पेपर"); },
+  get mcq_extract() { return tx("स्क्रीनशॉट से MCQ (प्रति स्क्रीनशॉट)"); },
+  get dpp_generate() { return "DPP"; },
+  get lesson_plan() { return tx("लेसन प्लान"); },
+  get doubt_solve() { return tx("डाउट हल"); },
+  get youtube_meta() { return tx("YouTube टाइटल व विवरण"); },
+  get notice_draft() { return tx("नोटिस"); },
+  get book_chapter() { return tx("किताब अध्याय"); },
+  get poster_copy() { return tx("पोस्टर टेक्स्ट"); },
+  get deck_quiz() { return tx("PDF डेक से इंटरैक्टिव क्विज़"); },
 };

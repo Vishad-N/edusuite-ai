@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
+import { tx } from "../i18n/index.ts";
 
 type UpdateStatus = { state: string; version?: string | null; percent?: number };
 type UpdateBridge = {
@@ -33,10 +34,10 @@ export function UpdateButton() {
       type="button"
       onClick={() => void bridge.install()}
       className="flex items-center gap-1.5 rounded-lg border border-emerald-400/60 bg-emerald-500/15 px-2 py-1 text-[11px] font-semibold text-emerald-200 cursor-pointer hover:bg-emerald-500/25"
-      title="नया संस्करण डाउनलोड हो चुका है। ऐप दोबारा शुरू होकर अपडेट हो जाएगा।"
+      title={tx("नया संस्करण डाउनलोड हो चुका है। ऐप दोबारा शुरू होकर अपडेट हो जाएगा।")}
     >
       <RefreshCw className="w-3 h-3" aria-hidden="true" />
-      अपडेट तैयार{status.version ? ` (${status.version})` : ""}: दोबारा शुरू करें
+      {tx("अपडेट तैयार")}{status.version ? ` (${status.version})` : ""}{tx(": दोबारा शुरू करें")}
     </button>
   );
 }

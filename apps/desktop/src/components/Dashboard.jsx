@@ -23,6 +23,7 @@ import { useDashboardStats } from "../api/stats.ts";
 import { ApiError } from "../api/client.ts";
 import { RecentDocuments } from "./RecentDocuments.tsx";
 import { ErrorState, Skeleton } from "./ui/index.ts";
+import { tx, uiLocale } from "../i18n/index.ts";
 
 export default function Dashboard({ activeInstitute, onNavigate, t, currentUser }) {
   const user = useSignedInUser();
@@ -33,11 +34,11 @@ export default function Dashboard({ activeInstitute, onNavigate, t, currentUser 
   const allTools = [
     {
       id: "ocr_ppt",
-      title: t.toolScreenshotPptTitle || "स्क्रीनशॉट से स्मार्टबोर्ड PPT मेकर (Bulk OCR)",
-      subtitle: t.toolScreenshotPptSub || "टीचर के 30+ प्रश्नों के स्क्रीनशॉट अपलोड करें, AI टेक्स्ट और 4 विकल्प पहचानकर स्मार्टबोर्ड PPT बनाएगा",
+      title: t.toolScreenshotPptTitle || tx("स्क्रीनशॉट से स्मार्टबोर्ड PPT मेकर (Bulk OCR)"),
+      subtitle: t.toolScreenshotPptSub || tx("टीचर के 30+ प्रश्नों के स्क्रीनशॉट अपलोड करें, AI टेक्स्ट और 4 विकल्प पहचानकर स्मार्टबोर्ड PPT बनाएगा"),
       icon: Camera,
-      badge: "★ टीचर स्पेशल",
-      actionText: t.toolScreenshotPptAction || "स्क्रीनशॉट अपलोड करें",
+      badge: tx("★ टीचर स्पेशल"),
+      actionText: t.toolScreenshotPptAction || tx("स्क्रीनशॉट अपलोड करें"),
       color: "text-amber-700 bg-amber-50 border-amber-300 ring-2 ring-amber-400/30",
     },
     {
@@ -156,7 +157,7 @@ export default function Dashboard({ activeInstitute, onNavigate, t, currentUser 
                 className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-black text-xs shadow-md transition transform active:scale-95"
               >
                 <GraduationCap className="w-4 h-4 text-amber-600" />
-                <span>👨‍🏫 शिक्षक पोर्टल</span>
+                <span>{tx("👨‍🏫 शिक्षक पोर्टल")}</span>
               </button>
             )}
             {allowed.has("ocr_ppt") && (
@@ -165,7 +166,7 @@ export default function Dashboard({ activeInstitute, onNavigate, t, currentUser 
                 className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-lg shadow-amber-400/20 transition transform active:scale-95"
               >
                 <Camera className="w-4 h-4 text-slate-950" />
-                <span>📸 स्क्रीनशॉट से PPT</span>
+                <span>{tx("📸 स्क्रीनशॉट से PPT")}</span>
               </button>
             )}
             {allowed.has("youtube") && (
@@ -199,10 +200,10 @@ export default function Dashboard({ activeInstitute, onNavigate, t, currentUser 
             </div>
             <div>
               <h4 className="font-black text-sm text-slate-900">
-                सुपर एडमिन कंट्रोल पैनल (Master Control)
+                {tx("सुपर एडमिन कंट्रोल पैनल (Master Control)")}
               </h4>
               <p className="text-xs text-slate-600">
-                संस्थान के सभी शिक्षकों, DTP टाइपिस्ट व स्टाफ के अकाउंट्स, पासवर्ड्स व अनुमतियां (Permissions) प्रबंधित करें।
+                {tx("संस्थान के सभी शिक्षकों, DTP टाइपिस्ट व स्टाफ के अकाउंट्स, पासवर्ड्स व अनुमतियां (Permissions) प्रबंधित करें।")}
               </p>
             </div>
           </div>
@@ -210,7 +211,7 @@ export default function Dashboard({ activeInstitute, onNavigate, t, currentUser 
             onClick={() => onNavigate("users")}
             className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-black text-xs shadow-md transition transform active:scale-95 cursor-pointer whitespace-nowrap"
           >
-            👑 यूजर प्रबंधन खोलें →
+            {tx("👑 यूजर प्रबंधन खोलें →")}
           </button>
         </div>
       )}
@@ -220,7 +221,7 @@ export default function Dashboard({ activeInstitute, onNavigate, t, currentUser 
         <Skeleton lines={3} />
       ) : stats.isError ? (
         <ErrorState
-          title="आँकड़े लोड नहीं हुए"
+          title={tx("आँकड़े लोड नहीं हुए")}
           message={stats.error instanceof ApiError ? stats.error.message : undefined}
           onRetry={() => void stats.refetch()}
         />
@@ -229,13 +230,13 @@ export default function Dashboard({ activeInstitute, onNavigate, t, currentUser 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               {
-                label: "सेव किए गए दस्तावेज़",
+                label: tx("सेव किए गए दस्तावेज़"),
                 value: stats.data.totals.total,
-                detail: wholeInstitute ? "पूरे संस्थान में" : "आपकी शाखा में",
+                detail: wholeInstitute ? tx("पूरे संस्थान में") : tx("आपकी शाखा में"),
                 icon: FileText,
               },
-              { label: "मेरे दस्तावेज़", value: stats.data.totals.mine, detail: "आपके बनाए हुए", icon: CheckCircle2 },
-              { label: "पिछले 7 दिन", value: stats.data.totals.last7Days, detail: "नए बने या बदले गए", icon: Clock },
+              { label: tx("मेरे दस्तावेज़"), value: stats.data.totals.mine, detail: tx("आपके बनाए हुए"), icon: CheckCircle2 },
+              { label: tx("पिछले 7 दिन"), value: stats.data.totals.last7Days, detail: tx("नए बने या बदले गए"), icon: Clock },
             ].map((stat) => {
               const Icon = stat.icon;
               return (
@@ -244,7 +245,7 @@ export default function Dashboard({ activeInstitute, onNavigate, t, currentUser 
                     <span className="text-label font-semibold text-muted">{stat.label}</span>
                     <Icon className="size-4 text-muted" aria-hidden="true" />
                   </div>
-                  <div className="text-heading font-black">{stat.value.toLocaleString("hi-IN")}</div>
+                  <div className="text-heading font-black">{stat.value.toLocaleString(uiLocale())}</div>
                   <div className="mt-1 text-caption text-muted">{stat.detail}</div>
                 </div>
               );
@@ -252,11 +253,11 @@ export default function Dashboard({ activeInstitute, onNavigate, t, currentUser 
           </div>
 
           <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
-            <h2 className="text-label font-semibold">हाल के दस्तावेज़</h2>
+            <h2 className="text-label font-semibold">{tx("हाल के दस्तावेज़")}</h2>
             <RecentDocuments
               items={stats.data.recent}
-              emptyTitle="अभी कुछ सेव नहीं हुआ"
-              emptyDescription="किसी भी टूल में काम करके “सेव करें” दबाएँ; वह यहाँ दिखेगा।"
+              emptyTitle={tx("अभी कुछ सेव नहीं हुआ")}
+              emptyDescription={tx("किसी भी टूल में काम करके “सेव करें” दबाएँ; वह यहाँ दिखेगा।")}
             />
           </div>
         </>
