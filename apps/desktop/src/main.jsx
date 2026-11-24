@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.tsx'
 import { SessionProvider, resolveApiBaseUrl } from './api/session.tsx'
 import { ToastProvider } from './components/ui/index.ts'
+import { AppCrashed, ErrorBoundary } from './components/ErrorBoundary.tsx'
 
 // Development-only UI gallery at #ui-gallery. `import.meta.env.DEV` is false in
 // production builds, so the gallery is dropped from the bundle.
@@ -34,6 +35,7 @@ if (UiGallery) {
   resolveApiBaseUrl().then((apiBaseUrl) => {
     root.render(
       <StrictMode>
+        <ErrorBoundary fallback={() => <AppCrashed />}>
         <QueryClientProvider client={queryClient}>
           <SessionProvider apiBaseUrl={apiBaseUrl}>
             <ToastProvider>
@@ -41,6 +43,7 @@ if (UiGallery) {
             </ToastProvider>
           </SessionProvider>
         </QueryClientProvider>
+        </ErrorBoundary>
       </StrictMode>,
     )
   })

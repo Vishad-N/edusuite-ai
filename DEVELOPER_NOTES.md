@@ -18,6 +18,64 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-066 · Admin views: audit log and monthly AI usage (credits, not dollars)
+- **Date:** 2026-11-24
+- **Phase / area:** Checklist gap · `packages/shared/src/admin.ts`, `apps/api/src/audit/admin.controller.ts`, `apps/desktop/src/components/AuditUsage.tsx`, Sidebar, App, `permissions.ts` (screen `audit`)
+- **Status:** Decided by agent
+- **What was unclear:** The plan lists `GET /audit-logs` and `GET /usage?month=` under ADMIN, with "AI usage and audit log: Super ✓, Branch: branch". It doesn't say what a branch admin's slice is (audit rows have no branch column), or whether institutes see what AI costs EduSuite.
+- **Decision:**
+  - **Both need `audit.view`.**
+    - A super admin sees the whole institute.
+    - A branch admin sees audit rows whose **actor's home branch** is theirs, and AI jobs started by their branch's staff.
+    - Other institutes are never visible.
+  - **`GET /audit-logs`:** filter by action group (auth, user, document, receipt, student, ai, credits, institute, branch) and an IST date range, newest first, with cursor pages. Rows carry the actor's name and employee code and the stored meta (field names, ids, amounts; never secrets, AGENT_README §8).
+  - **`GET /usage?month=YYYY-MM`** (IST month; current by default): per job type, jobs started, finished, failed and stopped, and **credits kept** (charged minus refunded, from the ledger). Claude's dollar cost (`ai_usage.cost_usd`) is not shown to institutes: they buy credits, and the dollar cost is EduSuite's business.
+  - **Screen "AI उपयोग और ऑडिट लॉग"** (admins only):
+    - **usage tab:** month picker and a table with a totals row, and a note that refunded credits don't count
+    - **audit tab:** group and date filters, a table with plain-language action names (unknown actions show their code) and short details, and "show more"
+- **Verified:** API 115 tests in all, including 3 new admin tests:
+  - **Access:** teachers and counselors get 403; anonymous gets 401.
+  - **Scope:** the super admin sees the second branch's student change, a branch admin doesn't, and the other institute sees none of ours. No "password" appears in any meta.
+  - **Filters and paging:** group and date filters, no overlap between pages, a bad cursor gives 400.
+  - **Usage:** a stopped job counts as stopped with its credit not kept; totals match the rows; branch scope for a branch admin; month 2026-13 gives 400.
+
+  End-to-end in Electron as the super admin:
+  - the usage row reads "लेक्चर PPT ढाँचा 3 2 0 1 2"
+  - the audit log shows "AI काम रोका" (AI job stopped)
+  - the receipt filter shows only receipt actions
+- **Revisit if:** institutes want CSV export of the audit log, or EduSuite wants institutes to see a cost estimate.
+
+### DN-065 · Checklist gaps: crash screen, AI job cancel, AI rate limit, per-job model, dev:all, local installer, runbook
+- **Date:** 2026-11-24
+- **Phase / area:** master prompt §3–4 and AGENT_README §7, §10 · `apps/desktop/src/{components/{ErrorBoundary,AiGenerate}.tsx,api/ai.ts,App.tsx,main.jsx}`, `apps/api/src/{ai/{jobs.service,jobs.controller,processor,queue,runner}.ts,config/env.ts,app.module.ts,auth/guards.ts}`, `scripts/{dev-all,dist-nsis-local}.mjs`, `infra/{docker-compose.yml,docker-compose.local.yml,.env.example}`, `docs/runbooks/local-testing.md`, `AGENT_README.md` §10
+- **Status:** Decided by agent (developer asked for the gaps that need no decisions)
+- **What was unclear:** A check of the plan against the code (2026-11-24) found these gaps, plus some that need the developer: Playwright e2e, Sentry, OpenAPI (new packages), and live AI or server items.
+- **Decision:**
+  - **Crash screen:** an error boundary per tool screen replaces only that screen with "यह स्क्रीन नहीं खुल पाई" (this screen couldn't open), "फिर से कोशिश करें" (try again) and "डैशबोर्ड पर जाएँ" (go to the dashboard). The header and sidebar keep working, and moving to another screen clears it. A whole-window fallback ("ऐप दोबारा लोड करें", reload the app) covers the router and providers. Error details go to the console only, because they may contain student data and there's no reporting service yet (Sentry needs approval).
+  - **Cancelling AI jobs:**
+    - `POST /ai/jobs/:id/cancel`, for the starter or an admin (others get 404). It stops a queued or running job, refunds its credits once and is audited. A finished job answers 409 `AI_JOB_FINISHED`.
+    - The worker's status changes are conditional, so a cancelled job stays cancelled: a late result is dropped, a pending retry doesn't happen, and a failure doesn't overwrite it. Claude's usage is still recorded, because it was paid for.
+    - The queue entry is removed when possible.
+    - Every AI box's progress bar shows "रोकें" (stop) while the job runs.
+  - **AI rate limit:** at most `AI_RATE_LIMIT` (default 20) job starts per minute **per signed-in session**, not per IP, because a whole office shares one IP. The throttler runs before auth, so it keys on a SHA-256 of the bearer token. Credits still cap spending.
+  - **Model per job type:** `AI_MODEL_<JOB_TYPE>` (e.g. `AI_MODEL_DECK_QUIZ`) overrides `AI_MODEL` for that job; blank means no override. The worker's compose block passes all eleven through.
+  - **`npm run dev:all`:** checks `.env.local`, starts the stack, waits for `/ready`, starts Vite, then opens Electron on it pointed at the local API. Ctrl+C stops Vite and Electron; the stack keeps running.
+  - **`npm run dist:nsis:local`:** an unsigned one-click per-user installer pointed at the local API, never published, in `apps/desktop/release-local/` (git-ignored).
+  - **Also added:** `npm run backup`, `restore:drill` and `load`.
+  - **Recorded AI answers:** the local worker mounts `apps/api/fixtures` from the repo. Before this, `AI_MODE=record` wrote inside the container and the answers were lost.
+  - **`docs/runbooks/local-testing.md`** rewritten for all six phases: first run, what to try per role, fixture vs live AI, backups and the restore drill, the load test, the test installer, checks and troubleshooting. `AGENT_README.md` §10 gained the new commands; nothing else in that document changed.
+  - **Not built, on purpose:**
+    - `POST /documents/:id/export`: PPTX and motion files are made in the app from the saved document. Server-side export would need `pptxgenjs` in the worker, with no gain while files are made on the PC.
+    - `GET /students/:id/id-card`: the card prints from the student record (DN-061).
+- **Verified:**
+  - Tests: API 115 (cancel queued with refund once, then the worker skips it; cancel while Claude works keeps the status, drops the result, keeps the usage, refunds once; admin may cancel, others 404, finished 409; 4th job in a minute is 429 for one session while another session on the same IP is fine; per-job model). Desktop 42, shared 51; typecheck and lint pass; compose validates.
+  - **Commands:** `dev:all` ran all three steps (stack ready, Vite up, Electron launched). `dist:nsis:local` produced `EduSuite-AI-Setup-1.0.0.exe` (one-click, per-user, 124 MB). The worker can write `/repo/apps/api/fixtures/ai`.
+  - **End-to-end** in Electron as the super admin:
+    - **Crash screen:** a forced crash on the dashboard shows the fallback with the sidebar still there, and "फिर से कोशिश करें" brings the dashboard back.
+    - **Cancel:** with the worker stopped, a PPT job charges 1 credit; "रोकें" shows "रोक दिया गया" (stopped) and the chip returns to the starting balance.
+- **Not verified:** `dev:all` with no other copy of the app open (a second copy closes at once by design); a live Claude run (`record` mode).
+- **Revisit if:** Sentry is approved (send the boundary's errors there), or many staff share one login session (then rate-limit per user id after auth).
+
 ### DN-064 · The English switch reaches every screen: Hindi source text + `tx()` + one English dictionary
 - **Date:** 2026-11-24
 - **Phase / area:** UI language · `apps/desktop/src/i18n/{index.ts,en.ts,labels.ts,keys.mjs,en.test.mjs}`, every screen and shared component (33 files)

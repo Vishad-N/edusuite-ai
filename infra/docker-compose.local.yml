@@ -29,3 +29,6 @@ services:
       NODE_ENV: development
       # Fixture mode unless infra/.env.local sets AI_MODE=live and a key (DN-012).
       AI_MODE: ${AI_MODE:-fixture}
+    # Recorded answers (AI_MODE=record) land in the repo, and fixture mode replays them (DN-065).
+    volumes:
+      - ../apps/api/fixtures:/repo/apps/api/fixtures

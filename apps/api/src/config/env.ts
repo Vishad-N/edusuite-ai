@@ -44,6 +44,8 @@ const EnvSchema = z
     AI_MODEL: z.string().default("claude-opus-5-5"),
     /** Jobs one worker runs at the same time. */
     AI_CONCURRENCY: z.coerce.number().int().min(1).max(20).default(2),
+    /** AI jobs one signed-in session may start per minute (DN-065); credits still cap spending. */
+    AI_RATE_LIMIT: z.coerce.number().int().positive().default(20),
     /** Where recorded fixtures live: <dir>/<jobType>/<sha256 of input>.json */
     AI_FIXTURES_DIR: z.string().default("fixtures/ai"),
     /**
@@ -78,7 +80,15 @@ const EnvSchema = z
     }
   });
 
-export type Env = z.infer<typeof EnvSchema>;
+export type Env = z.infer<typeof EnvSchema> & {
+  /** Per-job model overrides from AI_MODEL_<JOB_TYPE> (AGENT_README §7), e.g. AI_MODEL_DECK_QUIZ. */
+  AI_MODEL_BY_JOB: Record<string, string>;
+};
+
+/** The model a job type runs on: its AI_MODEL_<JOB_TYPE> override, else AI_MODEL. */
+export function aiModelFor(env: Env, jobType: string): string {
+  return env.AI_MODEL_BY_JOB[jobType] ?? env.AI_MODEL;
+}
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   const parsed = EnvSchema.safeParse(source);
@@ -87,7 +97,12 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     const names = parsed.error.issues.map((i) => i.path.join(".")).join(", ");
     throw new Error(`Invalid environment: ${names}`);
   }
-  return parsed.data;
+  const byJob: Record<string, string> = {};
+  for (const [key, value] of Object.entries(source)) {
+    const m = /^AI_MODEL_([A-Z][A-Z_]*)$/.exec(key);
+    if (m && value?.trim()) byJob[m[1]!.toLowerCase()] = value.trim();
+  }
+  return { ...parsed.data, AI_MODEL_BY_JOB: byJob };
 }
 
 export const ENV = Symbol("ENV");

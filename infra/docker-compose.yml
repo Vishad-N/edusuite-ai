@@ -84,6 +84,7 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
       # Only reported to the app (fixture badge); the API never calls Claude itself.
       AI_MODE: ${AI_MODE:-live}
+      AI_RATE_LIMIT: ${AI_RATE_LIMIT:-20}
     depends_on:
       garage:
         condition: service_started
@@ -109,6 +110,18 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-claude-opus-5-5}
       AI_CONCURRENCY: ${AI_CONCURRENCY:-2}
+      # Optional per-job model overrides (DN-065); empty means AI_MODEL.
+      AI_MODEL_PPT_OUTLINE: ${AI_MODEL_PPT_OUTLINE:-}
+      AI_MODEL_PAPER_GENERATE: ${AI_MODEL_PAPER_GENERATE:-}
+      AI_MODEL_MCQ_EXTRACT: ${AI_MODEL_MCQ_EXTRACT:-}
+      AI_MODEL_DPP_GENERATE: ${AI_MODEL_DPP_GENERATE:-}
+      AI_MODEL_LESSON_PLAN: ${AI_MODEL_LESSON_PLAN:-}
+      AI_MODEL_DOUBT_SOLVE: ${AI_MODEL_DOUBT_SOLVE:-}
+      AI_MODEL_YOUTUBE_META: ${AI_MODEL_YOUTUBE_META:-}
+      AI_MODEL_NOTICE_DRAFT: ${AI_MODEL_NOTICE_DRAFT:-}
+      AI_MODEL_BOOK_CHAPTER: ${AI_MODEL_BOOK_CHAPTER:-}
+      AI_MODEL_POSTER_COPY: ${AI_MODEL_POSTER_COPY:-}
+      AI_MODEL_DECK_QUIZ: ${AI_MODEL_DECK_QUIZ:-}
     depends_on:
       migrate:
         condition: service_completed_successfully

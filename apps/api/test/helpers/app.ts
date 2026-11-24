@@ -24,7 +24,7 @@ export type TestApp = {
 };
 
 /** Fresh database with fixtures, and an app instance wired to it. */
-export async function startTestApp(extraControllers: Type[] = [], overrides: Provider[] = []): Promise<TestApp> {
+export async function startTestApp(extraControllers: Type[] = [], overrides: Provider[] = [], env: NodeJS.ProcessEnv = {}): Promise<TestApp> {
   const db = await prepareTestDatabase(testDatabaseUrl()!);
   const fx = await createFixtures(db);
   const app = await createApp(
@@ -33,6 +33,8 @@ export async function startTestApp(extraControllers: Type[] = [], overrides: Pro
       DATABASE_URL: testDatabaseUrl(),
       JWT_SECRET: "test-secret-that-is-at-least-32-characters-long",
       LOGIN_RATE_LIMIT: "1000",
+      AI_RATE_LIMIT: "1000",
+      ...env,
     }),
     extraControllers,
     overrides,

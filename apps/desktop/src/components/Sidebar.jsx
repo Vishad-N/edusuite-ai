@@ -18,6 +18,7 @@ import {
   Crown,
   Coins,
   ListChecks,
+  ScrollText,
 } from "lucide-react";
 import { initialsOf } from "../utils/branding.ts";
 import { tx } from "../i18n/index.ts";
@@ -48,6 +49,12 @@ export default function Sidebar({ activeTab, setActiveTab, t, allowedScreens, in
           id: "users",
           label: t.navUsers || tx("यूजर व स्टाफ प्रबंधन"),
           icon: Crown,
+          badge: "Admin",
+        },
+        {
+          id: "audit",
+          label: tx("AI उपयोग और ऑडिट लॉग"),
+          icon: ScrollText,
           badge: "Admin",
         },
         {

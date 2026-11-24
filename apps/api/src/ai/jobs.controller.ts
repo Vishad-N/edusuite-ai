@@ -12,6 +12,7 @@ import { ZodBody } from "../common/zodBody";
 import { ApiHttpException } from "../common/errors";
 import { AnySignedIn, CurrentUser, type AuthUser } from "../auth/authUser";
 import { JobsService } from "./jobs.service";
+import { AiRateLimited } from "../auth/guards";
 import { ENV, type Env } from "../config/env";
 
 const uuid = new ParseUUIDPipe({ version: "4", errorHttpStatusCode: 404 });
@@ -41,6 +42,7 @@ export class JobsController {
   }
 
   @Post("jobs")
+  @AiRateLimited()
   async create(
     @CurrentUser() actor: AuthUser,
     @Body(new ZodBody(AiJobCreateSchema)) body: AiJobCreate,
@@ -53,6 +55,12 @@ export class JobsController {
     const { job, created } = await this.jobs.create(actor, body, parsed.data, { ip: req.ip, acceptLanguage: req.headers["accept-language"] });
     reply.status(created ? 202 : 200);
     return job;
+  }
+
+  /** Stops a queued or running job and returns its credits (DN-065). */
+  @Post("jobs/:id/cancel")
+  cancel(@CurrentUser() actor: AuthUser, @Param("id", uuid) id: string, @Req() req: FastifyRequest): Promise<AiJob> {
+    return this.jobs.cancel(actor, id, { ip: req.ip, acceptLanguage: req.headers["accept-language"] });
   }
 
   @Get("jobs/:id")

@@ -10,6 +10,9 @@ import { verifyAccessToken } from "./crypto";
 /** Marks the routes the "login" rate limit applies to (see app.module.ts). */
 export const LOGIN_RATE_LIMITED = "edusuite:loginRateLimited";
 export const LoginRateLimited = () => SetMetadata(LOGIN_RATE_LIMITED, true);
+export const AI_RATE_LIMITED = "edusuite:aiRateLimited";
+/** Limits how many AI jobs one session starts per minute (DN-065). */
+export const AiRateLimited = () => SetMetadata(AI_RATE_LIMITED, true);
 
 /** Verifies the Bearer access token on every route not marked @Public(). */
 @Injectable()

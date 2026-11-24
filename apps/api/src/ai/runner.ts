@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import type { Env } from "../config/env";
+import { aiModelFor, type Env } from "../config/env";
 import type { ErrorCode } from "../common/errors";
 import type { JobContext, JobDefinition } from "./definitions";
 
@@ -94,7 +94,7 @@ export class AiRunner {
     const content = await def.user(input, ctx);
     try {
       const stream = this.client.beta.messages.stream({
-        model: this.env.AI_MODEL,
+        model: aiModelFor(this.env, def.type),
         max_tokens: def.maxTokens,
         // Refusal fallback (opt-in by default for claude-opus-5-5): a declined request is
         // re-run on a fallback model inside the same call.

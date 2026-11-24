@@ -18,14 +18,18 @@ import { fitYoutubeMeta } from "../src/ai/youtubeMeta";
 import { fitBookChapter } from "../src/ai/bookChapter";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { CreditsService } from "../src/credits/credits.service";
-import { loadEnv } from "../src/config/env";
+import { aiModelFor, loadEnv } from "../src/config/env";
 
 const skip = dbTestsSkipReason();
 
 /** Records queued ids instead of talking to Redis; can be told to fail. */
 class FakeQueue implements AiQueue {
   added: string[] = [];
+  removed: string[] = [];
   failNext = false;
+  async remove(id: string) {
+    this.removed.push(id);
+  }
   async add(id: string) {
     if (this.failNext) {
       this.failNext = false;
@@ -420,5 +424,84 @@ describe("AI jobs API (real Postgres)", { skip }, () => {
     // A doubt photo must be this institute's image.
     const pdf = await upload(teacher, "application/pdf", PDF());
     assert.equal((await start(teacher, randomUUID(), { type: "doubt_solve", input: { imageFileId: pdf } })).json().code, "AI_INPUT_FILE_INVALID");
+  });
+
+  test("cancelling: queued jobs stop and refund once; finished ones can't; others get 404", async () => {
+    const before = await balance(t.fx.instA.id);
+    const job = AiJobSchema.parse((await start(teacher, randomUUID())).json());
+    assert.equal((await t.call("POST", `/api/v1/ai/jobs/${job.id}/cancel`, typist)).statusCode, 404, "another staff member");
+    assert.equal((await t.call("POST", `/api/v1/ai/jobs/${job.id}/cancel`, otherAdmin)).statusCode, 404, "another institute");
+    const res = await t.call("POST", `/api/v1/ai/jobs/${job.id}/cancel`, teacher);
+    assert.equal(res.statusCode, 201);
+    assert.equal(AiJobSchema.parse(res.json()).status, "cancelled");
+    assert.equal(await balance(t.fx.instA.id), before, "refunded");
+    assert.deepEqual(queue.removed.slice(-1), [job.id]);
+    assert.equal(await processor.process(job.id, { attemptsMade: 0, maxAttempts: 3 }), "skipped", "the worker skips it");
+    const again = await t.call("POST", `/api/v1/ai/jobs/${job.id}/cancel`, teacher);
+    assert.equal(again.json().code, "AI_JOB_FINISHED");
+    assert.equal(await balance(t.fx.instA.id), before, "no second refund");
+
+    // An admin may cancel a teacher's job; a finished job can't be cancelled.
+    const done = AiJobSchema.parse((await start(teacher, randomUUID())).json());
+    await processor.process(done.id, { attemptsMade: 0, maxAttempts: 3 });
+    assert.equal((await t.call("POST", `/api/v1/ai/jobs/${done.id}/cancel`, ba)).statusCode, 409);
+    const other = AiJobSchema.parse((await start(teacher, randomUUID())).json());
+    assert.equal((await t.call("POST", `/api/v1/ai/jobs/${other.id}/cancel`, ba)).statusCode, 201);
+    assert.ok(await t.db.auditLog.findFirst({ where: { entityId: other.id, action: "ai.job.cancel" } }));
+  });
+
+  test("a job cancelled while Claude is working keeps its status; the late result is dropped, usage kept", async () => {
+    const before = await balance(t.fx.instA.id);
+    const job = AiJobSchema.parse((await start(teacher, randomUUID())).json());
+    const slow = {
+      mode: "live",
+      run: async (def: JobDefinition<never, unknown>, input: never, ctx: JobContext) => {
+        // Staff press "stop" while the call is in flight.
+        assert.equal((await t.call("POST", `/api/v1/ai/jobs/${job.id}/cancel`, teacher)).statusCode, 201);
+        return { output: def.fixture(input, ctx), fixture: false, usage: [{ model: "claude-opus-5-5", inputTokens: 10, outputTokens: 20, cacheReadTokens: 0, cacheWriteTokens: 0, costUsd: 0.0004 }] };
+      },
+    } as unknown as AiRunner;
+    const p = new AiProcessor(t.app.get(PrismaService), t.app.get(CreditsService), slow, storage);
+    assert.equal(await p.process(job.id, { attemptsMade: 0, maxAttempts: 3 }), "skipped");
+    const row = await t.db.aiJob.findUniqueOrThrow({ where: { id: job.id } });
+    assert.equal(row.status, "cancelled");
+    assert.equal(row.result, null);
+    assert.equal(await t.db.aiUsage.count({ where: { aiJobId: job.id } }), 1, "usage is still recorded");
+    assert.equal(await balance(t.fx.instA.id), before, "refunded exactly once");
+  });
+});
+
+describe("AI rate limit and per-job models (real Postgres)", { skip: dbTestsSkipReason() }, () => {
+  let t: TestApp;
+  const q = { add: async () => undefined, close: async () => undefined };
+  before(async () => {
+    t = await startTestApp([], [{ provide: AI_QUEUE, useValue: q }], { AI_RATE_LIMIT: "3" });
+    await t.call("POST", `/api/v1/platform/institutes/${t.fx.instA.id}/credits`, await t.token("P-PA"), { delta: 20, note: "test credits" });
+  });
+  after(async () => {
+    await t?.close();
+  });
+
+  test("each signed-in session may start AI_RATE_LIMIT jobs a minute; another session isn't affected", async () => {
+    const teacher = await t.token("A-T");
+    const typist = await t.token("A-TY");
+    const go = (token: string) =>
+      t.app.inject({
+        method: "POST",
+        url: "/api/v1/ai/jobs",
+        headers: { authorization: `Bearer ${token}`, "idempotency-key": randomUUID() },
+        payload: { type: "ppt_outline", input: { topic: "प्रकाश संश्लेषण" } },
+      });
+    const codes = [];
+    for (let i = 0; i < 4; i++) codes.push((await go(teacher)).statusCode);
+    assert.deepEqual(codes, [202, 202, 202, 429]);
+    assert.equal((await go(typist)).statusCode, 202, "same IP, other session: not limited");
+  });
+
+  test("AI_MODEL_<JOB_TYPE> overrides the model for that job only", () => {
+    const env = loadEnv({ NODE_ENV: "development", AI_MODEL: "claude-opus-5-5", AI_MODEL_DECK_QUIZ: "claude-sonnet-5-5", AI_MODEL_POSTER_COPY: " " });
+    assert.equal(aiModelFor(env, "deck_quiz"), "claude-sonnet-5-5");
+    assert.equal(aiModelFor(env, "poster_copy"), "claude-opus-5-5", "blank override is ignored");
+    assert.equal(aiModelFor(env, "ppt_outline"), "claude-opus-5-5");
   });
 });

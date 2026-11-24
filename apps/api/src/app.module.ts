@@ -8,7 +8,8 @@ import { PrismaService } from "./prisma/prisma.service";
 import { AuditService } from "./audit/audit.service";
 import { AuthController } from "./auth/auth.controller";
 import { AuthService } from "./auth/auth.service";
-import { AuthGuard, LOGIN_RATE_LIMITED, PermissionGuard } from "./auth/guards";
+import { AI_RATE_LIMITED, AuthGuard, LOGIN_RATE_LIMITED, PermissionGuard } from "./auth/guards";
+import { createHash } from "node:crypto";
 import { UsersController } from "./users/users.controller";
 import { UsersService } from "./users/users.service";
 import { InstitutesController } from "./institutes/institutes.controller";
@@ -26,6 +27,7 @@ import { JobsController } from "./ai/jobs.controller";
 import { JobsService } from "./ai/jobs.service";
 import { FeeReceiptsController, StudentsController } from "./students/students.controller";
 import { StudentsService } from "./students/students.service";
+import { AdminController } from "./audit/admin.controller";
 import { AI_QUEUE, BullMqAiQueue } from "./ai/queue";
 
 const MINUTE_MS = 60_000;
@@ -43,12 +45,25 @@ export class AppModule {
       imports: [
         ThrottlerModule.forRoot({
           throttlers: [
-            // Plan §09: login and refresh are limited per IP. Other routes are not limited here.
+            // Plan §09: login and refresh are limited per IP.
             {
               name: "login",
               ttl: MINUTE_MS,
               limit: env.LOGIN_RATE_LIMIT,
               skipIf: (ctx) => !reflector.get<boolean>(LOGIN_RATE_LIMITED, ctx.getHandler()),
+            },
+            // DN-065: starting AI jobs is limited per signed-in session, not per IP (a whole
+            // office shares one IP). The throttler runs before auth, so the key is a hash of the
+            // bearer token; a request without one falls back to the IP and is refused by auth anyway.
+            {
+              name: "ai",
+              ttl: MINUTE_MS,
+              limit: env.AI_RATE_LIMIT,
+              skipIf: (ctx) => !reflector.get<boolean>(AI_RATE_LIMITED, ctx.getHandler()),
+              getTracker: (req) => {
+                const auth = String(req.headers?.authorization ?? "");
+                return auth ? createHash("sha256").update(auth).digest("hex") : String(req.ip);
+              },
             },
           ],
         }),
@@ -66,6 +81,7 @@ export class AppModule {
         JobsController,
         StudentsController,
         FeeReceiptsController,
+        AdminController,
         ...extraControllers,
       ],
       providers: [

@@ -11,6 +11,8 @@ export const AI_JOB_ATTEMPTS = 3;
 /** What the API needs from the queue: hand over a job id. Tests swap in a fake. */
 export type AiQueue = {
   add: (aiJobId: string) => Promise<void>;
+  /** Best effort: drop a job that hasn't started; the worker skips cancelled jobs anyway. */
+  remove?: (aiJobId: string) => Promise<void>;
   close: () => Promise<void>;
 };
 
@@ -39,6 +41,14 @@ export class BullMqAiQueue implements AiQueue {
         removeOnFail: 5000,
       },
     );
+  }
+
+  async remove(aiJobId: string): Promise<void> {
+    try {
+      await this.queue?.remove(aiJobId);
+    } catch {
+      // Already running (locked) or gone: the worker sees the cancelled status.
+    }
   }
 
   async close(): Promise<void> {
