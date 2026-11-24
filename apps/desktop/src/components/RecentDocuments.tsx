@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router";
-import { DOCUMENT_SCREENS, DOCUMENT_TYPE_LABELS, type DocumentSummary } from "@edusuite/shared";
+import { DOCUMENT_SCREENS, type DocumentSummary } from "@edusuite/shared";
+import { documentTypeLabel } from "../i18n/labels.ts";
 import { Button, EmptyState } from "./ui/index.ts";
+import { tx, uiLocale } from "../i18n/index.ts";
 
-const when = (iso: string) => new Date(iso).toLocaleString("hi-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const when = (iso: string) => new Date(iso).toLocaleString(uiLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 /** A short list of saved documents; "खोलें" opens each in its own tool screen. */
 export function RecentDocuments({
@@ -25,12 +27,12 @@ export function RecentDocuments({
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold text-ink">{d.title}</p>
             <p className="text-caption text-muted">
-              {DOCUMENT_TYPE_LABELS[d.type]}
+              {documentTypeLabel(d.type)}
               {showAuthor && ` · ${d.createdBy.displayName}`} · {when(d.updatedAt)}
             </p>
           </div>
-          <Button size="sm" aria-label={`${d.title}: खोलें`} onClick={() => navigate(`/${DOCUMENT_SCREENS[d.type]}?open=${d.id}`)}>
-            खोलें
+          <Button size="sm" aria-label={tx("{0}: खोलें", [d.title])} onClick={() => navigate(`/${DOCUMENT_SCREENS[d.type]}?open=${d.id}`)}>
+            {tx("खोलें")}
           </Button>
         </li>
       ))}

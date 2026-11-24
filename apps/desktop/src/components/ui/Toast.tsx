@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import { cn } from "./cn.ts";
 import { ToastContext, type ToastInput, type ToastTone } from "./toastContext.ts";
+import { tx } from "../../i18n/index.ts";
 
 type ToastItem = { id: number; tone: ToastTone; title: string; description?: string };
 
@@ -12,7 +13,7 @@ const AUTO_DISMISS_MS = 6000;
  * Wrap the app once. Toasts appear bottom-right inside two live regions:
  * polite for success/info, assertive for errors, so screen readers announce them.
  */
-export function ToastProvider({ children, closeLabel = "सूचना बंद करें" }: { children: ReactNode; closeLabel?: string }) {
+export function ToastProvider({ children, closeLabel = tx("सूचना बंद करें") }: { children: ReactNode; closeLabel?: string }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const nextId = useRef(1);
 

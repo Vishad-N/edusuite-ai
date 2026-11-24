@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "./Button.tsx";
 import { cn } from "./cn.ts";
+import { tx } from "../../i18n/index.ts";
 
 export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
 
@@ -23,16 +24,16 @@ export type JobProgressProps = {
   className?: string;
 };
 
-const DEFAULT_LABELS: Record<JobStatus, string> & { cancel: string; retry: string; progress: string } = {
-  queued: "कतार में है…",
-  running: "बन रहा है…",
-  succeeded: "तैयार है",
-  failed: "नहीं बन सका",
-  cancelled: "रोक दिया गया",
-  cancel: "रोकें",
-  retry: "फिर से कोशिश करें",
-  progress: "प्रगति",
-};
+const DEFAULT_LABELS = (): Record<JobStatus, string> & { cancel: string; retry: string; progress: string } => ({
+  queued: tx("कतार में है…"),
+  running: tx("बन रहा है…"),
+  succeeded: tx("तैयार है"),
+  failed: tx("नहीं बन सका"),
+  cancelled: tx("रोक दिया गया"),
+  cancel: tx("रोकें"),
+  retry: tx("फिर से कोशिश करें"),
+  progress: tx("प्रगति"),
+});
 
 /**
  * Real job progress for AI work. The visible stage and status are in a
@@ -49,7 +50,7 @@ export function JobProgress({
   onRetry,
   className,
 }: JobProgressProps) {
-  const l = { ...DEFAULT_LABELS, ...labels };
+  const l = { ...DEFAULT_LABELS(), ...labels };
   const active = status === "queued" || status === "running";
   const pct = progress === undefined ? undefined : Math.round(Math.min(1, Math.max(0, progress)) * 100);
   const shownPct = status === "succeeded" ? 100 : pct;

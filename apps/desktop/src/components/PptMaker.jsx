@@ -13,6 +13,7 @@ import { generatePptxFile } from "../utils/pptxGenerator";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { AiGenerate } from "./AiGenerate.tsx";
 import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
+import { tx } from "../i18n/index.ts";
 
 /** A blank deck: one title slide to start from (no sample content, Phase 3). */
 function blankPresentation(topic, grade, subject) {
@@ -21,7 +22,7 @@ function blankPresentation(topic, grade, subject) {
     subtitle: "",
     grade,
     subject,
-    slides: [{ tag: "परिचय", title: topic || "नई प्रस्तुति", points: ["यहाँ मुख्य बिंदु लिखें"], takeaway: "" }],
+    slides: [{ tag: tx("परिचय"), title: topic || tx("नई प्रस्तुति"), points: [tx("यहाँ मुख्य बिंदु लिखें")], takeaway: "" }],
   };
 }
 
@@ -80,17 +81,17 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
 
   // The free option: an editable outline template from the topic, without AI.
   const handleGenerate = () => {
-    const t = topic.trim() || "नई प्रस्तुति";
+    const t = topic.trim() || tx("नई प्रस्तुति");
     setPresentation({
       title: t,
       subtitle: subject ? `${grade} · ${subject}` : grade,
       grade,
       subject,
       slides: [
-        { tag: "परिचय", title: t, points: ["विषय का परिचय", "मुख्य परिभाषाएँ", "परीक्षा में महत्व"], takeaway: "" },
-        { tag: "मुख्य अवधारणा", title: "मुख्य बिंदु", points: ["बिंदु 1", "बिंदु 2", "बिंदु 3"], takeaway: "" },
-        { tag: "उदाहरण", title: "उदाहरण और प्रश्न", points: ["उदाहरण 1", "पिछले वर्षों का प्रश्न"], takeaway: "" },
-        { tag: "सारांश", title: "सारांश", points: ["याद रखने योग्य बातें"], takeaway: "" },
+        { tag: tx("परिचय"), title: t, points: [tx("विषय का परिचय"), tx("मुख्य परिभाषाएँ"), tx("परीक्षा में महत्व")], takeaway: "" },
+        { tag: tx("मुख्य अवधारणा"), title: tx("मुख्य बिंदु"), points: [tx("बिंदु 1"), tx("बिंदु 2"), tx("बिंदु 3")], takeaway: "" },
+        { tag: tx("उदाहरण"), title: tx("उदाहरण और प्रश्न"), points: [tx("उदाहरण 1"), tx("पिछले वर्षों का प्रश्न")], takeaway: "" },
+        { tag: tx("सारांश"), title: tx("सारांश"), points: [tx("याद रखने योग्य बातें")], takeaway: "" },
       ],
     });
     if (!docTitle.trim()) setDocTitle(t);
@@ -103,7 +104,7 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
     try {
       await generatePptxFile({ ...presentation, instituteName: activeInstitute.name }, theme);
     } catch {
-      setExportError("PPTX फ़ाइल नहीं बन सकी। फिर से कोशिश करें।");
+      setExportError(tx("PPTX फ़ाइल नहीं बन सकी। फिर से कोशिश करें।"));
     }
   };
 
@@ -121,12 +122,12 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
     <div className="space-y-6">
       <PageHeader
         icon={<Presentation className="size-6" />}
-        title="डिजिटल लेक्चर PPT मेकर (.PPTX)"
+        title={tx("डिजिटल लेक्चर PPT मेकर (.PPTX)")}
         badge="PowerPoint"
-        description="किसी भी विषय पर स्मार्ट-बोर्ड के लिए .PPTX प्रेजेंटेशन बनाएँ, सेव करें और बाद में फिर से खोलें।"
+        description={tx("किसी भी विषय पर स्मार्ट-बोर्ड के लिए .PPTX प्रेजेंटेशन बनाएँ, सेव करें और बाद में फिर से खोलें।")}
         actions={
           <Button variant="primary" icon={<Download className="size-4" />} onClick={handleDownloadPptx}>
-            .PPTX डाउनलोड करें
+            {tx(".PPTX डाउनलोड करें")}
           </Button>
         }
       />
@@ -175,10 +176,10 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
             </div>
             <div>
               <h4 className="font-black text-sm text-slate-900">
-                क्या आपके पास प्रश्नों के 10 से 50 स्क्रीनशॉट हैं?
+                {tx("क्या आपके पास प्रश्नों के 10 से 50 स्क्रीनशॉट हैं?")}
               </h4>
               <p className="text-xs text-slate-600">
-                स्क्रीनशॉट अपलोड करें, हर प्रश्न और विकल्प लिखें और स्मार्टबोर्ड MCQ PPT बनाएँ।
+                {tx("स्क्रीनशॉट अपलोड करें, हर प्रश्न और विकल्प लिखें और स्मार्टबोर्ड MCQ PPT बनाएँ।")}
               </p>
             </div>
           </div>
@@ -186,7 +187,7 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
             onClick={() => onNavigate("ocr_ppt")}
             className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-black text-xs whitespace-nowrap shadow-md transition transform active:scale-95 cursor-pointer"
           >
-            स्क्रीनशॉट से PPT बनाएं →
+            {tx("स्क्रीनशॉट से PPT बनाएं →")}
           </button>
         </div>
       )}
@@ -197,19 +198,19 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
           <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
               <Sliders className="w-3.5 h-3.5 text-blue-600" />
-              <span>लेक्चर विवरण एवं पैरामीटर्स</span>
+              <span>{tx("लेक्चर विवरण एवं पैरामीटर्स")}</span>
             </h3>
 
             {/* Topic Input */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700">
-                लेक्चर / प्रेजेंटेशन का विषय
+                {tx("लेक्चर / प्रेजेंटेशन का विषय")}
               </label>
               <input
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="उदा. मध्य प्रदेश का भूगोल, कोशिका विभाजन"
+                placeholder={tx("उदा. मध्य प्रदेश का भूगोल, कोशिका विभाजन")}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-500 focus:bg-white transition"
               />
             </div>
@@ -303,23 +304,23 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
 
             {/* Generate: AI (uses credits) or a free empty outline */}
             <div className="mt-3 space-y-3 rounded-card border border-line bg-surface p-3 text-ink">
-              <Field label="कितनी स्लाइड">
+              <Field label={tx("कितनी स्लाइड")}>
                 <Select value={slideCount} onChange={(e) => setSlideCount(Number(e.target.value))}>
                   {[4, 5, 6, 8, 10, 12].map((n) => (
                     <option key={n} value={n}>
-                      {n} स्लाइड
+                      {n} {tx("स्लाइड")}
                     </option>
                   ))}
                 </Select>
               </Field>
               <AiGenerate
-                label="AI से स्लाइड बनाएँ"
+                label={tx("AI से स्लाइड बनाएँ")}
                 build={aiRequest}
                 onResult={applyOutline}
-                hint={topic.trim().length < 2 ? "पहले ऊपर विषय लिखें।" : "AI ड्राफ़्ट बनाता है; दाईं ओर जाँचें, बदलें और सेव करें।"}
+                hint={topic.trim().length < 2 ? tx("पहले ऊपर विषय लिखें।") : tx("AI ड्राफ़्ट बनाता है; दाईं ओर जाँचें, बदलें और सेव करें।")}
               />
               <Button className="w-full" onClick={handleGenerate}>
-                खाली ढाँचा बनाएँ (बिना AI, मुफ़्त)
+                {tx("खाली ढाँचा बनाएँ (बिना AI, मुफ़्त)")}
               </Button>
             </div>
           </div>
@@ -495,7 +496,7 @@ export default function PptMaker({ activeInstitute, onNavigate }) {
             onAdd={() => {
               setPresentation((p) => {
                 const slides = [...p.slides];
-                slides.splice(currentSlideIndex + 1, 0, { tag: "", title: "नई स्लाइड", points: [""], takeaway: "" });
+                slides.splice(currentSlideIndex + 1, 0, { tag: "", title: tx("नई स्लाइड"), points: [""], takeaway: "" });
                 return { ...p, slides };
               });
               setCurrentSlideIndex((i) => i + 1);
@@ -516,32 +517,32 @@ function SlideEditor({ slide, index, count, onChange, onAdd, onDelete }) {
   return (
     <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink no-print">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-label font-semibold">स्लाइड {index + 1} बदलें</h3>
+        <h3 className="text-label font-semibold">{tx("स्लाइड")} {index + 1} {tx("बदलें")}</h3>
         <div className="flex gap-2">
           <Button size="sm" icon={<Plus className="size-4" />} onClick={onAdd}>
-            नई स्लाइड
+            {tx("नई स्लाइड")}
           </Button>
           <Button size="sm" variant="ghost" icon={<Trash2 className="size-4" />} onClick={onDelete} disabled={count <= 1}>
-            स्लाइड हटाएँ
+            {tx("स्लाइड हटाएँ")}
           </Button>
         </div>
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <Field label="टैग" className="md:col-span-1">
+        <Field label={tx("टैग")} className="md:col-span-1">
           <Input value={slide.tag ?? ""} onChange={(e) => onChange({ ...slide, tag: e.target.value })} />
         </Field>
-        <Field label="स्लाइड का शीर्षक" className="md:col-span-2">
+        <Field label={tx("स्लाइड का शीर्षक")} className="md:col-span-2">
           <Input value={slide.title} onChange={(e) => onChange({ ...slide, title: e.target.value })} />
         </Field>
       </div>
-      <Field label="मुख्य बिंदु" hint="हर लाइन एक बिंदु">
+      <Field label={tx("मुख्य बिंदु")} hint={tx("हर लाइन एक बिंदु")}>
         <Textarea
           rows={5}
           value={slide.points.join("\n")}
           onChange={(e) => onChange({ ...slide, points: e.target.value.split("\n") })}
         />
       </Field>
-      <Field label="परीक्षा टिप (वैकल्पिक)">
+      <Field label={tx("परीक्षा टिप (वैकल्पिक)")}>
         <Input value={slide.takeaway ?? ""} onChange={(e) => onChange({ ...slide, takeaway: e.target.value })} />
       </Field>
     </div>

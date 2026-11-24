@@ -1,24 +1,26 @@
 import React from "react";
 import { GraduationCap, BookOpen, Camera, FileSpreadsheet, Lightbulb, FileQuestion, ChevronRight, CalendarClock } from "lucide-react";
-import { DOCUMENT_TYPE_LABELS, visibleScreens } from "@edusuite/shared";
+import { visibleScreens } from "@edusuite/shared";
+import { documentTypeLabel } from "../i18n/labels.ts";
 import { useSignedInUser } from "../api/session.tsx";
 import { useDashboardStats } from "../api/stats.ts";
 import { ApiError } from "../api/client.ts";
 import { RecentDocuments } from "./RecentDocuments.tsx";
 import { EmptyState, ErrorState, PageHeader, Skeleton } from "./ui/index.ts";
+import { tx, uiLocale } from "../i18n/index.ts";
 
-const TOOLS = [
-  { id: "ocr_ppt", icon: Camera, title: "स्क्रीनशॉट से PPT", desc: "प्रश्नों के स्क्रीनशॉट से स्मार्टबोर्ड PPT बनाएँ।" },
-  { id: "dpp", icon: FileSpreadsheet, title: "डेली DPP & OMR शीट", desc: "आज के लेक्चर के प्रश्न, नोटबुक पेज या OMR शीट प्रिंट करें।" },
-  { id: "doubt", icon: Lightbulb, title: "डाउट सॉल्वर", desc: "कठिन प्रश्नों का चरणबद्ध हल और शॉर्टकट ट्रिक लिखें।" },
-  { id: "lesson", icon: BookOpen, title: "लेसन प्लानर", desc: "अध्याय के लक्ष्य और दिन-वार योजना तैयार करें।" },
-  { id: "test", icon: FileQuestion, title: "टेस्ट पेपर & आंसर-की", desc: "सेक्शन-वार पेपर और आंसर-की बनाएँ।" },
-];
+const TOOLS = () => ([
+  { id: "ocr_ppt", icon: Camera, title: tx("स्क्रीनशॉट से PPT"), desc: tx("प्रश्नों के स्क्रीनशॉट से स्मार्टबोर्ड PPT बनाएँ।") },
+  { id: "dpp", icon: FileSpreadsheet, title: tx("डेली DPP & OMR शीट"), desc: tx("आज के लेक्चर के प्रश्न, नोटबुक पेज या OMR शीट प्रिंट करें।") },
+  { id: "doubt", icon: Lightbulb, title: tx("डाउट सॉल्वर"), desc: tx("कठिन प्रश्नों का चरणबद्ध हल और शॉर्टकट ट्रिक लिखें।") },
+  { id: "lesson", icon: BookOpen, title: tx("लेसन प्लानर"), desc: tx("अध्याय के लक्ष्य और दिन-वार योजना तैयार करें।") },
+  { id: "test", icon: FileQuestion, title: tx("टेस्ट पेपर & आंसर-की"), desc: tx("सेक्शन-वार पेपर और आंसर-की बनाएँ।") },
+]);
 
 export default function TeacherDesk({ activeInstitute, onNavigate, currentUser }) {
   const user = useSignedInUser();
   const allowed = new Set(visibleScreens(user.role));
-  const tools = TOOLS.filter((tool) => allowed.has(tool.id));
+  const tools = TOOLS().filter((tool) => allowed.has(tool.id));
   const stats = useDashboardStats();
   const myCounts = stats.data
     ? Object.entries(stats.data.byType)
@@ -30,15 +32,15 @@ export default function TeacherDesk({ activeInstitute, onNavigate, currentUser }
     <div className="space-y-6">
       <PageHeader
         icon={<GraduationCap className="size-6" />}
-        title={`शिक्षक पोर्टल · ${user.displayName}`}
+        title={tx("शिक्षक पोर्टल · {0}", [user.displayName])}
         badge={currentUser?.roleLabel}
-        description={`${activeInstitute.name} · ${user.branch.name}। अपना हाल का काम खोलें या किसी टूल से नया काम शुरू करें।`}
+        description={tx("{0} · {1}। अपना हाल का काम खोलें या किसी टूल से नया काम शुरू करें।", [activeInstitute.name, user.branch.name])}
       />
 
       {/* Tools */}
       {tools.length > 0 && (
         <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
-          <h2 className="text-label font-semibold">त्वरित टूल्स</h2>
+          <h2 className="text-label font-semibold">{tx("त्वरित टूल्स")}</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {tools.map((tool) => {
               const Icon = tool.icon;
@@ -65,12 +67,12 @@ export default function TeacherDesk({ activeInstitute, onNavigate, currentUser }
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* My recent documents */}
         <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink lg:col-span-7">
-          <h2 className="text-label font-semibold">मेरे हाल के दस्तावेज़</h2>
+          <h2 className="text-label font-semibold">{tx("मेरे हाल के दस्तावेज़")}</h2>
           {stats.isPending ? (
             <Skeleton lines={4} />
           ) : stats.isError ? (
             <ErrorState
-              title="दस्तावेज़ लोड नहीं हुए"
+              title={tx("दस्तावेज़ लोड नहीं हुए")}
               message={stats.error instanceof ApiError ? stats.error.message : undefined}
               onRetry={() => void stats.refetch()}
             />
@@ -78,8 +80,8 @@ export default function TeacherDesk({ activeInstitute, onNavigate, currentUser }
             <RecentDocuments
               items={stats.data.recentMine}
               showAuthor={false}
-              emptyTitle="आपने अभी कुछ सेव नहीं किया"
-              emptyDescription="किसी टूल में काम करके “सेव करें” दबाएँ; वह यहाँ दिखेगा।"
+              emptyTitle={tx("आपने अभी कुछ सेव नहीं किया")}
+              emptyDescription={tx("किसी टूल में काम करके “सेव करें” दबाएँ; वह यहाँ दिखेगा।")}
             />
           )}
         </div>
@@ -88,17 +90,17 @@ export default function TeacherDesk({ activeInstitute, onNavigate, currentUser }
           {/* My counts per type */}
           <div className="space-y-3 rounded-card border border-line bg-surface p-4 text-ink">
             <h2 className="text-label font-semibold">
-              मेरा काम{stats.data ? ` · कुल ${stats.data.totals.mine.toLocaleString("hi-IN")}` : ""}
+              {tx("मेरा काम")}{stats.data ? tx(" · कुल {0}", [stats.data.totals.mine.toLocaleString(uiLocale())]) : ""}
             </h2>
             {stats.data &&
               (myCounts.length === 0 ? (
-                <p className="text-caption text-muted">अभी कोई दस्तावेज़ नहीं।</p>
+                <p className="text-caption text-muted">{tx("अभी कोई दस्तावेज़ नहीं।")}</p>
               ) : (
                 <ul className="divide-y divide-line">
                   {myCounts.map(([type, c]) => (
                     <li key={type} className="flex items-center justify-between py-2 text-label">
-                      <span>{DOCUMENT_TYPE_LABELS[type]}</span>
-                      <span className="font-semibold">{c.mine.toLocaleString("hi-IN")}</span>
+                      <span>{documentTypeLabel(type)}</span>
+                      <span className="font-semibold">{c.mine.toLocaleString(uiLocale())}</span>
                     </li>
                   ))}
                 </ul>
@@ -109,8 +111,8 @@ export default function TeacherDesk({ activeInstitute, onNavigate, currentUser }
           <div className="rounded-card border border-line bg-surface p-4 text-ink">
             <EmptyState
               icon={<CalendarClock className="size-6" />}
-              title="टाइमटेबल और सिलेबस ट्रैकर जल्द आ रहा है"
-              description="कक्षाओं का शेड्यूल और सिलेबस की प्रगति अभी इस ऐप में दर्ज नहीं होती।"
+              title={tx("टाइमटेबल और सिलेबस ट्रैकर जल्द आ रहा है")}
+              description={tx("कक्षाओं का शेड्यूल और सिलेबस की प्रगति अभी इस ऐप में दर्ज नहीं होती।")}
             />
           </div>
         </div>

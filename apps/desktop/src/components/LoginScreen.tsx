@@ -3,6 +3,7 @@ import { AlertCircle, ArrowRight, Clock, Eye, EyeOff, Key, Lock, LogIn, ShieldCh
 import { EDUSUITE_MARK } from "../utils/branding.ts";
 import { ApiError } from "../api/client.ts";
 import type { ApiError as ApiErrorType } from "../api/client.ts";
+import { tx, uiLocale } from "../i18n/index.ts";
 
 type Props = {
   onLogin: (identifier: string, password: string) => Promise<void>;
@@ -29,7 +30,7 @@ export default function LoginScreen({ onLogin, endedBecause }: Props) {
   useEffect(() => {
     const tick = () =>
       setNow(
-        new Date().toLocaleDateString("hi-IN", {
+        new Date().toLocaleDateString(uiLocale(), {
           weekday: "long",
           year: "numeric",
           month: "long",
@@ -49,13 +50,13 @@ export default function LoginScreen({ onLogin, endedBecause }: Props) {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!identifier.trim()) return setError("कृपया कर्मचारी ID, ईमेल या मोबाइल नंबर दर्ज करें।");
-    if (!password) return setError("कृपया पासवर्ड दर्ज करें।");
+    if (!identifier.trim()) return setError(tx("कृपया कर्मचारी ID, ईमेल या मोबाइल नंबर दर्ज करें।"));
+    if (!password) return setError(tx("कृपया पासवर्ड दर्ज करें।"));
     setSubmitting(true);
     try {
       await onLogin(identifier.trim(), password);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "लॉगिन नहीं हो सका। फिर से कोशिश करें।");
+      setError(err instanceof ApiError ? err.message : tx("लॉगिन नहीं हो सका। फिर से कोशिश करें।"));
       setPassword("");
     } finally {
       setSubmitting(false);
@@ -75,7 +76,7 @@ export default function LoginScreen({ onLogin, endedBecause }: Props) {
           />
           <div>
             <p className="text-sm font-black tracking-wider uppercase text-white">EduSuite</p>
-            <p className="text-[11px] text-amber-400 font-bold">संस्थान प्रबंधन सॉफ्टवेयर</p>
+            <p className="text-[11px] text-amber-400 font-bold">{tx("संस्थान प्रबंधन सॉफ्टवेयर")}</p>
           </div>
         </div>
         <div className="hidden sm:flex items-center gap-2 text-xs text-slate-300 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
@@ -90,8 +91,8 @@ export default function LoginScreen({ onLogin, endedBecause }: Props) {
             <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center">
               <Lock className="w-8 h-8" aria-hidden="true" />
             </div>
-            <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">कर्मचारी दैनिक लॉगिन</h1>
-            <p className="text-xs text-slate-300">संस्थान की सुरक्षा एवं गोपनीयता हेतु अधिकृत लॉगिन अनिवार्य है।</p>
+            <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">{tx("कर्मचारी दैनिक लॉगिन")}</h1>
+            <p className="text-xs text-slate-300">{tx("संस्थान की सुरक्षा एवं गोपनीयता हेतु अधिकृत लॉगिन अनिवार्य है।")}</p>
           </div>
 
           {message && (
@@ -109,7 +110,7 @@ export default function LoginScreen({ onLogin, endedBecause }: Props) {
             <div className="space-y-1.5">
               <label htmlFor={idField} className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
-                कर्मचारी ID / ईमेल / मोबाइल
+                {tx("कर्मचारी ID / ईमेल / मोबाइल")}
               </label>
               <input
                 id={idField}
@@ -120,7 +121,7 @@ export default function LoginScreen({ onLogin, endedBecause }: Props) {
                 onChange={(e) => setIdentifier(e.target.value)}
                 aria-describedby={message ? errorId : undefined}
                 aria-invalid={Boolean(error) || undefined}
-                placeholder="उदा. EMP-001 या नाम@संस्थान.com"
+                placeholder={tx("उदा. EMP-001 या नाम@संस्थान.com")}
                 className="w-full bg-slate-950/80 border border-slate-500 rounded-xl p-3 text-sm text-white placeholder-slate-400 focus:border-amber-400"
               />
             </div>
@@ -129,7 +130,7 @@ export default function LoginScreen({ onLogin, endedBecause }: Props) {
               <div className="flex items-center justify-between">
                 <label htmlFor={pwField} className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
                   <Key className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
-                  पासवर्ड
+                  {tx("पासवर्ड")}
                 </label>
                 <button
                   type="button"
@@ -139,7 +140,7 @@ export default function LoginScreen({ onLogin, endedBecause }: Props) {
                   className="text-xs text-amber-300 hover:text-amber-200 font-semibold flex items-center gap-1 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-3.5 h-3.5" aria-hidden="true" /> : <Eye className="w-3.5 h-3.5" aria-hidden="true" />}
-                  {showPassword ? "छुपाएं" : "देखें"}
+                  {showPassword ? tx("छुपाएं") : tx("देखें")}
                 </button>
               </div>
               <input
@@ -161,7 +162,7 @@ export default function LoginScreen({ onLogin, endedBecause }: Props) {
               className="w-full py-3.5 rounded-xl border border-transparent bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
             >
               <LogIn className="w-4 h-4" aria-hidden="true" />
-              <span>{submitting ? "जाँच हो रही है…" : "लॉगिन करें"}</span>
+              <span>{submitting ? tx("जाँच हो रही है…") : tx("लॉगिन करें")}</span>
               <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </button>
           </form>
@@ -171,7 +172,7 @@ export default function LoginScreen({ onLogin, endedBecause }: Props) {
       <footer className="w-full max-w-5xl mx-auto text-center py-3 border-t border-slate-800/80 text-xs text-slate-300">
         <p className="flex items-center justify-center gap-1.5 font-medium">
           <ShieldCheck className="w-4 h-4 text-emerald-400" aria-hidden="true" />
-          केवल अधिकृत स्टाफ के लिए। हर लॉगिन रिकॉर्ड किया जाता है।
+          {tx("केवल अधिकृत स्टाफ के लिए। हर लॉगिन रिकॉर्ड किया जाता है।")}
         </p>
       </footer>
     </div>

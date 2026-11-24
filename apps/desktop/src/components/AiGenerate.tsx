@@ -4,6 +4,7 @@ import { creditCost, jobItemCount, type AiJob, type AiJobCreate } from "@edusuit
 import { useAiJob } from "../api/ai.ts";
 import { useCredits } from "../api/credits.ts";
 import { Button, ConfirmDialog, JobProgress } from "./ui/index.ts";
+import { tx } from "../i18n/index.ts";
 
 /**
  * One "make it with AI" control for every tool screen (DN-054): shows the credit
@@ -46,11 +47,11 @@ export function AiGenerate({
     <div className="space-y-2">
       <Button variant="primary" className="w-full" icon={<Sparkles className="size-4" />} loading={ai.running} disabled={!body || tooFew || ai.running} onClick={() => (confirmReplace ? setAsking(true) : void run())}>
         {label}
-        {cost !== null && ` · ${cost} क्रेडिट`}
+        {cost !== null && tx(" · {0} क्रेडिट", [cost])}
       </Button>
       {tooFew && (
         <p role="alert" className="text-caption text-danger">
-          क्रेडिट कम हैं (बचे: {balance}, चाहिए: {cost})। और क्रेडिट के लिए EduSuite से संपर्क करें।
+          {tx("क्रेडिट कम हैं (बचे:")} {balance}{tx(", चाहिए:")} {cost}{tx(")। और क्रेडिट के लिए EduSuite से संपर्क करें।")}
         </p>
       )}
       {(ai.running || ai.job || ai.error) && (
@@ -63,7 +64,7 @@ export function AiGenerate({
       )}
       {ai.job?.status === "succeeded" && (
         <p role="status" className={`text-caption ${ai.job.fixture ? "font-semibold text-warning" : "text-muted"}`}>
-          {ai.job.fixture ? "यह नमूना उत्तर है (फिक्स्चर मोड, असली AI नहीं)।" : "AI से तैयार। सेव करने से पहले जाँच लें और ज़रूरत हो तो बदलें।"}
+          {ai.job.fixture ? tx("यह नमूना उत्तर है (फिक्स्चर मोड, असली AI नहीं)।") : tx("AI से तैयार। सेव करने से पहले जाँच लें और ज़रूरत हो तो बदलें।")}
         </p>
       )}
       {hint && <p className="text-caption text-muted">{hint}</p>}
@@ -71,9 +72,9 @@ export function AiGenerate({
         <ConfirmDialog
           open={asking}
           title={confirmReplace.title}
-          message={`${confirmReplace.message}${cost !== null ? ` इसमें ${cost} क्रेडिट लगेंगे।` : ""}`}
-          confirmLabel="हाँ, AI से बनाएँ"
-          cancelLabel="रुकें"
+          message={tx("{0}{1}", [confirmReplace.message, cost !== null ? tx(" इसमें {0} क्रेडिट लगेंगे।", [cost]) : ""])}
+          confirmLabel={tx("हाँ, AI से बनाएँ")}
+          cancelLabel={tx("रुकें")}
           onConfirm={() => {
             setAsking(false);
             void run();

@@ -6,6 +6,7 @@ import { ApiError } from "../api/client.ts";
 import { fetchDocument, useDeleteDocument, useDocumentHistory, useSaveDocument } from "../api/documents.ts";
 import { useSession, useSignedInUser } from "../api/session.tsx";
 import { Button, ConfirmDialog, EmptyState, ErrorState, Input, Modal, Skeleton, useToast } from "./ui/index.ts";
+import { tx, uiLocale } from "../i18n/index.ts";
 
 type Props<T extends DocumentType> = {
   type: T;
@@ -19,9 +20,9 @@ type Props<T extends DocumentType> = {
   onNew: () => void;
 };
 
-const time = (iso: string) => new Date(iso).toLocaleTimeString("hi-IN", { hour: "2-digit", minute: "2-digit" });
+const time = (iso: string) => new Date(iso).toLocaleTimeString(uiLocale(), { hour: "2-digit", minute: "2-digit" });
 const dateTime = (iso: string) =>
-  new Date(iso).toLocaleString("hi-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  new Date(iso).toLocaleString(uiLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 /**
  * The same Save / Open / History bar on every tool screen (Track B, DN-041).
@@ -62,17 +63,17 @@ export function DocumentBar<T extends DocumentType>({ type, title, onTitleChange
     try {
       const doc = await save.mutateAsync({
         type,
-        title: title.trim() || "बिना शीर्षक",
+        title: title.trim() || tx("बिना शीर्षक"),
         content,
         id: asNew ? undefined : current?.id,
         expectedUpdatedAt: asNew ? undefined : current?.updatedAt,
       });
       remember(doc, title, content);
       setConflict(false);
-      toast.show({ tone: "success", title: "सेव हो गया", description: doc.title });
+      toast.show({ tone: "success", title: tx("सेव हो गया"), description: doc.title });
     } catch (err) {
       if (err instanceof ApiError && err.code === "DOCUMENT_CHANGED") return setConflict(true);
-      toast.show({ tone: "error", title: "सेव नहीं हुआ", description: err instanceof ApiError ? err.message : undefined });
+      toast.show({ tone: "error", title: tx("सेव नहीं हुआ"), description: err instanceof ApiError ? err.message : undefined });
     }
   };
 
@@ -80,7 +81,7 @@ export function DocumentBar<T extends DocumentType>({ type, title, onTitleChange
     try {
       const doc = await fetchDocument<T>(client, id);
       if (doc.type !== type) {
-        toast.show({ tone: "error", title: "यह दस्तावेज़ इस स्क्रीन का नहीं है" });
+        toast.show({ tone: "error", title: tx("यह दस्तावेज़ इस स्क्रीन का नहीं है") });
         return;
       }
       onTitleChange(doc.title);
@@ -92,7 +93,7 @@ export function DocumentBar<T extends DocumentType>({ type, title, onTitleChange
       setHistoryOpen(false);
       setConflict(false);
     } catch (err) {
-      toast.show({ tone: "error", title: "दस्तावेज़ नहीं खुला", description: err instanceof ApiError ? err.message : undefined });
+      toast.show({ tone: "error", title: tx("दस्तावेज़ नहीं खुला"), description: err instanceof ApiError ? err.message : undefined });
     }
   };
 
@@ -125,30 +126,30 @@ export function DocumentBar<T extends DocumentType>({ type, title, onTitleChange
   return (
     <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-3 md:flex-row md:items-center no-print">
       <label htmlFor={titleId} className="sr-only">
-        दस्तावेज़ का शीर्षक
+        {tx("दस्तावेज़ का शीर्षक")}
       </label>
       <Input
         id={titleId}
         value={title}
         onChange={(e) => onTitleChange(e.target.value)}
-        placeholder="शीर्षक लिखें"
+        placeholder={tx("शीर्षक लिखें")}
         className="md:max-w-md"
       />
       <p aria-live="polite" className="text-caption text-muted md:flex-1">
         {save.isPending
-          ? "सेव हो रहा है…"
+          ? tx("सेव हो रहा है…")
           : dirty
-            ? "बिना सेव किए बदलाव"
+            ? tx("बिना सेव किए बदलाव")
             : current
-              ? `सेव हो गया · ${time(current.updatedAt)}`
-              : "अभी सेव नहीं हुआ"}
+              ? tx("सेव हो गया · {0}", [time(current.updatedAt)])
+              : tx("अभी सेव नहीं हुआ")}
       </p>
       <div className="flex flex-wrap gap-2">
         <Button size="sm" icon={<FilePlus2 className="size-4" />} onClick={() => guard(startNew)}>
-          नया
+          {tx("नया")}
         </Button>
         <Button size="sm" icon={<FolderOpen className="size-4" />} onClick={() => setHistoryOpen(true)}>
-          इतिहास
+          {tx("इतिहास")}
         </Button>
         <Button
           size="sm"
@@ -158,7 +159,7 @@ export function DocumentBar<T extends DocumentType>({ type, title, onTitleChange
           disabled={!dirty && Boolean(current)}
           onClick={() => void doSave()}
         >
-          सेव करें
+          {tx("सेव करें")}
         </Button>
       </div>
 
@@ -176,10 +177,10 @@ export function DocumentBar<T extends DocumentType>({ type, title, onTitleChange
 
       <ConfirmDialog
         open={conflict}
-        title="किसी और ने इसी बीच बदलाव किया है"
-        message="आपके बदलाव सेव नहीं हुए। आप नया संस्करण खोल सकते हैं (आपके बदलाव हट जाएँगे), या अपने बदलावों को नई कॉपी के रूप में सेव कर सकते हैं।"
-        confirmLabel="नई कॉपी के रूप में सेव करें"
-        cancelLabel="नया संस्करण खोलें"
+        title={tx("किसी और ने इसी बीच बदलाव किया है")}
+        message={tx("आपके बदलाव सेव नहीं हुए। आप नया संस्करण खोल सकते हैं (आपके बदलाव हट जाएँगे), या अपने बदलावों को नई कॉपी के रूप में सेव कर सकते हैं।")}
+        confirmLabel={tx("नई कॉपी के रूप में सेव करें")}
+        cancelLabel={tx("नया संस्करण खोलें")}
         onConfirm={() => void doSave(true)}
         onCancel={() => {
           setConflict(false);
@@ -189,10 +190,10 @@ export function DocumentBar<T extends DocumentType>({ type, title, onTitleChange
 
       <ConfirmDialog
         open={pendingDiscard !== null || blocker.state === "blocked"}
-        title="बिना सेव किए बदलाव"
-        message="आपके कुछ बदलाव अभी सेव नहीं हुए हैं। बिना सेव किए आगे बढ़ें?"
-        confirmLabel="हाँ, बिना सेव आगे बढ़ें"
-        cancelLabel="रुकें"
+        title={tx("बिना सेव किए बदलाव")}
+        message={tx("आपके कुछ बदलाव अभी सेव नहीं हुए हैं। बिना सेव किए आगे बढ़ें?")}
+        confirmLabel={tx("हाँ, बिना सेव आगे बढ़ें")}
+        cancelLabel={tx("रुकें")}
         tone="danger"
         onConfirm={() => {
           if (blocker.state === "blocked") blocker.proceed();
@@ -238,25 +239,25 @@ function HistoryModal({
   const isAdmin = me.role === "superadmin" || me.role === "branch_admin";
 
   return (
-    <Modal open onClose={onClose} title="सेव किए गए दस्तावेज़" size="lg">
+    <Modal open onClose={onClose} title={tx("सेव किए गए दस्तावेज़")} size="lg">
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-            <Input type="search" aria-label="शीर्षक से खोजें" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="शीर्षक से खोजें" className="pl-9" />
+            <Input type="search" aria-label={tx("शीर्षक से खोजें")} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tx("शीर्षक से खोजें")} className="pl-9" />
           </div>
           <label className="flex items-center gap-2 text-label text-ink">
             <input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} className="size-4" />
-            केवल मेरे
+            {tx("केवल मेरे")}
           </label>
         </div>
 
         {history.isPending ? (
           <Skeleton lines={4} />
         ) : history.isError ? (
-          <ErrorState title="सूची लोड नहीं हुई" message={history.error instanceof ApiError ? history.error.message : undefined} onRetry={() => void history.refetch()} />
+          <ErrorState title={tx("सूची लोड नहीं हुई")} message={history.error instanceof ApiError ? history.error.message : undefined} onRetry={() => void history.refetch()} />
         ) : items.length === 0 ? (
-          <EmptyState title={q || mine ? "कुछ नहीं मिला" : "अभी कुछ सेव नहीं हुआ"} description={q || mine ? "खोज बदलकर देखें।" : "सेव करें बटन से अपना काम सेव करें।"} />
+          <EmptyState title={q || mine ? tx("कुछ नहीं मिला") : tx("अभी कुछ सेव नहीं हुआ")} description={q || mine ? tx("खोज बदलकर देखें।") : tx("सेव करें बटन से अपना काम सेव करें।")} />
         ) : (
           <ul className="divide-y divide-line rounded-card border border-line">
             {items.map((d) => (
@@ -264,18 +265,18 @@ function HistoryModal({
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold text-ink">
                     {d.title}
-                    {d.id === currentId && <span className="ml-2 text-caption font-normal text-muted">(खुला है)</span>}
+                    {d.id === currentId && <span className="ml-2 text-caption font-normal text-muted">{tx("(खुला है)")}</span>}
                   </p>
                   <p className="text-caption text-muted">
                     {d.createdBy.displayName} · {dateTime(d.updatedAt)}
                   </p>
                 </div>
                 <Button size="sm" onClick={() => onPick(d.id)}>
-                  खोलें
+                  {tx("खोलें")}
                 </Button>
                 {(isAdmin || d.createdBy.id === me.id) && (
-                  <Button size="sm" variant="ghost" icon={<Trash2 className="size-4" />} aria-label={`${d.title}: हटाएँ`} onClick={() => setDeleting({ id: d.id, title: d.title })}>
-                    हटाएँ
+                  <Button size="sm" variant="ghost" icon={<Trash2 className="size-4" />} aria-label={tx("{0}: हटाएँ", [d.title])} onClick={() => setDeleting({ id: d.id, title: d.title })}>
+                    {tx("हटाएँ")}
                   </Button>
                 )}
               </li>
@@ -285,16 +286,16 @@ function HistoryModal({
         {history.hasNextPage && (
           <div className="flex justify-center">
             <Button onClick={() => void history.fetchNextPage()} loading={history.isFetchingNextPage}>
-              और दिखाएँ
+              {tx("और दिखाएँ")}
             </Button>
           </div>
         )}
       </div>
       <ConfirmDialog
         open={deleting !== null}
-        title={`"${deleting?.title ?? ""}" हटाएँ?`}
-        message="यह इतिहास से हट जाएगा और यहाँ से वापस नहीं खुलेगा।"
-        confirmLabel="हाँ, हटाएँ"
+        title={tx("\"{0}\" हटाएँ?", [deleting?.title ?? ""])}
+        message={tx("यह इतिहास से हट जाएगा और यहाँ से वापस नहीं खुलेगा।")}
+        confirmLabel={tx("हाँ, हटाएँ")}
         tone="danger"
         busy={remove.isPending}
         onCancel={() => setDeleting(null)}
@@ -303,9 +304,9 @@ function HistoryModal({
           try {
             await remove.mutateAsync(deleting.id);
             onDeleted(deleting.id);
-            toast.show({ tone: "success", title: "हटा दिया गया" });
+            toast.show({ tone: "success", title: tx("हटा दिया गया") });
           } catch (err) {
-            toast.show({ tone: "error", title: "हटाया नहीं जा सका", description: err instanceof ApiError ? err.message : undefined });
+            toast.show({ tone: "error", title: tx("हटाया नहीं जा सका"), description: err instanceof ApiError ? err.message : undefined });
           } finally {
             setDeleting(null);
           }

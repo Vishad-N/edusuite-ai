@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
 import { X } from "lucide-react";
 import { cn } from "./cn.ts";
+import { tx } from "../../i18n/index.ts";
 
 export type ModalProps = {
   open: boolean;
@@ -34,7 +35,7 @@ export function Modal({
   description,
   children,
   footer,
-  closeLabel = "बंद करें",
+  closeLabel = tx("बंद करें"),
   size = "md",
   initialFocusRef,
   dismissible = true,

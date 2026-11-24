@@ -31,31 +31,32 @@ import {
   TR,
   useToast,
 } from "./ui/index.ts";
+import { tx } from "../i18n/index.ts";
 
-const ROLE_LABEL: Record<Role, string> = {
-  superadmin: "सुपर एडमिन",
-  branch_admin: "ब्रांच एडमिन",
-  teacher: "शिक्षक",
-  typist: "DTP / टाइपिस्ट",
-  counselor: "काउंसलर",
-  platform_admin: "EduSuite ऑपरेटर",
-};
+const ROLE_LABEL = (): Record<Role, string> => ({
+  superadmin: tx("सुपर एडमिन"),
+  branch_admin: tx("ब्रांच एडमिन"),
+  teacher: tx("शिक्षक"),
+  typist: tx("DTP / टाइपिस्ट"),
+  counselor: tx("काउंसलर"),
+  platform_admin: tx("EduSuite ऑपरेटर"),
+});
 
-const FIELD_LABEL: Record<string, string> = {
-  email: "ईमेल",
-  employeeCode: "कर्मचारी ID",
-  phone: "मोबाइल नंबर",
-};
+const FIELD_LABEL = (): Record<string, string> => ({
+  email: tx("ईमेल"),
+  employeeCode: tx("कर्मचारी ID"),
+  phone: tx("मोबाइल नंबर"),
+});
 
 /** Turns an API error into per-field messages (409 ALREADY_EXISTS, 400 VALIDATION_FAILED). */
 function fieldErrors(err: unknown): Record<string, string> {
   if (!(err instanceof ApiError)) return {};
   const details = err.details as { field?: string; fields?: Array<{ path: string }> } | undefined;
   if (err.code === "ALREADY_EXISTS" && details?.field) {
-    return { [details.field]: `यह ${FIELD_LABEL[details.field] ?? details.field} पहले से किसी और के नाम दर्ज है।` };
+    return { [details.field]: tx("यह {0} पहले से किसी और के नाम दर्ज है।", [FIELD_LABEL()[details.field] ?? details.field]) };
   }
   if (err.code === "VALIDATION_FAILED" && details?.fields) {
-    return Object.fromEntries(details.fields.map((f) => [f.path, "यह जानकारी सही नहीं है।"]));
+    return Object.fromEntries(details.fields.map((f) => [f.path, tx("यह जानकारी सही नहीं है।")]));
   }
   return {};
 }
@@ -109,13 +110,13 @@ export default function UserManagement() {
   const blockMutation = useMutation({
     mutationFn: (u: User) => client.post<User>(`/users/${u.id}/${u.status === "active" ? "block" : "unblock"}`),
     onSuccess: (u) => {
-      toast.show({ tone: "success", title: u.status === "blocked" ? `${u.displayName} ब्लॉक किए गए` : `${u.displayName} फिर से सक्रिय` });
+      toast.show({ tone: "success", title: u.status === "blocked" ? tx("{0} ब्लॉक किए गए", [u.displayName]) : tx("{0} फिर से सक्रिय", [u.displayName]) });
       setBlocking(null);
       void refresh();
     },
     onError: (err) => {
       setBlocking(null);
-      toast.show({ tone: "error", title: "बदलाव नहीं हुआ", description: err instanceof ApiError ? err.message : undefined });
+      toast.show({ tone: "error", title: tx("बदलाव नहीं हुआ"), description: err instanceof ApiError ? err.message : undefined });
     },
   });
 
@@ -125,49 +126,49 @@ export default function UserManagement() {
     <div className="space-y-6 text-ink">
       <PageHeader
         icon={<Users className="size-6" />}
-        title="यूजर व स्टाफ प्रबंधन"
-        badge={me.role === "superadmin" ? "पूरा संस्थान" : me.branch.name}
-        description="शिक्षकों, DTP टाइपिस्ट और काउंसलर्स के खाते बनाएँ, बदलें, ब्लॉक करें या पासवर्ड रीसेट करें। खाते हटाए नहीं जाते, ब्लॉक किए जाते हैं।"
+        title={tx("यूजर व स्टाफ प्रबंधन")}
+        badge={me.role === "superadmin" ? tx("पूरा संस्थान") : me.branch.name}
+        description={tx("शिक्षकों, DTP टाइपिस्ट और काउंसलर्स के खाते बनाएँ, बदलें, ब्लॉक करें या पासवर्ड रीसेट करें। खाते हटाए नहीं जाते, ब्लॉक किए जाते हैं।")}
         actions={
           <Button variant="primary" icon={<UserPlus className="size-4" />} onClick={() => setEditing("new")}>
-            नया यूजर जोड़ें
+            {tx("नया यूजर जोड़ें")}
           </Button>
         }
       />
 
       <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4 md:flex-row md:items-end">
-        <Field label="खोजें" className="md:flex-1">
+        <Field label={tx("खोजें")} className="md:flex-1">
           <div className="relative">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="नाम, ईमेल या कर्मचारी ID" className="pl-9" type="search" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tx("नाम, ईमेल या कर्मचारी ID")} className="pl-9" type="search" />
           </div>
         </Field>
-        <Field label="भूमिका" className="md:w-48">
+        <Field label={tx("भूमिका")} className="md:w-48">
           <Select value={role} onChange={(e) => setRole(e.target.value as Role | "")}>
-            <option value="">सभी भूमिकाएँ</option>
+            <option value="">{tx("सभी भूमिकाएँ")}</option>
             {assignableRoles(me.role).map((r) => (
               <option key={r} value={r}>
-                {ROLE_LABEL[r]}
+                {ROLE_LABEL()[r]}
               </option>
             ))}
           </Select>
         </Field>
-        <Field label="स्थिति" className="md:w-40">
+        <Field label={tx("स्थिति")} className="md:w-40">
           <Select value={status} onChange={(e) => setStatus(e.target.value as "" | "active" | "blocked")}>
-            <option value="">सभी</option>
-            <option value="active">सक्रिय</option>
-            <option value="blocked">ब्लॉक</option>
+            <option value="">{tx("सभी")}</option>
+            <option value="active">{tx("सक्रिय")}</option>
+            <option value="blocked">{tx("ब्लॉक")}</option>
           </Select>
         </Field>
       </div>
 
       {users.isPending ? (
         <div className="rounded-card border border-line bg-surface p-6">
-          <Skeleton lines={5} label="यूजर्स लोड हो रहे हैं…" />
+          <Skeleton lines={5} label={tx("यूजर्स लोड हो रहे हैं…")} />
         </div>
       ) : users.isError ? (
         <ErrorState
-          title="यूजर सूची लोड नहीं हुई"
+          title={tx("यूजर सूची लोड नहीं हुई")}
           message={users.error instanceof ApiError ? users.error.message : undefined}
           code={users.error instanceof ApiError ? users.error.code : undefined}
           onRetry={() => void users.refetch()}
@@ -175,12 +176,12 @@ export default function UserManagement() {
       ) : items.length === 0 ? (
         <div className="rounded-card border border-line bg-surface">
           <EmptyState
-            title={q || role || status ? "कोई यूजर नहीं मिला" : "अभी कोई यूजर नहीं"}
-            description={q || role || status ? "खोज या फ़िल्टर बदलकर देखें।" : "पहला स्टाफ खाता बनाएँ।"}
+            title={q || role || status ? tx("कोई यूजर नहीं मिला") : tx("अभी कोई यूजर नहीं")}
+            description={q || role || status ? tx("खोज या फ़िल्टर बदलकर देखें।") : tx("पहला स्टाफ खाता बनाएँ।")}
             action={
               !(q || role || status) && (
                 <Button variant="primary" onClick={() => setEditing("new")}>
-                  नया यूजर जोड़ें
+                  {tx("नया यूजर जोड़ें")}
                 </Button>
               )
             }
@@ -188,15 +189,15 @@ export default function UserManagement() {
         </div>
       ) : (
         <>
-          <Table caption="स्टाफ खाते">
+          <Table caption={tx("स्टाफ खाते")}>
             <THead>
               <TR>
-                <TH>नाम</TH>
-                <TH>भूमिका</TH>
-                <TH>लॉगिन ID</TH>
-                <TH>ब्रांच</TH>
-                <TH>स्थिति</TH>
-                <TH className="text-right">कार्रवाई</TH>
+                <TH>{tx("नाम")}</TH>
+                <TH>{tx("भूमिका")}</TH>
+                <TH>{tx("लॉगिन ID")}</TH>
+                <TH>{tx("ब्रांच")}</TH>
+                <TH>{tx("स्थिति")}</TH>
+                <TH className="text-right">{tx("कार्रवाई")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -208,7 +209,7 @@ export default function UserManagement() {
                       <div className="font-semibold">{u.displayName}</div>
                       <div className="text-caption text-muted">{u.fullName}</div>
                     </TD>
-                    <TD>{ROLE_LABEL[u.role]}</TD>
+                    <TD>{ROLE_LABEL()[u.role]}</TD>
                     <TD>
                       <div className="font-medium">{u.employeeCode}</div>
                       <div className="text-caption text-muted">{u.email}</div>
@@ -218,17 +219,17 @@ export default function UserManagement() {
                     <TD>
                       {/* Text, not colour alone, so it survives Windows contrast themes. */}
                       <span className={u.status === "active" ? "font-semibold text-success" : "font-semibold text-danger"}>
-                        {u.status === "active" ? "सक्रिय" : "ब्लॉक"}
+                        {u.status === "active" ? tx("सक्रिय") : tx("ब्लॉक")}
                       </span>
-                      {u.lockedUntil && <div className="text-caption text-warning">गलत प्रयासों के कारण अस्थायी रूप से लॉक</div>}
+                      {u.lockedUntil && <div className="text-caption text-warning">{tx("गलत प्रयासों के कारण अस्थायी रूप से लॉक")}</div>}
                     </TD>
                     <TD>
                       <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="ghost" icon={<Pencil className="size-4" />} onClick={() => setEditing(u)} aria-label={`${u.displayName}: बदलें`}>
-                          बदलें
+                        <Button size="sm" variant="ghost" icon={<Pencil className="size-4" />} onClick={() => setEditing(u)} aria-label={tx("{0}: बदलें", [u.displayName])}>
+                          {tx("बदलें")}
                         </Button>
-                        <Button size="sm" variant="ghost" icon={<KeyRound className="size-4" />} onClick={() => setResetting(u)} aria-label={`${u.displayName}: पासवर्ड रीसेट`}>
-                          पासवर्ड
+                        <Button size="sm" variant="ghost" icon={<KeyRound className="size-4" />} onClick={() => setResetting(u)} aria-label={tx("{0}: पासवर्ड रीसेट", [u.displayName])}>
+                          {tx("पासवर्ड")}
                         </Button>
                         {!isMe && (
                           <Button
@@ -236,9 +237,9 @@ export default function UserManagement() {
                             variant="ghost"
                             icon={u.status === "active" ? <Lock className="size-4" /> : <Unlock className="size-4" />}
                             onClick={() => setBlocking(u)}
-                            aria-label={`${u.displayName}: ${u.status === "active" ? "ब्लॉक करें" : "सक्रिय करें"}`}
+                            aria-label={tx("{0}: {1}", [u.displayName, u.status === "active" ? tx("ब्लॉक करें") : tx("सक्रिय करें")])}
                           >
-                            {u.status === "active" ? "ब्लॉक" : "सक्रिय करें"}
+                            {u.status === "active" ? tx("ब्लॉक") : tx("सक्रिय करें")}
                           </Button>
                         )}
                       </div>
@@ -251,7 +252,7 @@ export default function UserManagement() {
           {users.hasNextPage && (
             <div className="flex justify-center">
               <Button onClick={() => void users.fetchNextPage()} loading={users.isFetchingNextPage}>
-                और दिखाएँ
+                {tx("और दिखाएँ")}
               </Button>
             </div>
           )}
@@ -265,7 +266,7 @@ export default function UserManagement() {
           onClose={() => setEditing(null)}
           onSaved={(u, created) => {
             setEditing(null);
-            toast.show({ tone: "success", title: created ? `${u.displayName} का खाता बन गया` : "बदलाव सेव हो गए" });
+            toast.show({ tone: "success", title: created ? tx("{0} का खाता बन गया", [u.displayName]) : tx("बदलाव सेव हो गए") });
             void refresh();
           }}
         />
@@ -273,13 +274,13 @@ export default function UserManagement() {
       {resetting && <ResetPasswordDialog user={resetting} onClose={() => setResetting(null)} />}
       <ConfirmDialog
         open={blocking !== null}
-        title={blocking?.status === "active" ? `${blocking.displayName} को ब्लॉक करें?` : `${blocking?.displayName ?? ""} को फिर से सक्रिय करें?`}
+        title={blocking?.status === "active" ? tx("{0} को ब्लॉक करें?", [blocking.displayName]) : tx("{0} को फिर से सक्रिय करें?", [blocking?.displayName ?? ""])}
         message={
           blocking?.status === "active"
-            ? "वे तुरंत लॉग-आउट हो जाएँगे और दोबारा लॉगिन नहीं कर पाएँगे, जब तक आप उन्हें फिर से सक्रिय न करें।"
-            : "वे फिर से लॉगिन कर पाएँगे।"
+            ? tx("वे तुरंत लॉग-आउट हो जाएँगे और दोबारा लॉगिन नहीं कर पाएँगे, जब तक आप उन्हें फिर से सक्रिय न करें।")
+            : tx("वे फिर से लॉगिन कर पाएँगे।")
         }
-        confirmLabel={blocking?.status === "active" ? "हाँ, ब्लॉक करें" : "हाँ, सक्रिय करें"}
+        confirmLabel={blocking?.status === "active" ? tx("हाँ, ब्लॉक करें") : tx("हाँ, सक्रिय करें")}
         tone={blocking?.status === "active" ? "danger" : "default"}
         busy={blockMutation.isPending}
         onCancel={() => setBlocking(null)}
@@ -353,15 +354,15 @@ function UserForm({
       open
       onClose={onClose}
       dismissible={!save.isPending}
-      title={user ? `${user.displayName}: विवरण बदलें` : "नया यूजर जोड़ें"}
+      title={user ? tx("{0}: विवरण बदलें", [user.displayName]) : tx("नया यूजर जोड़ें")}
       size="lg"
       footer={
         <>
           <Button onClick={onClose} disabled={save.isPending}>
-            रद्द करें
+            {tx("रद्द करें")}
           </Button>
           <Button variant="primary" type="submit" form={formId} loading={save.isPending}>
-            {user ? "बदलाव सेव करें" : "खाता बनाएँ"}
+            {user ? tx("बदलाव सेव करें") : tx("खाता बनाएँ")}
           </Button>
         </>
       }
@@ -372,31 +373,31 @@ function UserForm({
             {general}
           </p>
         )}
-        <Field label="कर्मचारी ID" hint={user ? "ID बाद में बदली नहीं जा सकती" : "उदा. IND-T-12"} error={errors.employeeCode} required>
+        <Field label={tx("कर्मचारी ID")} hint={user ? tx("ID बाद में बदली नहीं जा सकती") : tx("उदा. IND-T-12")} error={errors.employeeCode} required>
           <Input value={form.employeeCode} onChange={set("employeeCode")} disabled={Boolean(user)} autoComplete="off" />
         </Field>
-        <Field label="छोटा नाम" hint="ऐप में यही नाम दिखेगा" error={errors.displayName} required>
+        <Field label={tx("छोटा नाम")} hint={tx("ऐप में यही नाम दिखेगा")} error={errors.displayName} required>
           <Input value={form.displayName} onChange={set("displayName")} />
         </Field>
-        <Field label="पूरा नाम" error={errors.fullName} required className="md:col-span-2">
+        <Field label={tx("पूरा नाम")} error={errors.fullName} required className="md:col-span-2">
           <Input value={form.fullName} onChange={set("fullName")} />
         </Field>
-        <Field label="ईमेल" error={errors.email} required>
+        <Field label={tx("ईमेल")} error={errors.email} required>
           <Input type="email" value={form.email} onChange={set("email")} autoComplete="off" />
         </Field>
-        <Field label="मोबाइल नंबर" hint="10 अंक (वैकल्पिक)" error={errors.phone}>
+        <Field label={tx("मोबाइल नंबर")} hint={tx("10 अंक (वैकल्पिक)")} error={errors.phone}>
           <Input inputMode="numeric" value={form.phone} onChange={set("phone")} />
         </Field>
-        <Field label="भूमिका" hint={isMe ? "आप अपनी भूमिका खुद नहीं बदल सकते" : undefined} error={errors.role} required>
+        <Field label={tx("भूमिका")} hint={isMe ? tx("आप अपनी भूमिका खुद नहीं बदल सकते") : undefined} error={errors.role} required>
           <Select value={form.role} onChange={set("role")} disabled={isMe}>
             {(isMe ? ROLES.filter((r) => r === form.role) : roles).map((r) => (
               <option key={r} value={r}>
-                {ROLE_LABEL[r]}
+                {ROLE_LABEL()[r]}
               </option>
             ))}
           </Select>
         </Field>
-        <Field label="ब्रांच" error={errors.branchId} required>
+        <Field label={tx("ब्रांच")} error={errors.branchId} required>
           <Select value={form.branchId} onChange={set("branchId")} disabled={branchChoices.length <= 1}>
             {branchChoices.map((b) => (
               <option key={b.id} value={b.id}>
@@ -406,7 +407,7 @@ function UserForm({
           </Select>
         </Field>
         {!user && (
-          <Field label="पासवर्ड" hint={`कम से कम ${MIN_PASSWORD_LENGTH} अक्षर। यूजर को सुरक्षित तरीके से बताएँ।`} error={errors.password} required className="md:col-span-2">
+          <Field label={tx("पासवर्ड")} hint={tx("कम से कम {0} अक्षर। यूजर को सुरक्षित तरीके से बताएँ।", [MIN_PASSWORD_LENGTH])} error={errors.password} required className="md:col-span-2">
             <Input type="password" value={form.password} onChange={set("password")} autoComplete="new-password" />
           </Field>
         )}
@@ -423,7 +424,7 @@ function ResetPasswordDialog({ user, onClose }: { user: User; onClose: () => voi
   const reset = useMutation({
     mutationFn: () => client.post<void>(`/users/${user.id}/reset-password`, { password }),
     onSuccess: () => {
-      toast.show({ tone: "success", title: `${user.displayName} का पासवर्ड बदल गया`, description: "वे सभी डिवाइस से लॉग-आउट हो गए हैं।" });
+      toast.show({ tone: "success", title: tx("{0} का पासवर्ड बदल गया", [user.displayName]), description: tx("वे सभी डिवाइस से लॉग-आउट हो गए हैं।") });
       onClose();
     },
   });
@@ -433,16 +434,16 @@ function ResetPasswordDialog({ user, onClose }: { user: User; onClose: () => voi
       open
       onClose={onClose}
       dismissible={!reset.isPending}
-      title={`${user.displayName}: नया पासवर्ड`}
-      description="पुराना पासवर्ड तुरंत बंद हो जाएगा और यूजर हर डिवाइस से लॉग-आउट हो जाएँगे।"
+      title={tx("{0}: नया पासवर्ड", [user.displayName])}
+      description={tx("पुराना पासवर्ड तुरंत बंद हो जाएगा और यूजर हर डिवाइस से लॉग-आउट हो जाएँगे।")}
       size="sm"
       footer={
         <>
           <Button onClick={onClose} disabled={reset.isPending}>
-            रद्द करें
+            {tx("रद्द करें")}
           </Button>
           <Button variant="primary" type="submit" form={formId} loading={reset.isPending} disabled={password.length < MIN_PASSWORD_LENGTH}>
-            पासवर्ड बदलें
+            {tx("पासवर्ड बदलें")}
           </Button>
         </>
       }
@@ -455,9 +456,9 @@ function ResetPasswordDialog({ user, onClose }: { user: User; onClose: () => voi
         }}
       >
         <Field
-          label="नया पासवर्ड"
-          hint={`कम से कम ${MIN_PASSWORD_LENGTH} अक्षर`}
-          error={tooShort ? `कम से कम ${MIN_PASSWORD_LENGTH} अक्षर चाहिए` : reset.error instanceof ApiError ? reset.error.message : undefined}
+          label={tx("नया पासवर्ड")}
+          hint={tx("कम से कम {0} अक्षर", [MIN_PASSWORD_LENGTH])}
+          error={tooShort ? tx("कम से कम {0} अक्षर चाहिए", [MIN_PASSWORD_LENGTH]) : reset.error instanceof ApiError ? reset.error.message : undefined}
           required
         >
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" autoFocus />

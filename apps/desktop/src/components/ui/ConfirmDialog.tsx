@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from "react";
 import { Button } from "./Button.tsx";
 import { Modal } from "./Modal.tsx";
+import { tx } from "../../i18n/index.ts";
 
 export type ConfirmDialogProps = {
   open: boolean;
@@ -25,7 +26,7 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel,
-  cancelLabel = "रद्द करें",
+  cancelLabel = tx("रद्द करें"),
   tone = "default",
   busy = false,
   onConfirm,

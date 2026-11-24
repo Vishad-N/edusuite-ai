@@ -18,6 +18,32 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-064 · The English switch reaches every screen: Hindi source text + `tx()` + one English dictionary
+- **Date:** 2026-11-24
+- **Phase / area:** UI language · `apps/desktop/src/i18n/{index.ts,en.ts,labels.ts,keys.mjs,en.test.mjs}`, every screen and shared component (33 files)
+- **Status:** Decided by agent (developer reported: "even after changing to English some modules are still in Hindi")
+- **What was unclear:** Only the sidebar, header and dashboard used `translations.js`. Every other screen had about 1,100 lines of Hindi written straight into the code (DN-037 left English "for later"), so English mode was mixed. What approach covers 25 screens without a risky hand edit of each, and keeps adding new text easy?
+- **Options considered:** A) Keep the Hindi in the code, wrap it in `tx("…")`, and look up English in one dictionary keyed by the Hindi. B) Move every string to `translations.js` keys (`t.someKey`), threading `t` through every component. C) An i18n library (new dependency).
+- **Decision:** A.
+  - **`tx(hi, vars?)`:** returns the English from `en.ts` in English mode. `{0}`, `{1}` placeholders are filled from `vars`, and anything without English falls back to Hindi. `App` sets the language during render (`setUiLanguage`), so switching re-renders every screen in the new language at once, with no reload. `uiLocale()` gives `en-IN`/`hi-IN` for dates and numbers (Indian digit grouping in both).
+  - **Conversion:** a one-time codemod using the JSX parser bundled with rolldown (already installed; no new dependency) did all 33 files:
+    - every Hindi string, JSX text and template went into `tx()`, with templates as `tx("… {0} …", [value])`
+    - `{hi, en}` pairs and `lang === …` ternaries were left as they were
+    - fixed lists built at module load (dropdown options, labels) became small functions evaluated at render (`OPTIONS()`), so they follow the switch; the one exported list, `JOB_TYPE_LABELS`, got getters
+    - typed constants had their annotation moved onto the function
+  - **Dictionary:** `en.ts` holds 918 entries (Hindi → English), written for this UI.
+    - Document type names come from `i18n/labels.ts`; the shared package keeps its Hindi list for the API.
+    - Language names stay in their own script on the switch ("हिन्दी" / "English"); in dropdowns they translate.
+  - **Not translated, on purpose:** what staff typed and saved (names, titles, student records); institute and branch names; the language of AI output (its own setting on each AI screen); exported PPTX and motion-file content (`utils/*`, document content rather than UI); and the dev-only UI gallery. Template text that fills a document (notice templates, poster templates) follows the UI language when applied.
+  - **Keeping it complete:** `node src/i18n/keys.mjs --missing` lists new Hindi strings without English. A test fails if any `tx()` string lacks English or a translation changes the placeholders.
+- **Reason:** One mechanical, reviewable change; new screens only need `tx("…")` plus a dictionary line; Hindi stays the readable source the team writes in.
+- **Verified:**
+  - Desktop tests 42 (3 new: every key has English; placeholders match; `tx` switches and fills values and falls back). Typecheck, lint and build pass.
+  - A parser scan finds no Hindi UI text outside `tx()` in the converted files.
+  - **In the real Electron app** (separate profile, against Docker), as super admin switched to English, on all 15 screens plus the history dialog: no Hindi except user data (staff names, saved titles, test students) and the institute and branch names. Dates read "23 Nov, 01:11 pm" and document types "Lecture PPT". Switching back to हिन्दी restores Hindi (the poster screen shows "पोस्टर का प्रकार").
+- **Not verified:** every dialog and error toast in English (most were covered by the strings test, not clicked through); English quality reviewed by a native editor.
+- **Revisit if:** institutes want exported PPTX/motion files in English too, or a third language (then `en.ts` becomes one of several dictionaries).
+
 ### DN-063 · Backups with restic (database + files), restore drill, and the 150-user load test
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 6 · `infra/backup/*`, `infra/docker-compose.yml` (`backup` service, profile `ops`), `infra/.env.example`, `apps/api/scripts/load-test.mjs`, `docs/operations/deploy-checklist.md`

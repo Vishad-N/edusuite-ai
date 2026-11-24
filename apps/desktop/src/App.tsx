@@ -34,6 +34,7 @@ import SettingsModal from "./components/SettingsModal.tsx";
 import { translations } from "./data/translations";
 import { useSession, useSignedInUser } from "./api/session.tsx";
 import { Skeleton } from "./components/ui/index.ts";
+import { setUiLanguage, tx } from "./i18n/index.ts";
 
 /** Props every screen receives (the same names the screens used before the router). */
 export type ScreenProps = {
@@ -109,6 +110,8 @@ function useLanguage(): ["hi" | "en", (lang: "hi" | "en") => void] {
       return "hi";
     }
   });
+  // tx() reads this; set during render, so every screen below renders in the new language (DN-064).
+  setUiLanguage(lang);
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
@@ -126,7 +129,7 @@ function useLanguage(): ["hi" | "en", (lang: "hi" | "en") => void] {
 function FullScreenLoading() {
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-page">
-      <Skeleton lines={3} label="सत्र जाँचा जा रहा है…" className="w-72" />
+      <Skeleton lines={3} label={tx("सत्र जाँचा जा रहा है…")} className="w-72" />
     </div>
   );
 }

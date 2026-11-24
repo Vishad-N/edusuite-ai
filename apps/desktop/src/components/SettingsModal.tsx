@@ -4,6 +4,7 @@ import { scopeFor, type Branch, type Institute, type SessionUser } from "@edusui
 import { useSession } from "../api/session.tsx";
 import { ApiError } from "../api/client.ts";
 import { Button, ErrorState, Field, Input, Modal, Skeleton, useToast } from "./ui/index.ts";
+import { tx } from "../i18n/index.ts";
 
 type Props = { open: boolean; onClose: () => void; user: SessionUser };
 
@@ -41,7 +42,7 @@ function InstituteSettings({ open, onClose, instituteId }: { open: boolean; onCl
       }),
     onSuccess: (data) => {
       queryClient.setQueryData(["institute", instituteId], data);
-      toast.show({ tone: "success", title: "संस्थान की जानकारी सेव हो गई" });
+      toast.show({ tone: "success", title: tx("संस्थान की जानकारी सेव हो गई") });
       onClose();
     },
   });
@@ -53,13 +54,13 @@ function InstituteSettings({ open, onClose, instituteId }: { open: boolean; onCl
       onClose={onClose}
       busy={save.isPending}
       formId={formId}
-      title="संस्थान की जानकारी"
-      description="यह नाम और जानकारी रसीदों, प्रिंट और हेडर में दिखती है।"
+      title={tx("संस्थान की जानकारी")}
+      description={tx("यह नाम और जानकारी रसीदों, प्रिंट और हेडर में दिखती है।")}
     >
       {institute.isPending ? (
         <Skeleton lines={4} />
       ) : institute.isError ? (
-        <ErrorState title="जानकारी लोड नहीं हुई" onRetry={() => void institute.refetch()} />
+        <ErrorState title={tx("जानकारी लोड नहीं हुई")} onRetry={() => void institute.refetch()} />
       ) : (
         // Keyed by the data so the form starts fresh from what the server has.
         <InstituteForm
@@ -103,17 +104,17 @@ function InstituteForm({
       }}
     >
       <ErrorLine error={error} />
-      <Field label="संस्थान का नाम" required>
+      <Field label={tx("संस्थान का नाम")} required>
         <Input value={v.name} onChange={set("name")} />
       </Field>
-      <Field label="टैगलाइन / ध्येय वाक्य">
+      <Field label={tx("टैगलाइन / ध्येय वाक्य")}>
         <Input value={v.tagline} onChange={set("tagline")} />
       </Field>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Field label="फ़ोन / व्हाट्सएप">
+        <Field label={tx("फ़ोन / व्हाट्सएप")}>
           <Input value={v.phone} onChange={set("phone")} inputMode="tel" />
         </Field>
-        <Field label="शहर">
+        <Field label={tx("शहर")}>
           <Input value={v.city} onChange={set("city")} />
         </Field>
       </div>
@@ -151,7 +152,7 @@ function BranchSettings({
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["branches", instituteId] });
-      toast.show({ tone: "success", title: "ब्रांच की जानकारी सेव हो गई", description: "हेडर में नया नाम अगले लॉगिन से दिखेगा।" });
+      toast.show({ tone: "success", title: tx("ब्रांच की जानकारी सेव हो गई"), description: tx("हेडर में नया नाम अगले लॉगिन से दिखेगा।") });
       onClose();
     },
   });
@@ -163,13 +164,13 @@ function BranchSettings({
       onClose={onClose}
       busy={save.isPending}
       formId={formId}
-      title="ब्रांच की जानकारी"
-      description="आप केवल अपनी ब्रांच की जानकारी बदल सकते हैं।"
+      title={tx("ब्रांच की जानकारी")}
+      description={tx("आप केवल अपनी ब्रांच की जानकारी बदल सकते हैं।")}
     >
       {branches.isPending ? (
         <Skeleton lines={2} />
       ) : !branch ? (
-        <ErrorState title="ब्रांच की जानकारी लोड नहीं हुई" onRetry={() => void branches.refetch()} />
+        <ErrorState title={tx("ब्रांच की जानकारी लोड नहीं हुई")} onRetry={() => void branches.refetch()} />
       ) : (
         <BranchForm key={JSON.stringify(branch)} id={formId} branch={branch} error={save.error} onSubmit={(v) => save.mutate(v)} />
       )}
@@ -199,13 +200,13 @@ function BranchForm({
       }}
     >
       <ErrorLine error={error} />
-      <Field label="ब्रांच का नाम" required>
+      <Field label={tx("ब्रांच का नाम")} required>
         <Input value={v.name} onChange={(e) => setV((f) => ({ ...f, name: e.target.value }))} />
       </Field>
-      <Field label="शहर">
+      <Field label={tx("शहर")}>
         <Input value={v.city} onChange={(e) => setV((f) => ({ ...f, city: e.target.value }))} />
       </Field>
-      <p className="text-caption text-muted">ब्रांच कोड ({branch.code}) रसीद नंबरों में आता है, इसलिए बदला नहीं जा सकता।</p>
+      <p className="text-caption text-muted">{tx("ब्रांच कोड (")}{branch.code}{tx(") रसीद नंबरों में आता है, इसलिए बदला नहीं जा सकता।")}</p>
     </form>
   );
 }
@@ -237,10 +238,10 @@ function SettingsShell({
       footer={
         <>
           <Button onClick={onClose} disabled={busy}>
-            रद्द करें
+            {tx("रद्द करें")}
           </Button>
           <Button variant="primary" type="submit" form={formId} loading={busy}>
-            सेव करें
+            {tx("सेव करें")}
           </Button>
         </>
       }

@@ -20,6 +20,7 @@ import {
   ListChecks,
 } from "lucide-react";
 import { initialsOf } from "../utils/branding.ts";
+import { tx } from "../i18n/index.ts";
 
 /**
  * Left navigation. Shows only the screens the user's role may open
@@ -33,7 +34,7 @@ export default function Sidebar({ activeTab, setActiveTab, t, allowedScreens, in
       items: [
         {
           id: "platform",
-          label: "AI क्रेडिट प्रबंधन",
+          label: tx("AI क्रेडिट प्रबंधन"),
           icon: Coins,
           badge: "EduSuite",
         },
@@ -45,15 +46,15 @@ export default function Sidebar({ activeTab, setActiveTab, t, allowedScreens, in
         },
         {
           id: "users",
-          label: t.navUsers || "यूजर व स्टाफ प्रबंधन",
+          label: t.navUsers || tx("यूजर व स्टाफ प्रबंधन"),
           icon: Crown,
           badge: "Admin",
         },
         {
           id: "teacher_desk",
-          label: t.navTeacherDesk || "शिक्षक पोर्टल (Faculty Desk)",
+          label: t.navTeacherDesk || tx("शिक्षक पोर्टल (Faculty Desk)"),
           icon: GraduationCap,
-          badge: "टीचर",
+          badge: tx("टीचर"),
         },
       ],
     },
@@ -62,13 +63,13 @@ export default function Sidebar({ activeTab, setActiveTab, t, allowedScreens, in
       items: [
         {
           id: "ocr_ppt",
-          label: t.navScreenshotPpt || "स्क्रीनशॉट से PPT",
+          label: t.navScreenshotPpt || tx("स्क्रीनशॉट से PPT"),
           icon: Camera,
-          badge: "नया",
+          badge: tx("नया"),
         },
         {
           id: "deck_quiz",
-          label: "डेक से इंटरैक्टिव क्विज़",
+          label: tx("डेक से इंटरैक्टिव क्विज़"),
           icon: ListChecks,
           badge: "AI",
         },
@@ -154,7 +155,7 @@ export default function Sidebar({ activeTab, setActiveTab, t, allowedScreens, in
   return (
     <aside className="w-64 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 select-none overflow-y-auto shadow-sm">
       {/* Navigation Links */}
-      <nav aria-label={t.navLabel || "मुख्य मेनू"} className="p-3 space-y-4">
+      <nav aria-label={t.navLabel || tx("मुख्य मेनू")} className="p-3 space-y-4">
         {navGroups.map((grp, gIdx) => (
           <div key={gIdx} role="group" aria-label={grp.group} className="space-y-1">
             <div className="px-3 py-1 text-[11px] font-bold text-slate-600 uppercase tracking-wider" aria-hidden="true">

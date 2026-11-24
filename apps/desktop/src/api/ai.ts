@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { IDEMPOTENCY_HEADER, TERMINAL_JOB_STATUSES, type AiJob, type AiJobCreate } from "@edusuite/shared";
 import { ApiError } from "./client.ts";
 import { useSession } from "./session.tsx";
+import { tx } from "../i18n/index.ts";
 
 /** Whether AI answers are real or fixtures (DN-012), for the header badge. */
 export function useAiMode() {
@@ -63,7 +64,7 @@ export function useAiJob() {
       return current;
     } catch (err) {
       if (!controller.signal.aborted) {
-        setError(err instanceof ApiError ? err : new ApiError(0, "INTERNAL", "AI काम पूरा नहीं हुआ। फिर से कोशिश करें।"));
+        setError(err instanceof ApiError ? err : new ApiError(0, "INTERNAL", tx("AI काम पूरा नहीं हुआ। फिर से कोशिश करें।")));
       }
       return null;
     } finally {
