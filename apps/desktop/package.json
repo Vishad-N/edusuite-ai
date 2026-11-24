@@ -84,6 +84,7 @@
     ]
   },
   "dependencies": {
+    "@sentry/electron": "^8.4.0",
     "@tailwindcss/vite": "^4.3.5",
     "@tanstack/react-query": "^5.108.2",
     "canvas-confetti": "^1.9.4",

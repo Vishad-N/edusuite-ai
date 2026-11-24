@@ -38,4 +38,8 @@ contextBridge.exposeInMainWorld("edusuite", {
     /** Returns a URL on the isolated edusuite-motion:// origin for the player iframe. */
     open: (html) => ipcRenderer.invoke("motion:open", html),
   },
+  telemetry: {
+    /** { name, message, stack, screen? } of a crash; false when error reporting is off (DN-068). */
+    report: (crash) => ipcRenderer.invoke("telemetry:report", crash),
+  },
 });

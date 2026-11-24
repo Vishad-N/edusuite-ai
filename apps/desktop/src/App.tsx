@@ -35,7 +35,7 @@ import SettingsModal from "./components/SettingsModal.tsx";
 import { translations } from "./data/translations";
 import { useSession, useSignedInUser } from "./api/session.tsx";
 import { Skeleton } from "./components/ui/index.ts";
-import { AppCrashed, ErrorBoundary, ScreenCrashed } from "./components/ErrorBoundary.tsx";
+import { ErrorBoundary, RouteCrashed, ScreenCrashed } from "./components/ErrorBoundary.tsx";
 import { setUiLanguage, tx } from "./i18n/index.ts";
 
 /** Props every screen receives (the same names the screens used before the router). */
@@ -258,11 +258,11 @@ function useOutletContextProps(): ScreenProps {
 }
 
 const router = createHashRouter([
-  { path: "/login", element: <LoginRoute />, errorElement: <AppCrashed /> },
+  { path: "/login", element: <LoginRoute />, errorElement: <RouteCrashed /> },
   {
     path: "/",
     element: <RequireAuth />,
-    errorElement: <AppCrashed />,
+    errorElement: <RouteCrashed />,
     children: [
       { index: true, element: <ScreenRoute forced="dashboard" /> },
       { path: ":screen", element: <ScreenRoute /> },

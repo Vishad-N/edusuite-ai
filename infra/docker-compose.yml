@@ -87,6 +87,9 @@ services:
       AI_RATE_LIMIT: ${AI_RATE_LIMIT:-20}
       # API docs at /docs (DN-067): off in production unless "true".
       API_DOCS: ${API_DOCS:-}
+      # Error reporting (DN-068): empty means off.
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
     depends_on:
       garage:
         condition: service_started
@@ -112,6 +115,8 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-claude-opus-5-5}
       AI_CONCURRENCY: ${AI_CONCURRENCY:-2}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
       # Optional per-job model overrides (DN-065); empty means AI_MODEL.
       AI_MODEL_PPT_OUTLINE: ${AI_MODEL_PPT_OUTLINE:-}
       AI_MODEL_PAPER_GENERATE: ${AI_MODEL_PAPER_GENERATE:-}

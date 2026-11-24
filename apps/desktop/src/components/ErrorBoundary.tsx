@@ -1,4 +1,5 @@
-import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Component, useEffect, type ErrorInfo, type ReactNode } from "react";
+import { useRouteError } from "react-router";
 import { tx } from "../i18n/index.ts";
 import { Button, ErrorState } from "./ui/index.ts";
 
@@ -6,15 +7,21 @@ type Props = {
   /** What to show instead of the crashed part; `reset` renders the children again. */
   fallback: (reset: () => void) => ReactNode;
   children: ReactNode;
-  /** Change it (e.g. the screen id) to clear a crash when the user moves on. */
+  /** Change it (e.g. the screen id) to clear a crash when the user moves on. Also tags the error report. */
   resetKey?: string;
 };
+
+/** Sends the crash to error reporting through the bridge (DN-068); a no-op when it is off or in a browser. */
+export function reportCrash(error: unknown, screen?: string): void {
+  const e = error instanceof Error ? error : new Error(String(error));
+  void window.edusuite?.telemetry?.report({ name: e.name, message: e.message, stack: e.stack ?? "", ...(screen && { screen }) }).catch(() => {});
+}
 type State = { failed: boolean; resetKey: string | undefined };
 
 /**
  * Catches render crashes so staff never see a blank window (master prompt Track B; DN-065).
- * Error details go to the console only: they may contain student data, and there is no
- * error-reporting service yet.
+ * Details go to the console and, when the build has error reporting on, to the main process,
+ * which scrubs them before sending (DN-068).
  */
 export class ErrorBoundary extends Component<Props, State> {
   override state: State = { failed: false, resetKey: this.props.resetKey };
@@ -30,6 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error("EduSuite screen crashed", error, info.componentStack);
+    reportCrash(error, this.props.resetKey ?? "app");
   }
 
   override render(): ReactNode {
@@ -53,6 +61,16 @@ export function ScreenCrashed({ onRetry, onHome }: { onRetry: () => void; onHome
 }
 
 /** Last resort for the whole window. */
+/** The router's error element: reports what the router caught, then shows the whole-window fallback. */
+export function RouteCrashed() {
+  const error = useRouteError();
+  useEffect(() => {
+    console.error("EduSuite route crashed", error);
+    reportCrash(error, "router");
+  }, [error]);
+  return <AppCrashed />;
+}
+
 export function AppCrashed() {
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-page p-6">

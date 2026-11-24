@@ -13,6 +13,7 @@ const {
 } = require("./security.cjs");
 const { createTokenVault } = require("./tokenVault.cjs");
 const { createUpdater } = require("./updates.cjs");
+const { createTelemetry } = require("./telemetry.cjs");
 
 const DIST_INDEX = path.join(__dirname, "../dist/index.html");
 // Development only: load Vite's dev server instead of the built files.
@@ -20,6 +21,14 @@ const DEV_SERVER_URL = !app.isPackaged ? process.env.ELECTRON_DEV_SERVER_URL : u
 // The API address is fixed at build time (dist/app-config.json, written by vite.config.js from
 // EDUSUITE_API_URL; DN-062). An env override is honoured only when not packaged.
 const API_ORIGIN = resolveApiOrigin((!app.isPackaged && process.env.EDUSUITE_API_URL) || readBuildConfig().apiOrigin, "http://localhost:3000");
+
+// Error reporting (DN-068): on only when the build was given a DSN; set up before anything else
+// so startup errors are caught too.
+const telemetry = createTelemetry({
+  dsn: readBuildConfig().sentryDsn,
+  release: `edusuite-desktop@${app.getVersion()}`,
+  environment: app.isPackaged ? "production" : "development",
+});
 
 function readBuildConfig() {
   try {
@@ -131,6 +140,8 @@ function registerIpc() {
   });
 
   // Motion player: keep the generated HTML in memory and serve it from the isolated origin.
+  handle("telemetry:report", (_e, crash) => telemetry.report(crash));
+
   handle("motion:open", (_e, html) => {
     if (typeof html !== "string" || html.length > 60 * 1024 * 1024) throw new Error("invalid document");
     const id = crypto.randomUUID();

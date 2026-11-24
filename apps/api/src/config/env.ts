@@ -47,6 +47,9 @@ const EnvSchema = z
     /** AI jobs one signed-in session may start per minute (DN-065); credits still cap spending. */
     AI_RATE_LIMIT: z.coerce.number().int().positive().default(20),
     /** API docs at /docs (DN-067): on outside production unless "false"; in production only with "true". */
+    /** Error reporting (DN-068); empty or unset means off. */
+    SENTRY_DSN: z.preprocess((v) => (v === "" ? undefined : v), z.url().optional()),
+    SENTRY_ENVIRONMENT: z.preprocess((v) => (v === "" ? undefined : v), z.string().max(64).optional()),
     API_DOCS: z.preprocess((v) => (v === "" ? undefined : v), z.enum(["true", "false"]).optional()),
     /** Where recorded fixtures live: <dir>/<jobType>/<sha256 of input>.json */
     AI_FIXTURES_DIR: z.string().default("fixtures/ai"),

@@ -7,6 +7,9 @@ import { AiRunner } from "./ai/runner";
 import { S3Storage } from "./files/storage";
 import { AiProcessor } from "./ai/processor";
 import { AI_JOB_ATTEMPTS, AI_QUEUE_NAME, redisConnection } from "./ai/queue";
+import { captureError, flushTelemetry, initTelemetry } from "./common/telemetry";
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- version for the error-report release tag
+const { version } = require("../../package.json") as { version: string };
 
 /** One JSON line per event, like the API's pino logs (no extra dependency). */
 function makeLog(level: string) {
@@ -29,6 +32,9 @@ async function main(): Promise<void> {
   if (!env.REDIS_URL || !env.DATABASE_URL) throw new Error("The worker needs REDIS_URL and DATABASE_URL.");
   if (env.AI_MODE !== "fixture" && !env.ANTHROPIC_API_KEY) throw new Error(`AI_MODE=${env.AI_MODE} needs ANTHROPIC_API_KEY.`);
   const log = makeLog(env.LOG_LEVEL);
+  if (initTelemetry({ dsn: env.SENTRY_DSN, environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV, service: "worker", release: `edusuite-api@${version}` })) {
+    log.info("error reporting on");
+  }
 
   const prisma = new PrismaService(env);
   const credits = new CreditsService(prisma, new AuditService(prisma));
@@ -52,20 +58,26 @@ async function main(): Promise<void> {
     },
     { connection: redisConnection(env.REDIS_URL), concurrency: env.AI_CONCURRENCY },
   );
-  worker.on("error", (err) => log.error({ err: err.message }, "worker error"));
+  worker.on("error", (err) => {
+    log.error({ err: err.message }, "worker error");
+    captureError(err, { where: "queue" });
+  });
   log.info({ mode: env.AI_MODE, model: env.AI_MODEL, concurrency: env.AI_CONCURRENCY }, "AI worker started");
 
   const stop = async () => {
     log.info("stopping AI worker");
     await worker.close();
     await prisma.onModuleDestroy();
+    await flushTelemetry();
     process.exit(0);
   };
   process.on("SIGTERM", () => void stop());
   process.on("SIGINT", () => void stop());
 }
 
-main().catch((err: unknown) => {
+main().catch(async (err: unknown) => {
   console.error(err instanceof Error ? err.message : err);
+  captureError(err, { where: "startup" });
+  await flushTelemetry();
   process.exit(1);
 });

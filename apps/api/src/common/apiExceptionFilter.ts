@@ -2,6 +2,7 @@ import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, HttpSta
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { pickLanguage, type ApiError } from "@edusuite/shared";
 import { ApiHttpException, ERROR_MESSAGES, type ErrorCode } from "./errors";
+import { captureError } from "./telemetry";
 
 function codeForStatus(status: number): ErrorCode {
   switch (status) {
@@ -44,6 +45,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
       // Log the error type and request id only; messages may contain user data.
       const name = exception instanceof Error ? exception.name : typeof exception;
       this.logger.error(`unhandled ${name} on ${req.method} ${req.routeOptions?.url ?? "unknown"} (req ${req.id})`);
+      captureError(exception, { code, route: `${req.method} ${req.routeOptions?.url ?? "unknown"}`, request_id: String(req.id) });
     }
 
     void reply.status(status).send(body);

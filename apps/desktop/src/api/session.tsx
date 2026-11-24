@@ -10,6 +10,8 @@ type Bridge = {
   motion?: { open: (html: string) => Promise<string> };
   /** Native save dialog (allowed extensions only). */
   file?: { saveAs: (suggestedName: string, data: Uint8Array) => Promise<{ saved: boolean; fileName?: string }> };
+  /** Sends a crash to error reporting when the build has it on (DN-068); otherwise does nothing. */
+  telemetry?: { report: (crash: { name: string; message: string; stack: string; screen?: string }) => Promise<boolean> };
 };
 declare global {
   interface Window {

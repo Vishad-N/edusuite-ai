@@ -30,6 +30,7 @@ Caddy gets the TLS certificates automatically once DNS points at the server.
   - `S3_PUBLIC_ENDPOINT=https://<FILES_DOMAIN>`
   - `CORS_ORIGINS=null`
 - [ ] **AI:** `AI_MODE=live` (production refuses fixture mode) and `ANTHROPIC_API_KEY`. Only the worker reads the key.
+- [ ] **Error reporting (optional, DN-068):** create a Sentry project for the server and set `SENTRY_DSN` (and `SENTRY_ENVIRONMENT=production`). Empty means off.
 - [ ] **Backups:**
   - `RESTIC_REPOSITORY=s3:https://<account>.r2.cloudflarestorage.com/edusuite-backups` (or a Backblaze B2 S3 URL)
   - `BACKUP_S3_ACCESS_KEY_ID` / `BACKUP_S3_SECRET_ACCESS_KEY`: a key limited to that one bucket
@@ -68,6 +69,7 @@ curl -fsS https://$API_DOMAIN/ready    # postgres, redis and storage all answer
   - `EDUSUITE_API_URL=https://<API_DOMAIN>`
   - `EDUSUITE_FILES_URL=https://<FILES_DOMAIN>`
   - `UPDATES_URL=https://<UPDATES_DOMAIN>/desktop/`
+  - `EDUSUITE_SENTRY_DSN` (optional): a separate Sentry project for the desktop app (DN-068)
 - **Secrets:** `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (a deploy-only key), `DEPLOY_KNOWN_HOSTS` (`ssh-keyscan <host>`).
 - **Environment `production`:** add yourself as a required reviewer. `deploy-api.yml` waits for that approval.
 

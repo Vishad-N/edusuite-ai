@@ -18,6 +18,46 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-068 · Error reporting with Sentry: off without a DSN, errors only, nothing personal
+- **Date:** 2026-11-24
+- **Phase / area:** master prompt §4 "Sentry hooks" · `apps/api/src/{common/{telemetry,apiExceptionFilter}.ts,main.ts,worker.ts,ai/processor.ts}`, `apps/desktop/{electron/{telemetry,main,preload}.cjs,vite.config.js,src/{components/ErrorBoundary.tsx,App.tsx,main.jsx,api/session.tsx}}`, `infra/{docker-compose.yml,.env.example}`, `.github/workflows/release-desktop.yml`
+- **Status:** Packages (`@sentry/node`, `@sentry/electron`) approved by developer ("ok to all 3"); the rest decided by agent
+- **What was unclear:** The plan names Sentry but not what is sent. The SDKs' defaults collect request bodies, headers, cookies, IPs and user details, and in Electron also native crash dumps (process memory), screenshots and a preload injected into every session. All of these can hold student data or tokens (AGENT_README §8), and the injected preload would break the hardened window (DN-036).
+- **Decision:**
+  - **Off unless a DSN is set:** `SENTRY_DSN` (and optional `SENTRY_ENVIRONMENT`) for the API and worker; `EDUSUITE_SENTRY_DSN` at build time for the desktop, written into `dist/app-config.json` next to the API address (release variable `EDUSUITE_SENTRY_DSN`).
+  - **Errors only:** no tracing, no breadcrumbs, the SDKs' default integrations turned off. Every `dataCollection` category is off.
+  - **What is reported:**
+    - **API:** unexpected 5xx only (not 503 or any 4xx), tagged with our error code, the route pattern and the request id.
+    - **Worker:** AI jobs that finally fail, except refusals and bad input files (those are the user's input); queue errors; startup failures.
+    - **Desktop:** screen and router crashes from the error boundaries, plus uncaught errors and promise rejections in the page, except `ApiError` (server answers already shown to the user). At most 20 per run.
+  - **Scrubbing before sending:** no request, user, extra data, server name, local variables or source lines. Messages keep their shape with quoted values, emails and runs of 6+ digits replaced; file paths lose the user folder.
+  - **Desktop wiring:** the SDK runs only in the main process, in classic IPC mode (no privileged `sentry-ipc://` scheme). The page reports through a new named bridge function, `telemetry.report`, which the main process validates and clips. There's no Sentry code in the page and no CSP change.
+- **Reason:** Error reports help find bugs at pilot institutes without moving student data, tokens or memory dumps to a third party.
+- **Verified:**
+  - API 121 tests, including 3 new: scrubbing; no DSN means nothing is set up; against a local fake Sentry, a forced 500 sends one event with tags and none of the email, phone, token, cookie or body, and a 401 sends nothing.
+  - Desktop 46 tests, including 4 new: no DSN never loads the SDK; integrations limited, classic IPC, breadcrumbs 0; clipping, odd screen names dropped, the per-run cap; scrubbing of messages, paths and frame variables.
+  - Electron smoke check passes, with the bridge now listing `telemetry`.
+  - **End to end:** a build with a local fake DSN, signed in as the super admin.
+    - A forced dashboard crash whose message held a name, email and phone arrived as `cannot format "…" [email] [number]`, tagged `screen: dashboard`.
+    - A background `TypeError` arrived tagged `promise`.
+    - An `ApiError` rejection was not sent.
+    - No user, breadcrumbs or server name; no Windows user name anywhere.
+    - `dist` was rebuilt without the DSN afterwards.
+- **Not verified:** a real Sentry project (needs an account and DSNs; deploy checklist).
+- **Revisit if:** tracing is wanted (performance), or support needs to tie a report to an institute (add the institute id as a tag, with approval).
+
+### DN-067 · API docs at /docs, generated from the zod schemas
+- **Date:** 2026-11-24
+- **Phase / area:** Plan §07 · `apps/api/src/docs/openapi.ts`, `apps/api/src/{bootstrap.ts,config/env.ts,common/zodBody.ts}`, `infra/{docker-compose.yml,.env.example}`
+- **Status:** Package (`@nestjs/swagger`) approved by developer ("ok to all 3"); the rest decided by agent
+- **What was unclear:** The plan asks for "an OpenAPI spec generated from the zod schemas" but the routes validate with our own `ZodBody` pipe, which `@nestjs/swagger` can't read, and it didn't say whether docs are public in production.
+- **Decision:**
+  - **Routes** come from `SwaggerModule.createDocument`. Each operation is then filled from Nest's route metadata: the zod schema in every `ZodBody` pipe becomes the request body or the query parameters (`z.toJSONSchema`, input side, OpenAPI 3.0), and `@Headers("idempotency-key")` becomes a required header. Who may call it (public, a named permission, or any signed-in user) goes in the description and the bearer security. Validation and docs therefore can't drift.
+  - **Served:** the page at `/docs`, JSON at `/docs/openapi.json` and YAML at `/docs/openapi.yaml`. The page's three files come from `swagger-ui-dist` (bundled with `@nestjs/swagger`) through a small whitelisted route, so no static-file plugin is needed and it works offline.
+  - **`API_DOCS`:** on outside production; off in production unless `true`.
+- **Verified:** API tests: every route is listed; fee-receipt body, required fields and idempotency header; student list query parameters; login public, `/me` secured; the page, CSS and a path-traversal attempt (404); the production default. Checked in the browser at `http://localhost:3000/docs`.
+- **Revisit if:** response shapes should be documented too (add zod response schemas per route).
+
 ### DN-066 · Admin views: audit log and monthly AI usage (credits, not dollars)
 - **Date:** 2026-11-24
 - **Phase / area:** Checklist gap · `packages/shared/src/admin.ts`, `apps/api/src/audit/admin.controller.ts`, `apps/desktop/src/components/AuditUsage.tsx`, Sidebar, App, `permissions.ts` (screen `audit`)
