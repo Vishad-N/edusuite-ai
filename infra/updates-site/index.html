@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EduSuite AI डाउनलोड</title>
+<!-- Download page (Phase 6, DN-062). Served by Caddy on UPDATES_DOMAIN next to the update feed.
+     Reads desktop/latest.yml (written by the release workflow) to link the newest installer. -->
+<style>
+  :root { --ink:#0f172a; --muted:#475569; --accent:#f59e0b; --page:#f8fafc; --line:#cbd5e1; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--page); color:var(--ink); font:16px/1.6 "Nirmala UI","Segoe UI",system-ui,sans-serif; }
+  main { max-width:640px; margin:0 auto; padding:48px 16px; }
+  .mark { display:inline-grid; place-items:center; width:56px; height:56px; border-radius:14px; background:var(--ink); color:var(--accent); font-weight:800; font-size:28px; }
+  h1 { font-size:28px; margin:16px 0 4px; }
+  p { color:var(--muted); margin:0 0 16px; }
+  a.button { display:inline-block; background:var(--accent); color:var(--ink); font-weight:700; padding:12px 20px; border-radius:8px; text-decoration:none; border:1px solid #b45309; }
+  a.button:focus-visible { outline:3px solid var(--ink); outline-offset:2px; }
+  ol { padding-left:20px; color:var(--muted); }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px; margin-top:24px; }
+  small { color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <span class="mark" aria-hidden="true">E</span>
+  <h1>EduSuite AI</h1>
+  <p>कोचिंग और स्कूल के लिए डेस्कटॉप ऐप (Windows 10 / 11)।</p>
+  <a class="button" id="download" href="desktop/latest.yml">डाउनलोड करें</a>
+  <p id="version"><small>नवीनतम संस्करण खोजा जा रहा है…</small></p>
+  <div class="card">
+    <strong>इंस्टॉल कैसे करें</strong>
+    <ol>
+      <li>डाउनलोड हुई फ़ाइल खोलें। एडमिन पासवर्ड नहीं चाहिए; ऐप सिर्फ़ आपके Windows खाते में इंस्टॉल होता है।</li>
+      <li>अगर “Windows protected your PC” दिखे तो “More info” → “Run anyway” दबाएँ (पायलट संस्करण पर अभी डिजिटल हस्ताक्षर नहीं है)।</li>
+      <li>अपने संस्थान से मिली ID और पासवर्ड से लॉग-इन करें।</li>
+    </ol>
+    <small>नए संस्करण अपने-आप डाउनलोड होते हैं; ऊपर “अपडेट तैयार” दिखे तो दबाएँ।</small>
+  </div>
+</main>
+<script>
+  // latest.yml has a line like "path: EduSuite-AI-Setup-1.2.3.exe" and "version: 1.2.3".
+  fetch("desktop/latest.yml", { cache: "no-store" })
+    .then((r) => (r.ok ? r.text() : Promise.reject(r.status)))
+    .then((yml) => {
+      const path = /^path:\s*(.+)$/m.exec(yml)?.[1]?.trim();
+      const version = /^version:\s*(.+)$/m.exec(yml)?.[1]?.trim();
+      if (!path || !/^[\w.-]+\.exe$/.test(path)) throw new Error("bad feed");
+      document.getElementById("download").href = "desktop/" + encodeURIComponent(path);
+      document.getElementById("version").innerHTML = "<small>संस्करण " + version.replace(/[^\d.]/g, "") + "</small>";
+    })
+    .catch(() => {
+      document.getElementById("download").removeAttribute("href");
+      document.getElementById("download").setAttribute("aria-disabled", "true");
+      document.getElementById("version").innerHTML = "<small>अभी कोई संस्करण उपलब्ध नहीं है।</small>";
+    });
+</script>
+</body>
+</html>

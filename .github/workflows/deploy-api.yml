@@ -1,0 +1,56 @@
+name: Deploy API
+
+# Plan §11 / Phase 6 (DN-062). Manual only: builds the API image, pushes it to GitHub's
+# container registry and restarts the stack on the VPS (migrations run first, as a one-shot
+# service). Protected by the "production" environment: add required reviewers there.
+#
+# Secrets (environment "production"): DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS.
+# The VPS keeps its own infra/.env (chmod 600); no app secret passes through GitHub.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/edusuite-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Build and push
+        run: |
+          image="$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')"
+          docker build -f apps/api/Dockerfile -t "$image:${GITHUB_SHA::12}" -t "$image:latest" .
+          docker push "$image:${GITHUB_SHA::12}"
+          docker push "$image:latest"
+          echo "API_IMAGE=$image:${GITHUB_SHA::12}" >> "$GITHUB_ENV"
+      - name: Restart on the VPS
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_deploy "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd /srv/edusuite && git fetch --quiet && git checkout --quiet ${GITHUB_SHA} && \
+             API_IMAGE=$API_IMAGE docker compose -f infra/docker-compose.yml --env-file infra/.env --profile production pull api && \
+             API_IMAGE=$API_IMAGE docker compose -f infra/docker-compose.yml --env-file infra/.env --profile production up -d --no-build && \
+             curl -fsS https://\$(grep '^API_DOMAIN=' infra/.env | cut -d= -f2)/ready"
+          rm -f ~/.ssh/id_deploy

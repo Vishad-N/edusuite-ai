@@ -3,6 +3,7 @@ import { Calendar, LogOut, MapPin, PhoneCall, Settings } from "lucide-react";
 import { EDUSUITE_MARK } from "../utils/branding.ts";
 import { academicSession } from "../utils/academicSession.ts";
 import { CreditsChip } from "./CreditsChip.tsx";
+import { UpdateButton } from "./UpdateButton.tsx";
 import { ConfirmDialog } from "./ui/index.ts";
 import type { LegacyUser } from "../App.tsx";
 
@@ -69,6 +70,7 @@ export default function Header({ instituteName, branchName, phone, lang, onLangu
           {langButton("en", "English")}
         </div>
 
+        <UpdateButton />
         <CreditsChip role={currentUser.role} />
 
         {phone && (

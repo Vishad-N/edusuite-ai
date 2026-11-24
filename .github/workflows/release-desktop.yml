@@ -1,0 +1,105 @@
+name: Release Windows installer
+
+# Plan §11 / Phase 6 (DN-062). Builds the one-click per-user installer for a version tag
+# (v1.2.3) and, when the update server is configured, publishes it to the update feed.
+#
+# Repository variables (Settings → Secrets and variables → Actions → Variables):
+#   EDUSUITE_API_URL    https://api.<domain>      (the server the app talks to; must be https)
+#   EDUSUITE_FILES_URL  https://files.<domain>    (presigned uploads and downloads)
+#   UPDATES_URL         https://updates.<domain>/desktop/
+# Secrets (only for publishing to the VPS; without them the installer is just an artifact):
+#   DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY (private key), DEPLOY_KNOWN_HOSTS
+# Code signing (pilot: unsigned, DN-062): add WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD secrets
+# or Azure Trusted Signing later; electron-builder signs automatically when they exist.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build, e.g. 1.0.1 (manual runs never publish)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      EDUSUITE_API_URL: ${{ vars.EDUSUITE_API_URL }}
+      EDUSUITE_FILES_URL: ${{ vars.EDUSUITE_FILES_URL }}
+      UPDATES_URL: ${{ vars.UPDATES_URL }}
+      CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+      # Secrets can't be used in a step's `if`, so expose only whether one is set.
+      CAN_PUBLISH: ${{ secrets.DEPLOY_SSH_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Version and addresses
+        id: v
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then version="${{ inputs.version }}"; fi
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Version must look like 1.2.3, got '$version'"; exit 1; }
+          # A packaged app talks only to the server it was built for, over HTTPS.
+          for name in EDUSUITE_API_URL EDUSUITE_FILES_URL UPDATES_URL; do
+            [[ "${!name}" == https://* ]] || { echo "::error::Set the repository variable $name to an https:// address"; exit 1; }
+          done
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - run: npm ci
+      - name: Tests
+        run: npm test -w @edusuite/desktop
+      - name: Build
+        run: npm run build -w @edusuite/desktop
+
+      - name: Installer
+        working-directory: apps/desktop
+        shell: bash
+        run: >
+          npx electron-builder --win nsis --publish never
+          -c.extraMetadata.version=${{ steps.v.outputs.version }}
+          -c.publish.provider=generic -c.publish.url="$UPDATES_URL"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EduSuite-AI-Windows-${{ steps.v.outputs.version }}
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/latest.yml
+
+      # The installer and blockmap go first and latest.yml last, so installed apps never
+      # see a feed that points at a file that isn't there yet.
+      - name: Publish to the update server
+        if: github.event_name == 'push' && env.CAN_PUBLISH == 'true'
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          dest="$DEPLOY_USER@$DEPLOY_HOST:/srv/edusuite/updates/desktop/"
+          cd apps/desktop/release
+          scp -i ~/.ssh/id_deploy -- *.exe *.blockmap "$dest"
+          scp -i ~/.ssh/id_deploy -- latest.yml "$dest"
+          rm -f ~/.ssh/id_deploy
+
+      - name: Draft GitHub release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh release create "$GITHUB_REF_NAME" --draft --title "EduSuite AI $GITHUB_REF_NAME" apps/desktop/release/*.exe apps/desktop/release/latest.yml

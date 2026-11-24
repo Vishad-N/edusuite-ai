@@ -9,7 +9,16 @@ contextBridge.exposeInMainWorld("edusuite", {
     config: () => ipcRenderer.invoke("app:config"),
   },
   update: {
+    /** { state: "not-configured" | "idle" | "checking" | "up-to-date" | "downloading" | "ready" | "error", version?, percent? } */
     status: () => ipcRenderer.invoke("update:status"),
+    /** Restarts into a downloaded update; false if none is ready. */
+    install: () => ipcRenderer.invoke("update:install"),
+    /** Calls back on every status change; returns a function that stops listening. */
+    onChange: (callback) => {
+      const listener = (_event, status) => callback(status);
+      ipcRenderer.on("update:changed", listener);
+      return () => ipcRenderer.removeListener("update:changed", listener);
+    },
   },
   /** Refresh token in the OS-encrypted vault. The access token stays in memory in the page. */
   auth: {

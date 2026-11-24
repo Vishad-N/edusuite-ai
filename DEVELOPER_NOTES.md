@@ -18,6 +18,45 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-063 · Backups with restic (database + files), restore drill, and the 150-user load test
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 6 · `infra/backup/*`, `infra/docker-compose.yml` (`backup` service, profile `ops`), `infra/.env.example`, `apps/api/scripts/load-test.mjs`, `docs/operations/deploy-checklist.md`
+- **Status:** Off-site target (Cloudflare R2 or Backblaze B2) and load-test tool (autocannon, dev only) decided by developer; the rest decided by agent
+- **What was unclear:** The plan says "nightly pg_dump + storage restic, encrypted, keep 7 days, 4 weeks, 6 months; restore within 2 h; lose at most 24 h", and "load test (150 users)". It doesn't say how storage is captured, how a restore is proven, or what the test runs.
+- **Decision:**
+  - **Backup tool:** one image built on `postgres:17`, with Debian's `restic` and `rclone`.
+  - **`backup.sh`:** `pg_dump` (custom format) plus `rclone copy` of every object in the bucket go into one restic snapshot. Objects are copied through the S3 API rather than Garage's data folders, so a restore doesn't depend on Garage's internal format. Then `forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune` and `check --read-data-subset=1/50`. It creates the repository on first run.
+  - **`restore.sh`:** a drill by default. It restores into `<db>_restore_drill` and, optionally, a separate bucket. It compares row counts of the key tables (and the receipt counters' total) with the live database and reports `restore_seconds`. It refuses to restore over the live database without `I_AM_RESTORING_LIVE=yes`. `DRILL_EXPECT_EQUAL=1` makes any difference a failure.
+  - **Running it:** the `backup` service is in the `ops` profile, so it never starts with the stack. Production runs it from host cron at 02:30 IST. The repository is any S3 URL (R2 or B2) or `/backup-repo` (a local volume, for drills only). `RESTIC_PASSWORD` must also be kept in a password manager off the server. Existing local env files got the new keys without the secret being shown.
+  - **Load test** (`npm run load -w @edusuite/api`): 150 connections for 30 seconds. The mix is `/me`, dashboard stats, document history, students, credits, and about one write in 14 (a notice save). It logs in four demo users once, because logins are rate-limited per IP (DN-033), with passwords read from the seed file. It refuses any host but localhost. It passes when p97.5 < 300 ms with no errors (autocannon reports p90 and p97.5, not p95).
+- **Verified:**
+  - **Backup:** a local backup saved the database plus 14 files, and the check found no errors.
+  - **Restore drill:** it passed. Every compared table matched the live database (institutes, users, documents, files, students, receipts, counters, credits, audit), all 14 uploaded files were present, and it took 1 s. Restoring over the live database is refused (exit 2). The drill database was dropped afterwards.
+  - **Load test:** 43,949 requests at about 1,465 per second; p50 94 ms, p90 137 ms, p97.5 148 ms, p99 160 ms, max 615 ms; no non-2xx responses, errors or timeouts. This ran on the developer PC under Docker Desktop, so re-run on the VPS size before the pilot. The test's 3,108 notices and their audit rows were removed from the local database afterwards.
+- **Not verified:** a real R2 or B2 repository (needs the bucket and keys); uploading into a restore bucket (`RESTORE_BUCKET`); cron on the VPS.
+- **Revisit if:** the database grows past what a nightly dump handles (move to WAL archiving, plan "revisit"), or less than 24 h data loss is needed.
+
+### DN-062 · One-click per-user installer, auto-update, release and deploy workflows (pilot unsigned)
+- **Date:** 2026-11-23
+- **Phase / area:** Phase 6 · `apps/desktop/{package.json,vite.config.js,electron/{main,preload,updates}.cjs,src/components/{UpdateButton,Header}.tsx}`, `.github/workflows/{release-desktop,deploy-api}.yml`, `infra/{Caddyfile,docker-compose.yml,updates-site/index.html}`, `docs/operations/deploy-checklist.md`
+- **Status:** Signing (unsigned for the pilot) and "build ready to deploy, touch no server" decided by developer; the rest decided by agent
+- **What was unclear:** The plan names a signed NSIS installer, electron-updater (checks at start and every 4 h), a download page and `release-desktop.yml` / `deploy-api.yml`. There is no certificate, VPS or domain yet, and it wasn't said how the packaged app learns its server address.
+- **Decision:**
+  - **Installer** (DN-016): `oneClick: true`, `perMachine: false`, so there's no admin prompt and no folder choice. Named `EduSuite-AI-Setup-<version>.exe`. Electron is pinned to an exact version (45.3.4), which electron-builder needs and which keeps releases reproducible. Unsigned for the pilot; the download page explains the one-time Windows warning. Adding `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD` (or Azure Trusted Signing) later turns signing on with no code change.
+  - **Server address:** fixed at build time. `vite.config.js` writes `dist/app-config.json` from `EDUSUITE_API_URL` (the same value as the CSP), and the main process reads it. The env override works only when not packaged. The release workflow refuses any address that isn't `https://`.
+  - **Auto-update** (`electron-updater`, named in the plan): `electron/updates.cjs` is testable without Electron. It runs only in the packaged app (not in development or smoke runs). It checks at start and every 4 hours and downloads in the background (block map first). A downloaded update shows "अपडेट तैयार (x.y.z): दोबारा शुरू करें" in the header, and also installs when the app closes. Offline or a broken feed only logs, and a ready update stays ready. The bridge gets `update.install` and `update.onChange`.
+  - **Feed and download page:** a generic provider. Caddy serves `UPDATES_DOMAIN`: `/desktop/*` from `/srv/edusuite/updates` (with `latest.yml` never cached) and `/` as a download page. The page reads `latest.yml` to link the newest installer and gives Hindi install steps. The feed URL in `package.json` is a placeholder; releases pass the real one.
+  - **`release-desktop.yml`** (tag `v*`, or manual without publishing): checks the version and https variables, runs desktop tests, builds the installer and uploads it as an artifact. When the deploy secrets exist, it copies the installer and block map first and `latest.yml` last, so apps never see a feed pointing at a missing file. Then it drafts a GitHub release.
+  - **`deploy-api.yml`:** manual, behind the `production` environment (add a required reviewer). It builds and pushes the image to GHCR, then over SSH runs `compose pull` and `up -d` (migrations run as the one-shot service) and checks `/ready`. App secrets stay in the VPS's own `infra/.env`.
+  - `docs/operations/deploy-checklist.md` lists every step that touches the server, money or secrets.
+- **Verified:**
+  - Desktop tests 39 (3 new for the updater: disabled in development; start plus 4-hour checks, progress, ready, install; offline). Typecheck, lint and build pass. `app-config.json` is emitted.
+  - A real `electron-builder` run produced the one-click per-user NSIS installer (`oneClick=true perMachine=false`), its block map and `latest.yml`.
+  - **Local update drill:** a v1.0.1 feed was served on 127.0.0.1 and an unpacked v1.0.0 was pointed at it. It went downloading → ready (1.0.1), and the header showed "अपडेट तैयार (1.0.1): दोबारा शुरू करें". Nothing was installed; the updater cache was deleted afterwards.
+  - Caddy validated the new site; compose config is valid for local and for production + ops. The download page with a fake feed links `desktop/EduSuite-AI-Setup-1.0.1.exe` and shows "संस्करण 1.0.1".
+- **Not verified:** the GitHub workflows (they run only on a tag or a manual run with the variables set); installing an update end to end (restart into the new version); signing; macOS updates (the Mac workflow builds DMGs but isn't published to the feed).
+- **Revisit if:** the login screen should also offer the update (today the button is in the signed-in header; closing the app installs it anyway), or a signing certificate is bought.
+
 ### DN-061 · Phase 5: students, fee receipts and ID cards
 - **Date:** 2026-11-23
 - **Phase / area:** Phase 5 · `packages/shared/src/students.ts`, `apps/api/src/students/*`, `apps/desktop/src/{api/students.ts,components/IdAndFeeReceipt.tsx}` (replaces the sample-data `.jsx`)
