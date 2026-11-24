@@ -46,6 +46,8 @@ const EnvSchema = z
     AI_CONCURRENCY: z.coerce.number().int().min(1).max(20).default(2),
     /** AI jobs one signed-in session may start per minute (DN-065); credits still cap spending. */
     AI_RATE_LIMIT: z.coerce.number().int().positive().default(20),
+    /** API docs at /docs (DN-067): on outside production unless "false"; in production only with "true". */
+    API_DOCS: z.preprocess((v) => (v === "" ? undefined : v), z.enum(["true", "false"]).optional()),
     /** Where recorded fixtures live: <dir>/<jobType>/<sha256 of input>.json */
     AI_FIXTURES_DIR: z.string().default("fixtures/ai"),
     /**
@@ -80,10 +82,17 @@ const EnvSchema = z
     }
   });
 
-export type Env = z.infer<typeof EnvSchema> & {
+export type Env = Omit<z.infer<typeof EnvSchema>, "API_DOCS"> & {
+  /** Resolved from API_DOCS and NODE_ENV. */
+  API_DOCS: boolean;
   /** Per-job model overrides from AI_MODEL_<JOB_TYPE> (AGENT_README §7), e.g. AI_MODEL_DECK_QUIZ. */
   AI_MODEL_BY_JOB: Record<string, string>;
 };
+
+/** API docs (DN-067): on outside production unless "false"; in production only with "true". */
+export function apiDocsEnabled(flag: "true" | "false" | undefined, nodeEnv: string): boolean {
+  return flag ? flag === "true" : nodeEnv !== "production";
+}
 
 /** The model a job type runs on: its AI_MODEL_<JOB_TYPE> override, else AI_MODEL. */
 export function aiModelFor(env: Env, jobType: string): string {
@@ -102,7 +111,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     const m = /^AI_MODEL_([A-Z][A-Z_]*)$/.exec(key);
     if (m && value?.trim()) byJob[m[1]!.toLowerCase()] = value.trim();
   }
-  return { ...parsed.data, AI_MODEL_BY_JOB: byJob };
+  return { ...parsed.data, AI_MODEL_BY_JOB: byJob, API_DOCS: apiDocsEnabled(parsed.data.API_DOCS, parsed.data.NODE_ENV) };
 }
 
 export const ENV = Symbol("ENV");

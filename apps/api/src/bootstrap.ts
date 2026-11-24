@@ -7,6 +7,7 @@ import type { FastifyBaseLogger } from "fastify";
 import { AppModule } from "./app.module";
 import { ApiExceptionFilter } from "./common/apiExceptionFilter";
 import type { Env } from "./config/env";
+import { setupApiDocs } from "./docs/openapi";
 
 /** Routes Nest's own log calls into Fastify's pino logger, so every line is JSON. */
 class PinoNestLogger implements LoggerService {
@@ -64,7 +65,7 @@ export async function createApp(env: Env, extraControllers: Type[] = [], overrid
   // the API from a page. Auth is a Bearer token, never a cookie, so no credentials mode.
   app.enableCors({
     origin: env.CORS_ORIGINS,
-    methods: ["GET", "POST", "PATCH", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["authorization", "content-type", "accept-language", "accept", "idempotency-key", "x-request-id"],
     credentials: false,
     maxAge: 600,
@@ -77,6 +78,7 @@ export async function createApp(env: Env, extraControllers: Type[] = [], overrid
     ],
   });
   app.useGlobalFilters(new ApiExceptionFilter());
+  setupApiDocs(app, env);
   app.enableShutdownHooks();
   return app;
 }

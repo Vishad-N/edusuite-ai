@@ -85,6 +85,8 @@ services:
       # Only reported to the app (fixture badge); the API never calls Claude itself.
       AI_MODE: ${AI_MODE:-live}
       AI_RATE_LIMIT: ${AI_RATE_LIMIT:-20}
+      # API docs at /docs (DN-067): off in production unless "true".
+      API_DOCS: ${API_DOCS:-}
     depends_on:
       garage:
         condition: service_started
