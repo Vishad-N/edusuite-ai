@@ -98,6 +98,7 @@ export const SCREEN_PERMISSIONS = {
   image: "image_studio",
   notice: "notices",
   platform: "platform.credits",
+  audit: "audit.view",
 } as const satisfies Record<string, Permission>;
 
 export type ScreenId = keyof typeof SCREEN_PERMISSIONS;

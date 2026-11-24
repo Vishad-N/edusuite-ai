@@ -112,6 +112,24 @@ export class JobsService {
     return { job: toJobDto(row, ctx.acceptLanguage), created: true };
   }
 
+  /**
+   * Cancels a queued or running job (DN-065): the starter or an admin. Credits are refunded
+   * once; a result that arrives later is discarded by the worker. A finished job answers 409.
+   */
+  async cancel(actor: AuthUser, id: string, ctx: Ctx): Promise<AiJob> {
+    await this.get(actor, id); // same visibility rules (404)
+    const db = this.prisma.db;
+    const res = await db.aiJob.updateMany({
+      where: { id, instituteId: actor.instituteId, status: { in: ["queued", "running"] } },
+      data: { status: "cancelled", finishedAt: new Date(), errorCode: null },
+    });
+    if (res.count === 0) throw new ApiHttpException(409, "AI_JOB_FINISHED");
+    await this.credits.refundJob(id);
+    await this.queue.remove?.(id);
+    await this.audit.log({ instituteId: actor.instituteId, actorId: actor.userId, action: "ai.job.cancel", entityType: "ai_job", entityId: id, ip: ctx.ip });
+    return toJobDto(await db.aiJob.findUniqueOrThrow({ where: { id } }), ctx.acceptLanguage);
+  }
+
   /** A job its starter, or an admin of the same institute, may read; anything else is 404. */
   async get(actor: AuthUser, id: string, acceptLanguage?: string): Promise<AiJob> {
     const row = await this.prisma.db.aiJob.findFirst({ where: { id, instituteId: actor.instituteId } });

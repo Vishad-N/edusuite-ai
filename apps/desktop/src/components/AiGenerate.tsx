@@ -60,6 +60,7 @@ export function AiGenerate({
           {...(ai.job && ai.job.progress.total > 0 && { progress: ai.job.progress.done / ai.job.progress.total })}
           {...(ai.error && { error: ai.error.message })}
           onRetry={() => void run()}
+          {...(ai.job && { onCancel: () => void ai.cancel() })}
         />
       )}
       {ai.job?.status === "succeeded" && (

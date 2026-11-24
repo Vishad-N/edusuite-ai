@@ -36,17 +36,21 @@ export class AiProcessor {
       return "failed";
     }
     const input = def.input.parse(job.input) as never;
-    await db.aiJob.update({
-      where: { id: aiJobId },
+    // Conditional: a job cancelled after it was read stays cancelled (DN-065).
+    const started = await db.aiJob.updateMany({
+      where: { id: aiJobId, status: { in: ["queued", "running"] } },
       data: { status: "running", startedAt: job.startedAt ?? new Date(), progressTotal: def.steps(input), progressDone: 0 },
     });
+    if (started.count === 0) return "skipped";
 
     try {
       const result = await this.runner.run(def, input, this.context(job.instituteId, job.institute.name));
       const output = def.finish ? def.finish(result.output as never, input) : result.output;
+      let cancelled = false;
       await db.$transaction(async (tx) => {
-        await tx.aiJob.update({
-          where: { id: aiJobId },
+        // Only a still-running job takes the result; a cancelled one keeps its status.
+        const saved = await tx.aiJob.updateMany({
+          where: { id: aiJobId, status: "running" },
           data: {
             status: "succeeded",
             result: output as Prisma.InputJsonValue,
@@ -57,6 +61,8 @@ export class AiProcessor {
             errorCode: null,
           },
         });
+        cancelled = saved.count === 0;
+        // Usage is recorded either way: Claude was called and paid for.
         for (const u of result.usage) {
           await tx.aiUsage.create({
             data: {
@@ -72,6 +78,10 @@ export class AiProcessor {
           });
         }
       });
+      if (cancelled) {
+        this.log.info(`ai job ${aiJobId} (${job.type}) finished after it was cancelled; result discarded`);
+        return "skipped";
+      }
       this.log.info(`ai job ${aiJobId} (${job.type}) succeeded${result.fixture ? " [fixture]" : ""}`);
       return "succeeded";
     } catch (err) {
@@ -79,7 +89,8 @@ export class AiProcessor {
       const final = !e.retryable || attempt.attemptsMade + 1 >= attempt.maxAttempts;
       this.log.warn(`ai job ${aiJobId} (${job.type}) attempt ${attempt.attemptsMade + 1}/${attempt.maxAttempts}: ${e.message}${final ? " (final)" : ""}`);
       if (!final) {
-        await db.aiJob.update({ where: { id: aiJobId }, data: { status: "queued", errorCode: e.code } });
+        const requeued = await db.aiJob.updateMany({ where: { id: aiJobId, status: "running" }, data: { status: "queued", errorCode: e.code } });
+        if (requeued.count === 0) return "skipped"; // cancelled meanwhile: no retry
         throw e;
       }
       await this.fail(aiJobId, e);
@@ -101,10 +112,11 @@ export class AiProcessor {
   }
 
   private async fail(aiJobId: string, e: AiJobError): Promise<void> {
-    await this.prisma.db.aiJob.update({
-      where: { id: aiJobId },
+    // A cancelled job is already refunded and stays cancelled.
+    const res = await this.prisma.db.aiJob.updateMany({
+      where: { id: aiJobId, status: { not: "cancelled" } },
       data: { status: "failed", errorCode: e.code, error: e.message.slice(0, 500), finishedAt: new Date() },
     });
-    await this.credits.refundJob(aiJobId);
+    if (res.count > 0) await this.credits.refundJob(aiJobId);
   }
 }

@@ -72,5 +72,18 @@ export function useAiJob() {
     }
   };
 
-  return { start, job, error, running };
+  /** Stops the running job (DN-065); the server refunds its credits and the stream ends. */
+  const cancel = async (): Promise<void> => {
+    if (!job || isDone(job)) return;
+    try {
+      setJob(await client.post<AiJob>(`/ai/jobs/${job.id}/cancel`));
+    } catch (err) {
+      // Usually "already finished": the stream delivers the final state.
+      if (err instanceof ApiError && err.code !== "AI_JOB_FINISHED") setError(err);
+    } finally {
+      void queryClient.invalidateQueries({ queryKey: ["credits"] });
+    }
+  };
+
+  return { start, cancel, job, error, running };
 }

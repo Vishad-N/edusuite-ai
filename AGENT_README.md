@@ -217,6 +217,15 @@ Run these from the repo root. Node 26 is required (`.nvmrc`).
 | API tests (use a separate `edusuite_test` database on the local stack) | `npm test -w @edusuite/api` |
 | Create an institute's first super admin (production, one time; asks for the password) | `docker compose -f infra/docker-compose.yml --env-file infra/.env exec api node dist/src/scripts/createSuperAdmin.js --institute-code IND --institute-name "…" --branch-code BKN --branch-name "…" --employee-code IND-SA-1 --email owner@example.com --name "…"` |
 | Follow stack logs / stop the stack | `npm run stack:logs` / `npm run stack:down` |
+| Stack + Vite + Electron with hot reload in one command | `npm run dev:all` |
+| Unsigned test installer pointed at the local API (`apps/desktop/release-local/`) | `npm run dist:nsis:local` |
+| Back up the local database and files (restic, encrypted) | `npm run backup` |
+| Restore drill: restore into a separate database and compare with live | `npm run restore:drill` |
+| Load test: 150 connections for 30 s against localhost only | `npm run load` |
+| Find new UI text that has no English yet (DN-064) | in `apps/desktop`: `node src/i18n/keys.mjs --missing` |
+| Regenerate the deck-quiz template module after editing its HTML (DN-055) | `npm run gen:quiz-template -w @edusuite/shared` |
+| Record real AI answers as fixtures (needs a key in `infra/.env.local`) | set `AI_MODE=record`, then `npm run stack:up`; answers land in `apps/api/fixtures/ai/` |
+| Release the Windows installer / deploy the API (production) | push a `vX.Y.Z` tag (`release-desktop.yml`); run `deploy-api.yml` by hand. Steps: `docs/operations/deploy-checklist.md` |
 | Apply database migrations | `npm run prisma:migrate -w @edusuite/api` (the stack's `migrate` service also runs them on start) |
 | Create a new migration (local DB) | `npm run prisma:migrate:dev -w @edusuite/api` |
 | Regenerate the Prisma client | `npm run prisma:generate -w @edusuite/api` |

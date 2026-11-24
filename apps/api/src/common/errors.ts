@@ -83,6 +83,10 @@ export const ERROR_MESSAGES = {
     hi: "छात्र जुड़ने के बाद कुल फ़ीस केवल एडमिन बदल सकते हैं।",
     en: "Only admins can change the total fee after a student is added.",
   },
+  AI_JOB_FINISHED: {
+    hi: "यह AI काम पहले ही पूरा हो चुका है, इसलिए रोका नहीं जा सकता।",
+    en: "This AI job has already finished, so it can't be stopped.",
+  },
   AI_INPUT_FILE_INVALID: {
     hi: "यह फ़ाइल उपयोग नहीं हो सकती। सही प्रकार और आकार की फ़ाइल चुनें और अपलोड पूरा होने दें।",
     en: "This file can't be used. Choose a file of the right type and size and let the upload finish.",

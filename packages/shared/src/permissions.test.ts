@@ -54,7 +54,9 @@ test("sidebar screens per role", () => {
   );
   assert.equal(visibleScreens("teacher").includes("teacher_desk"), true);
   assert.equal(visibleScreens("teacher").includes("users"), false);
-  assert.equal(visibleScreens("superadmin").length, 15);
+  assert.equal(visibleScreens("superadmin").length, 16);
+  assert.equal(visibleScreens("branch_admin").includes("audit"), true);
+  assert.equal(visibleScreens("teacher").includes("audit"), false);
 });
 
 test("every AI job type maps to a known permission", () => {

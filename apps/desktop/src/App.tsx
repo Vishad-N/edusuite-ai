@@ -29,11 +29,13 @@ import TeacherDesk from "./components/TeacherDesk";
 import UserManagement from "./components/UserManagement.tsx";
 import PlatformCredits from "./components/PlatformCredits.tsx";
 import DeckQuiz from "./components/DeckQuiz.tsx";
+import AuditUsage from "./components/AuditUsage.tsx";
 import LoginScreen from "./components/LoginScreen.tsx";
 import SettingsModal from "./components/SettingsModal.tsx";
 import { translations } from "./data/translations";
 import { useSession, useSignedInUser } from "./api/session.tsx";
 import { Skeleton } from "./components/ui/index.ts";
+import { AppCrashed, ErrorBoundary, ScreenCrashed } from "./components/ErrorBoundary.tsx";
 import { setUiLanguage, tx } from "./i18n/index.ts";
 
 /** Props every screen receives (the same names the screens used before the router). */
@@ -56,6 +58,7 @@ const SCREENS: Record<ScreenId, AnyScreen> = {
   teacher_desk: TeacherDesk,
   ocr_ppt: ScreenshotToPpt,
   deck_quiz: DeckQuiz,
+  audit: AuditUsage,
   youtube: YouTubeStudio,
   ppt: PptMaker,
   doubt: DoubtSolver,
@@ -243,7 +246,11 @@ function ScreenRoute({ forced }: { forced?: ScreenId }) {
     return <Navigate to={home} replace />;
   }
   const Screen = SCREENS[screen];
-  return <Screen {...props} />;
+  return (
+    <ErrorBoundary resetKey={screen} fallback={(reset) => <ScreenCrashed onRetry={reset} onHome={() => props.onNavigate("dashboard")} />}>
+      <Screen {...props} />
+    </ErrorBoundary>
+  );
 }
 
 function useOutletContextProps(): ScreenProps {
@@ -251,10 +258,11 @@ function useOutletContextProps(): ScreenProps {
 }
 
 const router = createHashRouter([
-  { path: "/login", element: <LoginRoute /> },
+  { path: "/login", element: <LoginRoute />, errorElement: <AppCrashed /> },
   {
     path: "/",
     element: <RequireAuth />,
+    errorElement: <AppCrashed />,
     children: [
       { index: true, element: <ScreenRoute forced="dashboard" /> },
       { path: ":screen", element: <ScreenRoute /> },
