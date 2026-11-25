@@ -37,6 +37,7 @@ import { useSession, useSignedInUser } from "./api/session.tsx";
 import { Skeleton } from "./components/ui/index.ts";
 import { ErrorBoundary, RouteCrashed, ScreenCrashed } from "./components/ErrorBoundary.tsx";
 import { BranchPicker } from "./components/BranchPicker.tsx";
+import QuestionBank from "./components/QuestionBank.tsx";
 import { useInstituteLogo } from "./api/logo.ts";
 import { ChangePasswordModal } from "./components/ChangePasswordModal.tsx";
 import { setUiLanguage, tx } from "./i18n/index.ts";
@@ -68,6 +69,7 @@ const SCREENS: Record<ScreenId, AnyScreen> = {
   book: BookCreator,
   dpp: NotebookDppMaker,
   test: QuestionPaperMaker,
+  question_bank: QuestionBank,
   lesson: LessonPlanner,
   receipt: IdAndFeeReceipt,
   image: ImageStudio,

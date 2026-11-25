@@ -18,6 +18,34 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-074 · Question bank: shared per institute, filled from papers and MCQ sets, reused in papers
+- **Date:** 2026-11-25
+- **Phase / area:** Plan §06 `question`, DN-056 follow-up · `packages/shared/src/{questions,permissions}.ts`, `apps/api/src/questions/*`, `apps/desktop/src/{api/questions.ts,components/{QuestionBank,QuestionBankList,PaperBankTools,QuestionPaperMaker,ScreenshotToPpt,Sidebar}.*}`
+- **Status:** Decided by agent (developer asked for all follow-ups; please review the sharing rule)
+- **What was unclear:** The plan has a `question` table and "question bank" in the paper job's order, but no screens or routes. Who sees whose questions, how questions get in, and how duplicates are avoided.
+- **Decision:**
+  - **One bank per institute,** for every role with `ai.content` (super admin, branch admin, teacher, typist). Questions are teaching material rather than branch data, and the table has no branch column (no migration needed). Removal: whoever added it, or an admin. Other institutes never see it.
+  - **API:**
+    - `GET /questions`: search across Hindi, English and topic; filter by subject and "mine"; cursor pages, newest first
+    - `GET /questions/subjects`: subjects with counts
+    - `POST /questions/bulk`: up to 200 at a time
+    - `DELETE /questions/:id`
+
+    Text is tidied (spaces collapsed). An exact repeat of the same text in the same subject, whether in the batch or already in the bank, is skipped and counted, so pressing "add" twice doesn't double the bank. Bulk adds and deletes are audited.
+  - **Getting questions in:**
+    - **Test paper:** "MCQ प्रश्न बैंक में जोड़ें" takes every clean four-option MCQ with a recognisable answer letter, under the paper's subject and topics; it needs a subject.
+    - **Screenshot MCQ set:** "प्रश्न बैंक में जोड़ें" takes every question with text and all four options, under the set's subject (or exam tag), keeping the trick.
+  - **Reusing:** in the test paper, "प्रश्न बैंक से जोड़ें" opens the bank with search and filters. Checked questions are added to the current section as "A) …" options with the answer key.
+  - **Screen "प्रश्न बैंक"** (study group in the sidebar): search, subject filter with counts, "केवल मेरे", the correct option highlighted, delete with confirmation (existing papers are unaffected).
+- **Verified:**
+  - Shared 54 tests (tidying, limits, paper ↔ bank conversion including "(c)" and "D." styles, non-MCQs skipped); the per-role screen list now includes the bank.
+  - API 3 new tests:
+    - batch and cross-call repeats skipped; same text in another subject kept; audit
+    - search is case-insensitive; subject and "mine" filters; pages without overlap; a bad cursor gives 400; subject counts; another institute sees nothing
+    - a counselor gets 403; answer "E" gives 400; deleting someone else's question is 403, another institute's is 404, your own or as an admin is 204
+  - E2E: an AI paper (fixture) adds its MCQs; pressing again adds 0 and reports them as already there; the bank screen shows exactly those under the subject; a new paper takes one from the bank.
+- **Revisit if:** branches want private banks, institutes want to import question sets (CSV/Excel), or short and long answers should be banked too.
+
 ### DN-073 · Deck quizzes are saved as documents with history
 - **Date:** 2026-11-25
 - **Phase / area:** DN-055 follow-up · `packages/shared/src/{documents,stats}.ts`, `apps/api/prisma` (migration `20261125000000_deck_quiz_documents`), `apps/desktop/src/{components/DeckQuiz.tsx,i18n/labels.ts}`

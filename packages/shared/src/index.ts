@@ -13,3 +13,4 @@ export * from "./branding.ts";
 export * from "./deckQuiz.ts";
 export * from "./students.ts";
 export * from "./admin.ts";
+export * from "./questions.ts";

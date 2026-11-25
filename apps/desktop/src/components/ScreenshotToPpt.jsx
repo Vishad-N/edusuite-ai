@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { generateScreenshotMcqPptx } from "../utils/pptxGenerator";
 import { generateMotionHtml, downloadMotionHtmlFile } from "../utils/motionHtmlGenerator";
+import { McqSetBankButton } from "./PaperBankTools.tsx";
 import { fileToDataUrl } from "../utils/mediaHelper";
 import { useSession } from "../api/session.tsx";
 import { fileUrl, uploadFile } from "../api/documents.ts";
@@ -424,6 +425,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
         {/* Global Action Download button */}
         {questions.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
+            <McqSetBankButton questions={questions} subject={subject} examTag={examTag} />
             <button
               onClick={handleCopyAllText}
               className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs flex items-center gap-1.5 transition"

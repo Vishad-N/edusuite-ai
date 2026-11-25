@@ -19,6 +19,7 @@ import {
   Coins,
   ListChecks,
   ScrollText,
+  Library,
 } from "lucide-react";
 import { initialsOf } from "../utils/branding.ts";
 import { tx } from "../i18n/index.ts";
@@ -120,6 +121,12 @@ export default function Sidebar({ activeTab, setActiveTab, t, allowedScreens, in
           label: t.navTest,
           icon: FileQuestion,
           badge: "Exam",
+        },
+        {
+          id: "question_bank",
+          label: tx("प्रश्न बैंक"),
+          icon: Library,
+          badge: null,
         },
         {
           id: "lesson",

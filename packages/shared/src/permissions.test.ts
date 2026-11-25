@@ -50,11 +50,11 @@ test("sidebar screens per role", () => {
   assert.deepEqual(visibleScreens("counselor").sort(), ["dashboard", "image", "notice", "receipt"]);
   assert.deepEqual(
     visibleScreens("typist").sort(),
-    ["book", "dashboard", "deck_quiz", "doubt", "dpp", "image", "lesson", "ocr_ppt", "ppt", "test", "youtube"],
+    ["book", "dashboard", "deck_quiz", "doubt", "dpp", "image", "lesson", "ocr_ppt", "ppt", "question_bank", "test", "youtube"],
   );
   assert.equal(visibleScreens("teacher").includes("teacher_desk"), true);
   assert.equal(visibleScreens("teacher").includes("users"), false);
-  assert.equal(visibleScreens("superadmin").length, 16);
+  assert.equal(visibleScreens("superadmin").length, 17);
   assert.equal(visibleScreens("branch_admin").includes("audit"), true);
   assert.equal(visibleScreens("teacher").includes("audit"), false);
 });
