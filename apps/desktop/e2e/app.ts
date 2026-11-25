@@ -30,7 +30,9 @@ export async function launch(opts: { profile?: string } = {}): Promise<Running> 
   const profile = opts.profile ?? newProfile();
   const app = await electron.launch({
     cwd: DESKTOP,
-    args: [".", `--user-data-dir=${profile}`],
+    // Linux CI has no keyring, so the app would keep the sign-in in memory only (DN-036) and a
+    // restart would sign out. Chromium's basic store lets restart journeys run there.
+    args: [".", `--user-data-dir=${profile}`, ...(process.platform === "linux" ? ["--password-store=basic"] : [])],
     env: { ...process.env, EDUSUITE_API_URL: API, ELECTRON_DEV_SERVER_URL: "" },
   });
   const page = await app.firstWindow();
