@@ -10,6 +10,19 @@ type Bridge = {
   motion?: { open: (html: string) => Promise<string> };
   /** Native save dialog (allowed extensions only). */
   file?: { saveAs: (suggestedName: string, data: Uint8Array) => Promise<{ saved: boolean; fileName?: string }> };
+  /** PNG export of a design at an exact size (DN-072). */
+  capture?: {
+    png: (request: {
+      html: string;
+      css: string;
+      width: number;
+      height: number;
+      sourceWidth: number;
+      sourceHeight: number;
+      background: string;
+      fileName: string;
+    }) => Promise<{ saved: boolean; fileName?: string }>;
+  };
   /** Sends a crash to error reporting when the build has it on (DN-068); otherwise does nothing. */
   telemetry?: { report: (crash: { name: string; message: string; stack: string; screen?: string }) => Promise<boolean> };
 };

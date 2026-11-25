@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Image as ImageIcon, FileText } from "lucide-react";
 import { instituteLogo } from "../utils/branding.ts";
 import { PosterCopyOutputSchema, can } from "@edusuite/shared";
@@ -7,6 +7,8 @@ import { DocumentBar } from "./DocumentBar.tsx";
 import { AiGenerate } from "./AiGenerate.tsx";
 import { Button, ConfirmDialog, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 import { tx } from "../i18n/index.ts";
+import { PngDownloadButton } from "./PngDownloadButton.tsx";
+import { POSTER_SIZES, pngFileName } from "../utils/exportPng.ts";
 
 /**
  * Poster kinds. Each has a badge shown on the poster and a plain starting template;
@@ -26,6 +28,7 @@ const RATIOS = [
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
 export default function ImageStudio({ activeInstitute }) {
+  const posterRef = useRef(null);
   const [category, setCategory] = useState("admission");
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [headline, setHeadline] = useState("");
@@ -170,9 +173,19 @@ export default function ImageStudio({ activeInstitute }) {
 
         {/* Live Visual Canvas Preview */}
         <div className="lg:col-span-7 space-y-3">
-          <p className="text-caption text-muted">{tx("पोस्टर का स्क्रीनशॉट लेकर उपयोग करें; PNG डाउनलोड बाद में आएगा।")}</p>
+          <div className="flex justify-end">
+            <PngDownloadButton
+              target={posterRef}
+              width={(POSTER_SIZES[aspectRatio] ?? POSTER_SIZES["1:1"]).width}
+              height={(POSTER_SIZES[aspectRatio] ?? POSTER_SIZES["1:1"]).height}
+              fileName={pngFileName(headline, "poster")}
+              disabled={!headline.trim()}
+            />
+          </div>
           <div className="flex min-h-[460px] items-center justify-center rounded-card border border-line bg-inverse p-6">
             <div
+              ref={posterRef}
+              data-export="poster"
               className={`w-full max-w-lg transition-all rounded-2xl p-6 md:p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden border border-slate-700/60 ${
                 aspectRatio === "16:9" ? "aspect-[16/9]" : aspectRatio === "9:16" ? "aspect-[9/16] max-w-xs" : "aspect-square"
               }`}

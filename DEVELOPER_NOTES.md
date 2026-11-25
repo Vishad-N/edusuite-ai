@@ -18,6 +18,22 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-072 · PNG download for YouTube thumbnails and posters, at exact sizes
+- **Date:** 2026-11-25
+- **Phase / area:** DN-047 and DN-050 follow-up · `apps/desktop/electron/{capture,main,preload}.cjs`, `apps/desktop/src/{utils/exportPng.ts,components/{PngDownloadButton,YouTubeStudio,ImageStudio}.*}`
+- **Status:** Decided by agent (DN-047 option A's follow-up; no new dependency)
+- **What was unclear:** DN-047 and DN-050 removed the fake downloads and promised a real PNG later. Options were redrawing each design on a `<canvas>` (a second copy of every layout to maintain), an HTML-to-image library (a new dependency), or letting Chromium render the real design.
+- **Decision:** Chromium renders the design itself, in the main process.
+  - **What the page sends:** the design's HTML and the app's CSS, the export size, the on-screen width and the colour of the panel behind it (designs with see-through backgrounds rely on it). The page first waits for any size animation to finish, because a just-changed poster ratio animates.
+  - **The render:** a hidden offscreen window with **JavaScript off**, its own session that may load only its own temp file and `data:` URLs (all other requests are cancelled, no permissions), and a CSP of `default-src 'none'`. The design is scaled with CSS `zoom`, so text is drawn sharp at full size rather than upscaled. The screenshot uses Chromium's DevTools protocol (`Emulation.setDeviceMetricsOverride` + `Page.captureScreenshot`), because Windows won't lay out a window taller than the screen, which stretched the first 1080×1920 attempt.
+  - **Checks in the main process:** sizes 16–4096, HTML up to 20 MB, CSS up to 5 MB, the backdrop a plain colour only, and CSS can't close its own `<style>` block. Saved through the native dialog as `.png`; the temp file is deleted.
+  - **Sizes:** YouTube thumbnail 1280×720 (YouTube's recommended size). Posters: 1:1 → 1080×1080, 16:9 → 1920×1080, 9:16 → 1080×1920. Rounded corners and shadows from the on-screen card are dropped in the file.
+  - **Screens:** "PNG डाउनलोड करें (W×H)" replaces "use a screenshot for now". It's disabled until there's a headline, and outside the desktop app it says it works only there. The file is named from the headline.
+- **Verified:**
+  - Desktop unit tests for the capture checks (4): sizes, odd requests, the backdrop colour, and the page allowing no scripts or network.
+  - E2E: with the save dialog answered by the test, a 1280×720 thumbnail and a 1080×1920 poster are written with exactly those sizes. Both were looked at: sharp Devanagari, right colours, logo and institute name, nothing cut off or stretched.
+- **Revisit if:** institutes need print sizes (A4 at 300 dpi), or other formats such as JPG or PDF.
+
 ### DN-071 · Institute logo upload
 - **Date:** 2026-11-25
 - **Phase / area:** DN-052 "revisit" · `packages/shared/src/{institutes,deckQuiz}.ts`, `packages/shared/templates/deck-quiz.html`, `apps/api/src/institutes/institutes.service.ts`, `apps/desktop/src/{api/logo.ts,App.tsx,components/{SettingsModal,DeckQuiz}.tsx}`
