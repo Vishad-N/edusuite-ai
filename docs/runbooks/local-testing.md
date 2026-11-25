@@ -2,7 +2,7 @@
 
 How anyone can install and test the whole EduSuite product on one Windows PC in about 15 minutes: the backend (API, AI worker, Postgres, Redis, Garage storage) in Docker, and the desktop app. Nothing here needs a server, a domain or an AI key.
 
-For first-time setup, API keys and the tester's checklist, start with [`LOCAL_TESTING.md`](../../LOCAL_TESTING.md). This page is the operator reference (backups, load test, test installer, ports).
+Quick start: `npm install`, then `npm run local:setup` (config, stack, storage, demo data, build), then `npm run local:check`. A fuller tester's guide (API keys, what to test and what to expect) may exist as `LOCAL_TESTING.md` on the developer's PC; it isn't kept in the repository.
 
 ## You need
 

@@ -1,4 +1,4 @@
-// npm run local:setup: first-time local setup in one go (LOCAL_TESTING.md).
+// npm run local:setup: first-time local setup in one go (docs/runbooks/local-testing.md).
 // 1. infra/.env.local with random secrets (kept if it exists)
 // 2. builds and starts the Docker stack
 // 3. sets up Garage storage (layout, key, bucket)
@@ -17,7 +17,7 @@ function step(n, label, script) {
   console.log(`\n[${n}/6] ${label}`);
   const r = spawnSync(`npm run ${script}`, { cwd: root, stdio: "inherit", shell: true });
   if (r.status !== 0) {
-    console.error(`\nStep ${n} failed. Run "npm run local:check" to see what's wrong (LOCAL_TESTING.md, "When something goes wrong").`);
+    console.error(`\nStep ${n} failed. Run "npm run local:check" to see what's wrong (docs/runbooks/local-testing.md, "When something goes wrong").`);
     process.exit(r.status ?? 1);
   }
 }

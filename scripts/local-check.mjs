@@ -1,4 +1,4 @@
-// npm run local:check: is this PC ready to run EduSuite locally? (LOCAL_TESTING.md)
+// npm run local:check: is this PC ready to run EduSuite locally? (docs/runbooks/local-testing.md)
 // Checks Node, Docker, free disk, infra/.env.local and the API's /ready. Prints no secrets.
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statfsSync } from "node:fs";
