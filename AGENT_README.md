@@ -217,7 +217,10 @@ Run these from the repo root. Node 26 is required (`.nvmrc`).
 | API tests (use a separate `edusuite_test` database on the local stack) | `npm test -w @edusuite/api` |
 | Create an institute's first super admin (production, one time; asks for the password) | `docker compose -f infra/docker-compose.yml --env-file infra/.env exec api node dist/src/scripts/createSuperAdmin.js --institute-code IND --institute-name "…" --branch-code BKN --branch-name "…" --employee-code IND-SA-1 --email owner@example.com --name "…"` |
 | Follow stack logs / stop the stack | `npm run stack:logs` / `npm run stack:down` |
+| First-time local setup in one go (env, stack, storage, seed, build; see `LOCAL_TESTING.md`) | `npm run local:setup` |
+| Is this PC ready? (Node, Docker, disk, env, `/ready`) | `npm run local:check` |
 | Stack + Vite + Electron with hot reload in one command | `npm run dev:all` |
+| End-to-end journeys in the real Electron app (stack running and seeded) | `npm run test:e2e` |
 | Unsigned test installer pointed at the local API (`apps/desktop/release-local/`) | `npm run dist:nsis:local` |
 | Back up the local database and files (restic, encrypted) | `npm run backup` |
 | Restore drill: restore into a separate database and compare with live | `npm run restore:drill` |

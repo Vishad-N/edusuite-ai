@@ -18,6 +18,32 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-069 · Playwright e2e journeys in the real Electron app; one-command local setup and a health check
+- **Date:** 2026-11-25
+- **Phase / area:** master prompt §4 (e2e journeys), Phase 6 · `apps/desktop/{playwright.config.ts,e2e/*}`, `.github/workflows/ci.yml` (job `e2e`), `scripts/{local-setup,local-check}.mjs`, root `package.json`, `infra/docker-compose.yml` (`LOGIN_RATE_LIMIT`), `LOCAL_TESTING.md`
+- **Status:** Package (`@playwright/test`, desktop dev dependency) approved by developer ("ok to all 3"); the rest decided by agent
+- **What was unclear:** The prompt asks for e2e journeys but not how to drive the packaged Electron app, which data they run against, or how to live with the per-IP login limit (10 a minute, DN-033) when every journey signs in. The developer also asked for the app to be "ready for local testing", with one guide covering keys, startup and what to test.
+- **Decision:**
+  - **Driver:** Playwright's Electron support launches the built app (`dist/`), not a browser, so no browser download is needed. Each test uses a fresh temporary profile (`--user-data-dir`), so it never touches a copy the developer has open, because the single-instance lock is per profile. It points at `EDUSUITE_API_URL` (default `http://localhost:3000`). Passwords come from the seed file, as in the earlier scripts.
+  - **Journeys:**
+    - **Sign-in:** wrong password shows the server's Hindi message; a deep link returns after login; the session survives a restart; log out ends it for good.
+    - **Teacher:** AI slides (fixture), exactly one credit, save, New clears, reopen from History.
+    - **Roles:** the super admin's staff list has no password column or delete; teachers bounce from users, audit and receipts; counselors bounce from AI slides but open notices.
+    - **Counselor fees:** enrol, over-balance blocked, a receipt numbered `DEMO-GTB/<FY>/<6 digits>` with ₹7,000 due.
+    - **English:** the switch reaches the PPT screen with no Devanagari in its buttons or labels, and switches back.
+  - **Data:** the journeys run against the seeded local stack. Each run adds one "E2E छात्र …" student and one saved deck. That's acceptable on demo data and keeps the journeys honest, since they use the same database the app uses.
+  - **Login limit:** compose now passes `LOGIN_RATE_LIMIT` through (default still 10). CI sets 1000. A local run that hits the limit waits the minute out once and retries.
+  - **CI job `e2e`:** `npm ci` with the Electron binary, `npm run local:setup` (fresh secrets, stack, storage, seed, build), then `xvfb-run npm run test:e2e`. The report, screenshots and stack logs are uploaded on failure. It also lifts Ubuntu 24.04's user-namespace restriction, which Electron's sandbox needs.
+  - **`npm run local:setup`:** env, stack, storage, wait for `/ready`, seed, build, in that order. Every step is safe to rerun.
+  - **`npm run local:check`:** checks Node 26, the Docker engine, free disk (fails under 2 GB, warns under 5 GB), `infra/.env.local`, whether the AI mode has the key it needs (reports only whether a key is set), error reporting on or off, and `/ready` per part. It prints a fix for each failure and never prints secrets. The disk check comes from a real failure on 2026-11-25: a full C: drive made Docker's disk read-only and crashed WSL.
+  - **`LOCAL_TESTING.md`** at the repo root is the one guide for testers: keys (only Anthropic is optional for real AI; Sentry is optional; everything else is generated), setup, daily start and stop, what to test per role with the expected result, and troubleshooting. `docs/runbooks/local-testing.md` stays the operator reference (backups, load test, installer) and links to it.
+- **Verified:**
+  - All 8 journeys pass locally against Docker (about 10 s).
+  - `local:setup` ran end to end on the existing stack (config kept, storage "already set", seed, build).
+  - `local:check` is all OK on a healthy PC. Earlier the same day it would have caught the full disk.
+- **Not verified:** the CI `e2e` job itself (it runs on the next push; Electron under xvfb on GitHub's Ubuntu image).
+- **Revisit if:** the journeys need isolated data (then a separate seeded database per run), or the CI job is too slow (cache the API image).
+
 ### DN-068 · Error reporting with Sentry: off without a DSN, errors only, nothing personal
 - **Date:** 2026-11-24
 - **Phase / area:** master prompt §4 "Sentry hooks" · `apps/api/src/{common/{telemetry,apiExceptionFilter}.ts,main.ts,worker.ts,ai/processor.ts}`, `apps/desktop/{electron/{telemetry,main,preload}.cjs,vite.config.js,src/{components/ErrorBoundary.tsx,App.tsx,main.jsx,api/session.tsx}}`, `infra/{docker-compose.yml,.env.example}`, `.github/workflows/release-desktop.yml`

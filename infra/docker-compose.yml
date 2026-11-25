@@ -85,6 +85,8 @@ services:
       # Only reported to the app (fixture badge); the API never calls Claude itself.
       AI_MODE: ${AI_MODE:-live}
       AI_RATE_LIMIT: ${AI_RATE_LIMIT:-20}
+      # Logins and token refreshes per IP per minute (DN-033); CI raises it for the e2e run.
+      LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-10}
       # API docs at /docs (DN-067): off in production unless "true".
       API_DOCS: ${API_DOCS:-}
       # Error reporting (DN-068): empty means off.

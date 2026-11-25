@@ -2,6 +2,8 @@
 
 How anyone can install and test the whole EduSuite product on one Windows PC in about 15 minutes: the backend (API, AI worker, Postgres, Redis, Garage storage) in Docker, and the desktop app. Nothing here needs a server, a domain or an AI key.
 
+For first-time setup, API keys and the tester's checklist, start with [`LOCAL_TESTING.md`](../../LOCAL_TESTING.md). This page is the operator reference (backups, load test, test installer, ports).
+
 ## You need
 
 - Windows 10 or 11 with **Docker Desktop** (WSL 2 backend), started

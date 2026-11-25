@@ -79,3 +79,38 @@ jobs:
       - name: Schema and migrations agree (no un-migrated changes)
         working-directory: apps/api
         run: npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+
+  e2e:
+    name: End-to-end journeys (Electron against the full stack)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # This job needs the real Electron binary (the workflow default skips it).
+      ELECTRON_SKIP_BINARY_DOWNLOAD: ""
+      # Every journey signs in; the default 10 logins per IP per minute would throttle them (DN-033).
+      LOGIN_RATE_LIMIT: "1000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      # Fresh secrets, stack, storage, demo data and the desktop build (DN-069).
+      - run: npm run local:setup
+      - name: Let Electron use its sandbox (Ubuntu 24.04 restricts user namespaces)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Journeys
+        run: xvfb-run --auto-servernum npm run test:e2e
+      - name: Report and screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            apps/desktop/e2e-report
+            apps/desktop/e2e-results
+          retention-days: 7
+      - name: Stack logs
+        if: failure()
+        run: docker compose -f infra/docker-compose.yml -f infra/docker-compose.local.yml --env-file infra/.env.local logs --tail=200
