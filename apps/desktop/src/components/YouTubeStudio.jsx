@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Video, Copy, Check, Sliders, FileText, Wand2 } from "lucide-react";
 import { instituteLogo } from "../utils/branding.ts";
 import { YoutubeMetaOutputSchema } from "@edusuite/shared";
@@ -6,6 +6,8 @@ import { DocumentBar } from "./DocumentBar.tsx";
 import { AiGenerate } from "./AiGenerate.tsx";
 import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 import { tx } from "../i18n/index.ts";
+import { PngDownloadButton } from "./PngDownloadButton.tsx";
+import { THUMBNAIL_SIZE, pngFileName } from "../utils/exportPng.ts";
 
 const THEMES = [
   { id: "red-dark", label: "Red & Black" },
@@ -38,6 +40,7 @@ function CopyButton({ text, label, disabled }) {
 }
 
 export default function YouTubeStudio({ activeInstitute }) {
+  const thumbRef = useRef(null);
   const [headline, setHeadline] = useState("");
   const [punchline, setPunchline] = useState("");
   const [facultyName, setFacultyName] = useState("");
@@ -150,11 +153,19 @@ export default function YouTubeStudio({ activeInstitute }) {
         <div className="lg:col-span-7 space-y-5">
           <div className="flex items-center justify-between text-label font-semibold text-ink">
             <span>{tx("16:9 थंबनेल प्रिव्यू")}</span>
-            <span className="text-caption text-muted">{tx("थंबनेल का स्क्रीनशॉट लेकर उपयोग करें; PNG डाउनलोड बाद में आएगा।")}</span>
+            <PngDownloadButton
+              target={thumbRef}
+              width={THUMBNAIL_SIZE.width}
+              height={THUMBNAIL_SIZE.height}
+              fileName={pngFileName(headline, "thumbnail")}
+              disabled={!headline.trim()}
+            />
           </div>
 
           {/* 16:9 Thumbnail Canvas */}
           <div
+            ref={thumbRef}
+            data-export="thumbnail"
             className={`w-full aspect-[16/9] rounded-2xl p-5 md:p-7 flex flex-col justify-between shadow-2xl relative overflow-hidden border-2 transition-all select-none ${
               bgTheme === "yellow-black"
                 ? "bg-gradient-to-tr from-slate-950 via-[#10141f] to-amber-950 border-amber-400"

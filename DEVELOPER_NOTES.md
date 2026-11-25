@@ -12,11 +12,219 @@ This file records every point where the AI agent (or a developer) was unsure and
 
 Decisions waiting for the developer. Remove a line here once its entry's status is updated.
 
-- DN-037 · Multi-branch staff: how should they pick a branch at login? (Today everyone works at their home branch.)
+- None.
 
 ---
 
 ## Decision log
+
+### DN-077 · The two app-restart e2e journeys run on Windows only
+- **Date:** 2026-11-25
+- **Phase / area:** CI `e2e` job · `apps/desktop/e2e/{app,auth.spec,offline.spec}.ts`
+- **Status:** Decided by agent
+- **What was unclear:** On GitHub's Linux runner, 2 of the 19 e2e journeys failed twice: "the session survives a restart" and "unsaved work is offered back after the app was closed". Linux CI has no keyring, so Electron reports encryption as unavailable and the app keeps the sign-in in memory only, as designed (DN-036); after a restart it's signed out. Passing `--password-store=basic` as a launch argument didn't change that.
+- **Decision:** both journeys skip on Linux, with that reason shown in the report. They keep running on Windows, the platform institutes use, where they pass, and every other journey runs in CI. No test-only switch was added to the app's main process.
+- **Verified:** locally on Windows all 19 pass. CI ran 17 of 19 green before this change.
+- **Revisit if:** CI moves to a Windows runner, or a keyring (e.g. gnome-keyring in the job) is set up for Linux.
+
+### DN-076 · UI leftovers: role-neutral dashboard text, screenshot screen buttons and labels
+- **Date:** 2026-11-25
+- **Phase / area:** DN-051 and DN-043 follow-ups · `apps/desktop/src/{data/translations.js,components/ScreenshotToPpt.jsx,i18n/en.ts}`, `LOCAL_TESTING.md`, `docs/runbooks/local-testing.md`
+- **Status:** Decided by agent
+- **What was unclear:** Two leftovers were named earlier:
+  - the dashboard's hero text listed every tool for every role and promised work "in seconds" (DN-051)
+  - the screenshot screen kept its older styling (DN-043)
+- **Decision:**
+  - **Dashboard:** the text now says the institute's work is in one place, and that the menu shows the tools for your role.
+  - **Screenshot screen:** a screenshot review showed it already uses the page header, save bar and AI box. What remained were four hand-styled action buttons in clashing colours (indigo, red, amber) with emoji, and labels that repeated themselves in English inside the Hindi text (e.g. "प्रश्न (Question Statement):"). The buttons now use the shared Button (PowerPoint is the primary one). The 11 labels are plain Hindi, with English in the dictionary like every other screen. The editor's own preview styling (the smartboard look) stays, since that is the product.
+  - **Guide:** `LOCAL_TESTING.md` gained rows for branch choice, password change, logo, PNG download, deck quiz saving, the question bank, drafts and offline saving, and the e2e list. The runbook's role table mentions them.
+- **Verified:** final full run on 2026-11-25:
+  - lint (warnings only, none new from this work), typecheck
+  - API 129, desktop 50, shared 54 tests
+  - all 17 e2e journeys pass against the rebuilt stack
+  - a screenshot of the screenshot screen after the change
+- **Revisit if:** the remaining English sample topic chips on the PPT screen ("Newton's Laws…") should follow the UI language.
+
+### DN-075 · Offline drafts: unsaved work kept on the PC, offered back, saved when the connection returns
+- **Date:** 2026-11-25
+- **Phase / area:** Plan "IndexedDB drafts while offline" (supersedes DN-018's deferral) · `apps/desktop/src/{api/drafts.ts,components/DocumentBar.tsx,App.tsx}`
+- **Status:** Building it now decided by developer ("Yes, build it"); details decided by agent
+- **What was unclear:** DN-018 deferred offline drafts. When to write a draft, how to offer it back, what "sync" means with compare-and-set saves (DN-038), and what stays on the PC.
+- **Decision:**
+  - **Where:** in the shared save bar, so all 11 document screens get it with no per-screen code.
+  - **Writing drafts:** while a screen has unsaved changes, a draft (title, content, the saved document's id and version if any) is written to IndexedDB about 0.8 s after the last change. It's keyed per signed-in user and document type, so another staff member on the same PC never sees it. It's deleted as soon as the work is saved, discarded, or matches the saved copy again. Without IndexedDB, drafts last for the run only.
+  - **Offering it back:** opening a screen with a leftover draft shows "पिछली बार का बिना सेव किया काम मिला: “title” (time)" with **वापस लाएँ** (restore) and **हटाएँ** (discard). The draft is checked against the type's schema first; a broken one is dropped. Restoring fills the screen, shows it as unsaved, and keeps the document's id and version, so saving updates the same document. If someone changed it meanwhile, the normal "someone else changed it" choice appears (DN-038). Restoring over unsaved work asks first.
+  - **Offline:** the status line shows "ऑफ़लाइन", and the window shows a banner that unsaved work is safe and that AI needs the internet. Pressing Save offline (or a save failing with `NETWORK_ERROR`) marks the work "save when back online". The status then says so, and the save runs by itself when the connection returns. That flag is kept in the draft, so it also survives a restart.
+  - **Not offline:** AI jobs, history, opening saved documents and anything else that needs the server. There's no full offline copy of saved documents; the plan asks only for drafts.
+  - **Privacy:** drafts are document content (papers, slides, notices), never student or fee records, which aren't documents. They stay in the app's own profile folder and are removed once saved.
+- **Verified:**
+  - Desktop 50 tests; typecheck and lint pass.
+  - E2E (2 new):
+    - with the app's network cut, the status shows offline and the banner appears; Save says it will save later; reconnecting saves it by itself
+    - a title typed and left unsaved, the app closed and reopened: the offer shows that title; restore brings it back as unsaved; discarding (New) removes the draft, and the next start offers nothing
+  - Screenshots checked: the banner, offer and offline status read clearly.
+- **Revisit if:** branches need to open saved documents offline (cache them), or drafts should be capped by age (today they stay until saved or discarded).
+
+### DN-074 · Question bank: shared per institute, filled from papers and MCQ sets, reused in papers
+- **Date:** 2026-11-25
+- **Phase / area:** Plan §06 `question`, DN-056 follow-up · `packages/shared/src/{questions,permissions}.ts`, `apps/api/src/questions/*`, `apps/desktop/src/{api/questions.ts,components/{QuestionBank,QuestionBankList,PaperBankTools,QuestionPaperMaker,ScreenshotToPpt,Sidebar}.*}`
+- **Status:** Decided by agent (developer asked for all follow-ups; please review the sharing rule)
+- **What was unclear:** The plan has a `question` table and "question bank" in the paper job's order, but no screens or routes. Who sees whose questions, how questions get in, and how duplicates are avoided.
+- **Decision:**
+  - **One bank per institute,** for every role with `ai.content` (super admin, branch admin, teacher, typist). Questions are teaching material rather than branch data, and the table has no branch column (no migration needed). Removal: whoever added it, or an admin. Other institutes never see it.
+  - **API:**
+    - `GET /questions`: search across Hindi, English and topic; filter by subject and "mine"; cursor pages, newest first
+    - `GET /questions/subjects`: subjects with counts
+    - `POST /questions/bulk`: up to 200 at a time
+    - `DELETE /questions/:id`
+
+    Text is tidied (spaces collapsed). An exact repeat of the same text in the same subject, whether in the batch or already in the bank, is skipped and counted, so pressing "add" twice doesn't double the bank. Bulk adds and deletes are audited.
+  - **Getting questions in:**
+    - **Test paper:** "MCQ प्रश्न बैंक में जोड़ें" takes every clean four-option MCQ with a recognisable answer letter, under the paper's subject and topics; it needs a subject.
+    - **Screenshot MCQ set:** "प्रश्न बैंक में जोड़ें" takes every question with text and all four options, under the set's subject (or exam tag), keeping the trick.
+  - **Reusing:** in the test paper, "प्रश्न बैंक से जोड़ें" opens the bank with search and filters. Checked questions are added to the current section as "A) …" options with the answer key.
+  - **Screen "प्रश्न बैंक"** (study group in the sidebar): search, subject filter with counts, "केवल मेरे", the correct option highlighted, delete with confirmation (existing papers are unaffected).
+- **Verified:**
+  - Shared 54 tests (tidying, limits, paper ↔ bank conversion including "(c)" and "D." styles, non-MCQs skipped); the per-role screen list now includes the bank.
+  - API 3 new tests:
+    - batch and cross-call repeats skipped; same text in another subject kept; audit
+    - search is case-insensitive; subject and "mine" filters; pages without overlap; a bad cursor gives 400; subject counts; another institute sees nothing
+    - a counselor gets 403; answer "E" gives 400; deleting someone else's question is 403, another institute's is 404, your own or as an admin is 204
+  - E2E: an AI paper (fixture) adds its MCQs; pressing again adds 0 and reports them as already there; the bank screen shows exactly those under the subject; a new paper takes one from the bank.
+- **Revisit if:** branches want private banks, institutes want to import question sets (CSV/Excel), or short and long answers should be banked too.
+
+### DN-073 · Deck quizzes are saved as documents with history
+- **Date:** 2026-11-25
+- **Phase / area:** DN-055 follow-up · `packages/shared/src/{documents,stats}.ts`, `apps/api/prisma` (migration `20261125000000_deck_quiz_documents`), `apps/desktop/src/{components/DeckQuiz.tsx,i18n/labels.ts}`
+- **Status:** Decided by agent (developer asked for all follow-ups)
+- **What was unclear:** DN-055 didn't save quizzes: leaving before downloading lost a 10-credit quiz. What to keep, and whether the quiz HTML or the data is stored.
+- **Decision:**
+  - **New document type `deck_quiz`** (`ai.content`, schema version 1): exam, subject, the uploaded deck's file id (optional), the reviewed quiz (`DeckQuizSchema`, or null before generating) and the indexes of answers the teacher checked. The data is stored, not the HTML; the file is built again on download, so it always uses the current template, name and logo.
+  - **Migration:** `ALTER TYPE "DocumentType" ADD VALUE 'deck_quiz'` (the documents table uses a Postgres enum).
+  - **Screen:** the shared save bar (title, New, History, Save, unsaved-change guard). The title fills from the quiz title. The screen's own "not downloaded yet, credits will be lost" guard is gone, because saving now keeps the work. Reopening restores the questions, answers and checks, so download is allowed at once if everything was checked.
+  - **Dashboard:** counts and lists deck quizzes ("डेक क्विज़") like other documents and opens them on the quiz screen.
+- **Verified:**
+  - API: the documents test saves and reopens a quiz with its checks, saves one before generating, refuses a counselor (403), and finds it in the dashboard counts. Shared 52 tests (the type registries stay complete).
+  - E2E: upload a PDF, generate (fixture), tick every flagged answer, save, New clears the screen, History → Open brings back the same questions, exam and checks, with download enabled.
+- **Revisit if:** quizzes need sharing links for students (then host the HTML), or versions of the same quiz.
+
+### DN-072 · PNG download for YouTube thumbnails and posters, at exact sizes
+- **Date:** 2026-11-25
+- **Phase / area:** DN-047 and DN-050 follow-up · `apps/desktop/electron/{capture,main,preload}.cjs`, `apps/desktop/src/{utils/exportPng.ts,components/{PngDownloadButton,YouTubeStudio,ImageStudio}.*}`
+- **Status:** Decided by agent (DN-047 option A's follow-up; no new dependency)
+- **What was unclear:** DN-047 and DN-050 removed the fake downloads and promised a real PNG later. Options were redrawing each design on a `<canvas>` (a second copy of every layout to maintain), an HTML-to-image library (a new dependency), or letting Chromium render the real design.
+- **Decision:** Chromium renders the design itself, in the main process.
+  - **What the page sends:** the design's HTML and the app's CSS, the export size, the on-screen width and the colour of the panel behind it (designs with see-through backgrounds rely on it). The page first waits for any size animation to finish, because a just-changed poster ratio animates.
+  - **The render:** a hidden offscreen window with **JavaScript off**, its own session that may load only its own temp file and `data:` URLs (all other requests are cancelled, no permissions), and a CSP of `default-src 'none'`. The design is scaled with CSS `zoom`, so text is drawn sharp at full size rather than upscaled. The screenshot uses Chromium's DevTools protocol (`Emulation.setDeviceMetricsOverride` + `Page.captureScreenshot`), because Windows won't lay out a window taller than the screen, which stretched the first 1080×1920 attempt.
+  - **Checks in the main process:** sizes 16–4096, HTML up to 20 MB, CSS up to 5 MB, the backdrop a plain colour only, and CSS can't close its own `<style>` block. Saved through the native dialog as `.png`; the temp file is deleted.
+  - **Sizes:** YouTube thumbnail 1280×720 (YouTube's recommended size). Posters: 1:1 → 1080×1080, 16:9 → 1920×1080, 9:16 → 1080×1920. Rounded corners and shadows from the on-screen card are dropped in the file.
+  - **Screens:** "PNG डाउनलोड करें (W×H)" replaces "use a screenshot for now". It's disabled until there's a headline, and outside the desktop app it says it works only there. The file is named from the headline.
+- **Verified:**
+  - Desktop unit tests for the capture checks (4): sizes, odd requests, the backdrop colour, and the page allowing no scripts or network.
+  - E2E: with the save dialog answered by the test, a 1280×720 thumbnail and a 1080×1920 poster are written with exactly those sizes. Both were looked at: sharp Devanagari, right colours, logo and institute name, nothing cut off or stretched.
+- **Revisit if:** institutes need print sizes (A4 at 300 dpi), or other formats such as JPG or PDF.
+
+### DN-071 · Institute logo upload
+- **Date:** 2026-11-25
+- **Phase / area:** DN-052 "revisit" · `packages/shared/src/{institutes,deckQuiz}.ts`, `packages/shared/templates/deck-quiz.html`, `apps/api/src/institutes/institutes.service.ts`, `apps/desktop/src/{api/logo.ts,App.tsx,components/{SettingsModal,DeckQuiz}.tsx}`
+- **Status:** Decided by agent (developer asked for all follow-ups)
+- **What was unclear:** DN-052 left logo upload for later: "store the file id in `branding`, then `instituteLogo` uses it". It didn't say the size limit or how exports get the image after the 5-minute signed link expires.
+- **Decision:**
+  - **Data:** `branding.logoFileId`, an uploaded file of this institute. The server accepts it only if the upload finished, it's PNG, JPEG or WebP, and it's at most 1 MB (`LOGO_MAX_BYTES`; it is embedded in every PPTX, motion file and quiz). Otherwise 400 `LOGO_INVALID`. Leaving it out of `branding` removes it. No migration (branding is JSON).
+  - **App:** loads the logo once through the files API as a data URL (`useInstituteLogo`, cached for the session) and puts it on `activeInstitute.logo`. Every screen already calls `instituteLogo()`, so the dashboard, receipts, papers, PPTX and motion exports use it, and the initials badge remains the fallback.
+  - **Settings** (super admin): a logo box with a preview, choose/change and remove. Type and size are checked before uploading; it takes effect on save.
+  - **Deck quiz HTML:** takes the logo only as an embedded `data:image/(png|jpeg|webp);base64` URL, so the file still never loads anything from outside. Anything else falls back to initials. The template was regenerated.
+- **Verified:**
+  - API: institute tests 7, 1 new: a good logo is saved; PDF, over 1 MB, unfinished and another institute's file give `LOGO_INVALID`; leaving it out removes it.
+  - Shared 52 tests, 1 new: the logo is embedded; an https link, SVG and a broken data URL are refused.
+  - E2E: the super admin's GIF is refused in the dialog; a PNG uploads and previews; after save the dashboard shows it; removing it brings the initials back.
+- **Revisit if:** institutes want separate logos per branch, or a larger print-quality logo.
+
+### DN-070 · Branch choice after login, branch switching, own password change; a narrower token-reuse rule
+- **Date:** 2026-11-25
+- **Phase / area:** DN-037 (closed), DN-034 "revisit" · `packages/shared/src/auth.ts`, `apps/api/src/auth/{auth.service,auth.controller}.ts`, `apps/api/src/common/errors.ts`, `apps/desktop/src/{api/{client.ts,session.tsx},App.tsx,components/{BranchPicker,ChangePasswordModal,Header}.tsx}`
+- **Status:** Branch picker approach (option A of DN-037) decided by developer ("Ask after login"); the rest decided by agent
+- **What was unclear:** How multi-branch staff choose a branch when the login form doesn't know their branches (DN-037), and how staff change their own password (DN-034 "revisit"). While testing, a flaw in DN-033's theft rule showed up (below).
+- **Decision:**
+  - **`POST /auth/switch-branch {branchId}`** (any signed-in user): the branch must be the user's home or one of their extra branches (`AUTH_BRANCH_NOT_ALLOWED` otherwise). The current session is replaced by a new one at that branch, with the same device and end of day. The answer is a full login response, so the app gets new tokens and the new `/me` at once. The old refresh token stops working. Audited as `auth.switch_branch` with both branch ids.
+  - **After login:** if the user has more than one branch, the app asks "आज किस ब्रांच में काम करेंगे?" before opening. The home branch is highlighted, and choosing it costs no extra request.
+  - **In the header:** for such users the branch chip is a button. It opens a list with a warning that unsaved work may be lost. After switching, every cached query is dropped and the dashboard opens, because cached data belonged to the old branch.
+  - **`POST /me/password {currentPassword, newPassword}`** (any signed-in user, rate-limited like login): a wrong current password gives 400 `PASSWORD_WRONG` (not 401, so the app doesn't treat it as an expired session), and the same password gives 400 `PASSWORD_SAME`; the new one needs at least 8 characters. Every **other** session of the user ends; this one stays signed in. Audited (`auth.password_change`, `auth.password_change_failed`), never with the password. The app opens it from a key button in the header.
+  - **Token-reuse rule narrowed (supersedes part of DN-033):** a refresh token that was *rotated* (replaced), or that is presented from another device, still ends every session of the user, because that means it was copied. A token whose session simply *ended* (logout, block, password reset or change, an earlier reuse response) is now refused with `AUTH_SESSION_REVOKED` without ending the other sessions. Before this, changing your password on one PC made the other PC's next refresh sign you out on the first PC too.
+- **Verified:**
+  - API tests 124 (3 new):
+    - switch to the second branch: `/me` shows it, the new token refreshes, the audit has both ids, and the replaced token is refused
+    - another institute's branch, or a branch the typist doesn't have, gives 403; anonymous gives 401
+    - password: wrong current, same, too short; success; the old password stops working and the new one works; the other PC is signed out while this session stays; the audit has no password
+    - the reuse test now expects one alarm, not two
+  - E2E 11 journeys, 3 new: the demo teacher picks गीता भवन at login and switches back in the header; the super admin isn't asked; the typist changes the password in the dialog (a wrong current one is refused), then changes it back.
+- **Revisit if:** branch admins should see which branch each staff member is working at today, or institutes want password rules beyond 8 characters.
+
+### DN-069 · Playwright e2e journeys in the real Electron app; one-command local setup and a health check
+- **Date:** 2026-11-25
+- **Phase / area:** master prompt §4 (e2e journeys), Phase 6 · `apps/desktop/{playwright.config.ts,e2e/*}`, `.github/workflows/ci.yml` (job `e2e`), `scripts/{local-setup,local-check}.mjs`, root `package.json`, `infra/docker-compose.yml` (`LOGIN_RATE_LIMIT`), `LOCAL_TESTING.md`
+- **Status:** Package (`@playwright/test`, desktop dev dependency) approved by developer ("ok to all 3"); the rest decided by agent
+- **What was unclear:** The prompt asks for e2e journeys but not how to drive the packaged Electron app, which data they run against, or how to live with the per-IP login limit (10 a minute, DN-033) when every journey signs in. The developer also asked for the app to be "ready for local testing", with one guide covering keys, startup and what to test.
+- **Decision:**
+  - **Driver:** Playwright's Electron support launches the built app (`dist/`), not a browser, so no browser download is needed. Each test uses a fresh temporary profile (`--user-data-dir`), so it never touches a copy the developer has open, because the single-instance lock is per profile. It points at `EDUSUITE_API_URL` (default `http://localhost:3000`). Passwords come from the seed file, as in the earlier scripts.
+  - **Journeys:**
+    - **Sign-in:** wrong password shows the server's Hindi message; a deep link returns after login; the session survives a restart; log out ends it for good.
+    - **Teacher:** AI slides (fixture), exactly one credit, save, New clears, reopen from History.
+    - **Roles:** the super admin's staff list has no password column or delete; teachers bounce from users, audit and receipts; counselors bounce from AI slides but open notices.
+    - **Counselor fees:** enrol, over-balance blocked, a receipt numbered `DEMO-GTB/<FY>/<6 digits>` with ₹7,000 due.
+    - **English:** the switch reaches the PPT screen with no Devanagari in its buttons or labels, and switches back.
+  - **Data:** the journeys run against the seeded local stack. Each run adds one "E2E छात्र …" student and one saved deck. That's acceptable on demo data and keeps the journeys honest, since they use the same database the app uses.
+  - **Login limit:** compose now passes `LOGIN_RATE_LIMIT` through (default still 10). CI sets 1000. A local run that hits the limit waits the minute out once and retries.
+  - **CI job `e2e`:** `npm ci` with the Electron binary, `npm run local:setup` (fresh secrets, stack, storage, seed, build), then `xvfb-run npm run test:e2e`. The report, screenshots and stack logs are uploaded on failure. It also lifts Ubuntu 24.04's user-namespace restriction, which Electron's sandbox needs.
+  - **`npm run local:setup`:** env, stack, storage, wait for `/ready`, seed, build, in that order. Every step is safe to rerun.
+  - **`npm run local:check`:** checks Node 26, the Docker engine, free disk (fails under 2 GB, warns under 5 GB), `infra/.env.local`, whether the AI mode has the key it needs (reports only whether a key is set), error reporting on or off, and `/ready` per part. It prints a fix for each failure and never prints secrets. The disk check comes from a real failure on 2026-11-25: a full C: drive made Docker's disk read-only and crashed WSL.
+  - **`LOCAL_TESTING.md`** at the repo root is the one guide for testers: keys (only Anthropic is optional for real AI; Sentry is optional; everything else is generated), setup, daily start and stop, what to test per role with the expected result, and troubleshooting. `docs/runbooks/local-testing.md` stays the operator reference (backups, load test, installer) and links to it.
+- **Verified:**
+  - All 8 journeys pass locally against Docker (about 10 s).
+  - `local:setup` ran end to end on the existing stack (config kept, storage "already set", seed, build).
+  - `local:check` is all OK on a healthy PC. Earlier the same day it would have caught the full disk.
+- **Not verified:** the CI `e2e` job itself (it runs on the next push; Electron under xvfb on GitHub's Ubuntu image).
+- **Revisit if:** the journeys need isolated data (then a separate seeded database per run), or the CI job is too slow (cache the API image).
+
+### DN-068 · Error reporting with Sentry: off without a DSN, errors only, nothing personal
+- **Date:** 2026-11-24
+- **Phase / area:** master prompt §4 "Sentry hooks" · `apps/api/src/{common/{telemetry,apiExceptionFilter}.ts,main.ts,worker.ts,ai/processor.ts}`, `apps/desktop/{electron/{telemetry,main,preload}.cjs,vite.config.js,src/{components/ErrorBoundary.tsx,App.tsx,main.jsx,api/session.tsx}}`, `infra/{docker-compose.yml,.env.example}`, `.github/workflows/release-desktop.yml`
+- **Status:** Packages (`@sentry/node`, `@sentry/electron`) approved by developer ("ok to all 3"); the rest decided by agent
+- **What was unclear:** The plan names Sentry but not what is sent. The SDKs' defaults collect request bodies, headers, cookies, IPs and user details, and in Electron also native crash dumps (process memory), screenshots and a preload injected into every session. All of these can hold student data or tokens (AGENT_README §8), and the injected preload would break the hardened window (DN-036).
+- **Decision:**
+  - **Off unless a DSN is set:** `SENTRY_DSN` (and optional `SENTRY_ENVIRONMENT`) for the API and worker; `EDUSUITE_SENTRY_DSN` at build time for the desktop, written into `dist/app-config.json` next to the API address (release variable `EDUSUITE_SENTRY_DSN`).
+  - **Errors only:** no tracing, no breadcrumbs, the SDKs' default integrations turned off. Every `dataCollection` category is off.
+  - **What is reported:**
+    - **API:** unexpected 5xx only (not 503 or any 4xx), tagged with our error code, the route pattern and the request id.
+    - **Worker:** AI jobs that finally fail, except refusals and bad input files (those are the user's input); queue errors; startup failures.
+    - **Desktop:** screen and router crashes from the error boundaries, plus uncaught errors and promise rejections in the page, except `ApiError` (server answers already shown to the user). At most 20 per run.
+  - **Scrubbing before sending:** no request, user, extra data, server name, local variables or source lines. Messages keep their shape with quoted values, emails and runs of 6+ digits replaced; file paths lose the user folder.
+  - **Desktop wiring:** the SDK runs only in the main process, in classic IPC mode (no privileged `sentry-ipc://` scheme). The page reports through a new named bridge function, `telemetry.report`, which the main process validates and clips. There's no Sentry code in the page and no CSP change.
+- **Reason:** Error reports help find bugs at pilot institutes without moving student data, tokens or memory dumps to a third party.
+- **Verified:**
+  - API 121 tests, including 3 new: scrubbing; no DSN means nothing is set up; against a local fake Sentry, a forced 500 sends one event with tags and none of the email, phone, token, cookie or body, and a 401 sends nothing.
+  - Desktop 46 tests, including 4 new: no DSN never loads the SDK; integrations limited, classic IPC, breadcrumbs 0; clipping, odd screen names dropped, the per-run cap; scrubbing of messages, paths and frame variables.
+  - Electron smoke check passes, with the bridge now listing `telemetry`.
+  - **End to end:** a build with a local fake DSN, signed in as the super admin.
+    - A forced dashboard crash whose message held a name, email and phone arrived as `cannot format "…" [email] [number]`, tagged `screen: dashboard`.
+    - A background `TypeError` arrived tagged `promise`.
+    - An `ApiError` rejection was not sent.
+    - No user, breadcrumbs or server name; no Windows user name anywhere.
+    - `dist` was rebuilt without the DSN afterwards.
+- **Not verified:** a real Sentry project (needs an account and DSNs; deploy checklist).
+- **Revisit if:** tracing is wanted (performance), or support needs to tie a report to an institute (add the institute id as a tag, with approval).
+
+### DN-067 · API docs at /docs, generated from the zod schemas
+- **Date:** 2026-11-24
+- **Phase / area:** Plan §07 · `apps/api/src/docs/openapi.ts`, `apps/api/src/{bootstrap.ts,config/env.ts,common/zodBody.ts}`, `infra/{docker-compose.yml,.env.example}`
+- **Status:** Package (`@nestjs/swagger`) approved by developer ("ok to all 3"); the rest decided by agent
+- **What was unclear:** The plan asks for "an OpenAPI spec generated from the zod schemas" but the routes validate with our own `ZodBody` pipe, which `@nestjs/swagger` can't read, and it didn't say whether docs are public in production.
+- **Decision:**
+  - **Routes** come from `SwaggerModule.createDocument`. Each operation is then filled from Nest's route metadata: the zod schema in every `ZodBody` pipe becomes the request body or the query parameters (`z.toJSONSchema`, input side, OpenAPI 3.0), and `@Headers("idempotency-key")` becomes a required header. Who may call it (public, a named permission, or any signed-in user) goes in the description and the bearer security. Validation and docs therefore can't drift.
+  - **Served:** the page at `/docs`, JSON at `/docs/openapi.json` and YAML at `/docs/openapi.yaml`. The page's three files come from `swagger-ui-dist` (bundled with `@nestjs/swagger`) through a small whitelisted route, so no static-file plugin is needed and it works offline.
+  - **`API_DOCS`:** on outside production; off in production unless `true`.
+- **Verified:** API tests: every route is listed; fee-receipt body, required fields and idempotency header; student list query parameters; login public, `/me` secured; the page, CSS and a path-traversal attempt (404); the production default. Checked in the browser at `http://localhost:3000/docs`.
+- **Revisit if:** response shapes should be documented too (add zod response schemas per route).
 
 ### DN-066 · Admin views: audit log and monthly AI usage (credits, not dollars)
 - **Date:** 2026-11-24

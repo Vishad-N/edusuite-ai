@@ -4,6 +4,7 @@ import { instituteLogo } from "../utils/branding.ts";
 import { PAPER_MARKS } from "@edusuite/shared";
 import { DocumentBar } from "./DocumentBar.tsx";
 import { AiGenerate } from "./AiGenerate.tsx";
+import { PaperBankTools } from "./PaperBankTools.tsx";
 import { Button, Field, Input, PageHeader, Select, Textarea } from "./ui/index.ts";
 import { tx } from "../i18n/index.ts";
 
@@ -296,6 +297,14 @@ export default function QuestionPaperMaker({ activeInstitute }) {
               {tx("खाली पेपर ढाँचा बनाएँ (मुफ़्त)")}
             </Button>
           </div>
+
+          <PaperBankTools
+            subject={subject}
+            topic={topics}
+            sections={sections}
+            sectionName={currentSection.name}
+            onAdd={(added) => updateSection(sectionIndex, { ...currentSection, questions: [...currentSection.questions.filter((q) => q.q.trim()), ...added] })}
+          />
 
           <SectionEditor
             sections={sections}

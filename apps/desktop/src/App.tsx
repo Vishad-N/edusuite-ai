@@ -9,7 +9,7 @@ import {
   useOutletContext,
   useParams,
 } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SCREEN_PERMISSIONS, can, visibleScreens, type Institute, type Role, type ScreenId, type SessionUser } from "@edusuite/shared";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
@@ -35,7 +35,12 @@ import SettingsModal from "./components/SettingsModal.tsx";
 import { translations } from "./data/translations";
 import { useSession, useSignedInUser } from "./api/session.tsx";
 import { Skeleton } from "./components/ui/index.ts";
-import { AppCrashed, ErrorBoundary, ScreenCrashed } from "./components/ErrorBoundary.tsx";
+import { ErrorBoundary, RouteCrashed, ScreenCrashed } from "./components/ErrorBoundary.tsx";
+import { BranchPicker } from "./components/BranchPicker.tsx";
+import QuestionBank from "./components/QuestionBank.tsx";
+import { useInstituteLogo } from "./api/logo.ts";
+import { useOnline } from "./api/drafts.ts";
+import { ChangePasswordModal } from "./components/ChangePasswordModal.tsx";
 import { setUiLanguage, tx } from "./i18n/index.ts";
 
 /** Props every screen receives (the same names the screens used before the router). */
@@ -65,6 +70,7 @@ const SCREENS: Record<ScreenId, AnyScreen> = {
   book: BookCreator,
   dpp: NotebookDppMaker,
   test: QuestionPaperMaker,
+  question_bank: QuestionBank,
   lesson: LessonPlanner,
   receipt: IdAndFeeReceipt,
   image: ImageStudio,
@@ -153,13 +159,18 @@ function LoginRoute() {
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from;
   if (state.status === "loading") return <FullScreenLoading />;
+  // Staff with several branches choose today's branch first (DN-070).
+  if (state.status === "signedIn" && state.pickBranch) return <BranchPicker />;
   if (state.status === "signedIn") return <Navigate to={from && from !== "/login" ? from : "/"} replace />;
   return <LoginScreen onLogin={login} endedBecause={state.endedBecause} />;
 }
 
 function AppShell() {
   const user = useSignedInUser();
-  const { client, logout } = useSession();
+  const { client, logout, switchBranch } = useSession();
+  const queryClient = useQueryClient();
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const online = useOnline();
   const navigate = useNavigate();
   const location = useLocation();
   const [lang, setLang] = useLanguage();
@@ -171,6 +182,8 @@ function AppShell() {
     queryFn: () => client.get<Institute>(`/institutes/${user.institute.id}`),
   });
 
+  // The uploaded logo (DN-071); every screen's instituteLogo() falls back to initials without it.
+  const logo = useInstituteLogo(institute.data?.branding.logoFileId);
   const activeInstitute: LegacyInstitute = useMemo(
     () => ({
       id: user.institute.id,
@@ -178,8 +191,9 @@ function AppShell() {
       tagline: institute.data?.branding.tagline ?? "",
       phone: institute.data?.branding.phone ?? "",
       city: institute.data?.branding.city ?? "",
+      ...(logo && { logo }),
     }),
-    [institute.data, user.institute],
+    [institute.data, user.institute, logo],
   );
 
   const currentUser = toLegacyUser(user, lang);
@@ -210,7 +224,17 @@ function AppShell() {
           navigate("/login", { replace: true });
         }}
         onOpenSettings={canEditSettings ? () => setSettingsOpen(true) : undefined}
+        branches={user.branches}
+        currentBranchId={user.branch.id}
+        onSwitchBranch={async (branchId) => {
+          await switchBranch(branchId);
+          // Everything cached belonged to the old branch.
+          queryClient.removeQueries();
+          navigate("/", { replace: true });
+        }}
+        onChangePassword={() => setPasswordOpen(true)}
       />
+      {passwordOpen && <ChangePasswordModal open onClose={() => setPasswordOpen(false)} />}
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
           activeTab={activeTab}
@@ -222,6 +246,11 @@ function AppShell() {
         />
         <main className="flex-1 overflow-y-auto bg-slate-100/70 p-6 md:p-8">
           <div className="max-w-7xl mx-auto">
+            {!online && (
+              <p role="status" className="mb-4 rounded-card border border-warning bg-warning-subtle p-3 text-label text-ink">
+                {tx("इंटरनेट कनेक्शन नहीं है। बिना सेव किया काम इस कंप्यूटर पर ड्राफ़्ट में सुरक्षित है और कनेक्शन लौटने पर सेव हो जाएगा। AI और नई जानकारी के लिए इंटरनेट ज़रूरी है।")}
+              </p>
+            )}
             <Outlet context={screenProps} />
           </div>
         </main>
@@ -258,11 +287,11 @@ function useOutletContextProps(): ScreenProps {
 }
 
 const router = createHashRouter([
-  { path: "/login", element: <LoginRoute />, errorElement: <AppCrashed /> },
+  { path: "/login", element: <LoginRoute />, errorElement: <RouteCrashed /> },
   {
     path: "/",
     element: <RequireAuth />,
-    errorElement: <AppCrashed />,
+    errorElement: <RouteCrashed />,
     children: [
       { index: true, element: <ScreenRoute forced="dashboard" /> },
       { path: ":screen", element: <ScreenRoute /> },

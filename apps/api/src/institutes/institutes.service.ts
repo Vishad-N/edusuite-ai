@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import {
   BrandingSchema,
+  LOGO_MAX_BYTES,
+  LOGO_MIMES,
   type Branch,
   type BranchCreate,
   type BranchUpdate,
@@ -62,6 +64,15 @@ export class InstitutesService {
   async update(actor: AuthUser, id: string, input: InstituteUpdate, ctx: Ctx): Promise<Institute> {
     assertSameInstitute(actor, { instituteId: id });
     if (scopeWhere(actor, "institute.settings").branchId) throw new ApiHttpException(403, "FORBIDDEN");
+
+    // The logo must be this institute's finished image upload, small enough to embed (DN-071).
+    const logoId = input.branding?.logoFileId;
+    if (logoId) {
+      const file = await this.prisma.db.file.findFirst({ where: { id: logoId, instituteId: id, uploadedAt: { not: null } } });
+      if (!file || !(LOGO_MIMES as readonly string[]).includes(file.mime) || file.bytes > LOGO_MAX_BYTES) {
+        throw new ApiHttpException(400, "LOGO_INVALID");
+      }
+    }
 
     const row = await this.prisma.db.institute.update({
       where: { id },

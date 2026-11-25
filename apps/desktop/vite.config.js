@@ -36,7 +36,9 @@ function contentSecurityPolicy() {
     // The main process reads the same API address from here, so a packaged app
     // can only talk to the server it was built for (DN-062).
     generateBundle() {
-      this.emitFile({ type: 'asset', fileName: 'app-config.json', source: JSON.stringify({ apiOrigin: apiOrigin() }) })
+      // Error reporting (DN-068): only when the build is given a DSN.
+      const sentryDsn = process.env.EDUSUITE_SENTRY_DSN || undefined
+      this.emitFile({ type: 'asset', fileName: 'app-config.json', source: JSON.stringify({ apiOrigin: apiOrigin(), sentryDsn }) })
     },
   }
 }

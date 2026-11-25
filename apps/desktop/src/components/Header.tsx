@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Calendar, LogOut, MapPin, PhoneCall, Settings } from "lucide-react";
+import { Calendar, KeyRound, LogOut, MapPin, PhoneCall, Settings } from "lucide-react";
 import { EDUSUITE_MARK } from "../utils/branding.ts";
 import { academicSession } from "../utils/academicSession.ts";
 import { CreditsChip } from "./CreditsChip.tsx";
 import { UpdateButton } from "./UpdateButton.tsx";
-import { ConfirmDialog } from "./ui/index.ts";
+import { Button, ConfirmDialog, Modal } from "./ui/index.ts";
 import type { LegacyUser } from "../App.tsx";
 import { tx } from "../i18n/index.ts";
 
@@ -20,13 +20,55 @@ type Props = {
   onLogout: () => Promise<void> | void;
   /** Present only for roles that may change institute or branch settings. */
   onOpenSettings?: (() => void) | undefined;
+  /** Branches this user may work at; with more than one, the branch chip becomes a switch (DN-070). */
+  branches?: Array<{ id: string; name: string; code: string }>;
+  currentBranchId?: string;
+  onSwitchBranch?: (branchId: string) => Promise<void>;
+  onChangePassword?: () => void;
 };
 
 /** Native window controls sit over the top-right corner (titleBarOverlay); keep clear of them. */
 const OVERLAY_SAFE_PADDING = "calc(100vw - env(titlebar-area-width, 100vw) + 12px)";
 
-export default function Header({ instituteName, branchName, phone, lang, onLanguageChange, t, currentUser, onLogout, onOpenSettings }: Props) {
+export default function Header({
+  instituteName,
+  branchName,
+  phone,
+  lang,
+  onLanguageChange,
+  t,
+  currentUser,
+  onLogout,
+  onOpenSettings,
+  branches = [],
+  currentBranchId,
+  onSwitchBranch,
+  onChangePassword,
+}: Props) {
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [branchOpen, setBranchOpen] = useState(false);
+  const [switching, setSwitching] = useState<string | null>(null);
+  const [branchError, setBranchError] = useState("");
+  const canSwitch = branches.length > 1 && Boolean(onSwitchBranch);
+  const switchTo = async (id: string) => {
+    if (!onSwitchBranch || id === currentBranchId) return setBranchOpen(false);
+    setSwitching(id);
+    setBranchError("");
+    try {
+      await onSwitchBranch(id);
+      setBranchOpen(false);
+    } catch (e) {
+      setBranchError(e instanceof Error ? e.message : tx("ब्रांच नहीं बदली जा सकी। फिर से कोशिश करें।"));
+    } finally {
+      setSwitching(null);
+    }
+  };
+  const branchChip = (
+    <>
+      <MapPin className="w-3 h-3 text-amber-400" aria-hidden="true" />
+      <span className="font-semibold">{branchName}</span>
+    </>
+  );
   const langButton = (code: "hi" | "en", label: string) => (
     <button
       type="button"
@@ -55,10 +97,19 @@ export default function Header({ instituteName, branchName, phone, lang, onLangu
       </div>
 
       <div className="hidden lg:flex items-center gap-2 shrink-0">
-        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 text-xs text-white">
-          <MapPin className="w-3 h-3 text-amber-400" aria-hidden="true" />
-          <span className="font-semibold">{branchName}</span>
-        </span>
+        {canSwitch ? (
+          <button
+            type="button"
+            onClick={() => setBranchOpen(true)}
+            title={tx("ब्रांच बदलें")}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 text-xs text-white hover:border-amber-400 cursor-pointer [-webkit-app-region:no-drag]"
+          >
+            {branchChip}
+            <span className="sr-only">{tx("ब्रांच बदलें")}</span>
+          </button>
+        ) : (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 text-xs text-white">{branchChip}</span>
+        )}
         <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-800/50 border border-slate-700/60 text-[11px] text-slate-200">
           <Calendar className="w-3 h-3 text-emerald-400" aria-hidden="true" />
           {academicSession(lang)}
@@ -101,6 +152,18 @@ export default function Header({ instituteName, branchName, phone, lang, onLangu
           </button>
         </div>
 
+        {onChangePassword && (
+          <button
+            type="button"
+            onClick={onChangePassword}
+            aria-label={tx("पासवर्ड बदलें")}
+            title={tx("पासवर्ड बदलें")}
+            className="p-1.5 text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg border border-slate-700/80 cursor-pointer"
+          >
+            <KeyRound className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
+        )}
+
         {onOpenSettings && (
           <button
             type="button"
@@ -125,6 +188,36 @@ export default function Header({ instituteName, branchName, phone, lang, onLangu
           await onLogout();
         }}
       />
+      <Modal
+        open={branchOpen}
+        onClose={() => setBranchOpen(false)}
+        title={tx("ब्रांच बदलें")}
+        description={tx("बिना सेव किया काम खो सकता है। बदलने के बाद डैशबोर्ड खुलेगा।")}
+        size="sm"
+      >
+        <ul className="space-y-2">
+          {branches.map((b) => (
+            <li key={b.id}>
+              <Button
+                className="w-full justify-start"
+                variant={b.id === currentBranchId ? "primary" : "secondary"}
+                icon={<MapPin className="size-4" aria-hidden="true" />}
+                loading={switching === b.id}
+                disabled={switching !== null}
+                aria-current={b.id === currentBranchId ? "true" : undefined}
+                onClick={() => void switchTo(b.id)}
+              >
+                {b.name} <span className="text-caption opacity-80">({b.code})</span>
+              </Button>
+            </li>
+          ))}
+        </ul>
+        {branchError && (
+          <p role="alert" className="mt-3 text-label text-danger">
+            {branchError}
+          </p>
+        )}
+      </Modal>
     </header>
   );
 }

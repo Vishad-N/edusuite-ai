@@ -5,6 +5,7 @@ import type { CreditsService } from "../credits/credits.service";
 import type { Storage } from "../files/storage";
 import { JOB_DEFINITIONS, type JobContext } from "./definitions";
 import { AiJobError, toJobError, type AiRunner } from "./runner";
+import { captureError } from "../common/telemetry";
 
 export type Attempt = { attemptsMade: number; maxAttempts: number };
 export type ProcessOutcome = "succeeded" | "failed" | "retry" | "skipped";
@@ -94,6 +95,8 @@ export class AiProcessor {
         throw e;
       }
       await this.fail(aiJobId, e);
+      // Refusals and bad input files are the user's input, not our fault; everything else is worth a report.
+      if (e.code !== "AI_REFUSED" && e.code !== "AI_INPUT_FILE_INVALID") captureError(err, { job_type: job.type, code: e.code });
       return "failed";
     }
   }

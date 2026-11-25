@@ -175,6 +175,13 @@ export function createApiClient(options: ApiClientOptions) {
       return data;
     },
 
+    /** Moves this session to another of the user's branches (DN-070); stores the new tokens. */
+    async switchBranch(branchId: string): Promise<LoginResponse> {
+      const data = await request<LoginResponse>("POST", "/auth/switch-branch", { branchId });
+      await storeTokens(data);
+      return data;
+    },
+
     /** Tries to resume a session from the vault (after a restart). */
     async resume(): Promise<boolean> {
       return refresh();

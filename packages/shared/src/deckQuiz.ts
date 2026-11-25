@@ -111,7 +111,11 @@ const LS = String.fromCharCode(0x2028), PS = String.fromCharCode(0x2029);
 const scriptJson = (v: unknown) =>
   JSON.stringify(v).replace(/</g, "\\u003c").split(LS).join("\\u2028").split(PS).join("\\u2029");
 
-export type DeckQuizBrand = { instituteName: string; exam: string; subject: string };
+/** logo: the institute's uploaded logo as an image data URL (DN-071); anything else shows initials. */
+export type DeckQuizBrand = { instituteName: string; exam: string; subject: string; logo?: string | undefined };
+
+/** Only an embedded PNG/JPEG/WebP is accepted, so the quiz never loads anything from outside. */
+const LOGO_DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 
 /** One self-contained HTML quiz carrying only this institute's name (DN-052). */
 export function buildDeckQuizHtml(quiz: DeckQuiz, brand: DeckQuizBrand): string {
@@ -122,6 +126,7 @@ export function buildDeckQuizHtml(quiz: DeckQuiz, brand: DeckQuizBrand): string 
     title: escBi(quiz.title),
     sub: { hi: esc(subline), en: esc(subline) },
     initials: esc(initialsOf(name)),
+    logo: brand.logo && LOGO_DATA_URL.test(brand.logo) ? brand.logo : "",
   };
   const q = quiz.questions.map((x) => ({
     q: escBi(x.q),

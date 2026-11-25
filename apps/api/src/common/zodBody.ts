@@ -8,7 +8,8 @@ import { ApiHttpException } from "./errors";
  * never the submitted values (they may be passwords).
  */
 export class ZodBody<T> implements PipeTransform<unknown, T> {
-  constructor(private readonly schema: ZodType<T>) {}
+  /** Public so the OpenAPI document can describe what the route accepts (DN-067). */
+  constructor(readonly schema: ZodType<T>) {}
 
   transform(value: unknown): T {
     const result = this.schema.safeParse(value);

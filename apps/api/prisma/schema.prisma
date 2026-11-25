@@ -45,6 +45,7 @@ enum DocumentType {
   youtube
   notice
   poster
+  deck_quiz
 }
 
 enum AiJobType {

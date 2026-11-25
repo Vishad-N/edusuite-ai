@@ -38,4 +38,12 @@ contextBridge.exposeInMainWorld("edusuite", {
     /** Returns a URL on the isolated edusuite-motion:// origin for the player iframe. */
     open: (html) => ipcRenderer.invoke("motion:open", html),
   },
+  capture: {
+    /** Saves a design as PNG at an exact size (DN-072). Returns { saved, fileName? }. */
+    png: (request) => ipcRenderer.invoke("capture:png", request),
+  },
+  telemetry: {
+    /** { name, message, stack, screen? } of a crash; false when error reporting is off (DN-068). */
+    report: (crash) => ipcRenderer.invoke("telemetry:report", crash),
+  },
 });

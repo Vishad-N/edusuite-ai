@@ -28,6 +28,17 @@ export const LogoutRequestSchema = z.object({
 });
 export type LogoutRequest = z.infer<typeof LogoutRequestSchema>;
 
+/** POST /auth/switch-branch (DN-070): move this session to another branch the user may work at. */
+export const SwitchBranchRequestSchema = z.object({ branchId: z.uuid() });
+export type SwitchBranchRequest = z.infer<typeof SwitchBranchRequestSchema>;
+
+/** POST /me/password (DN-070): the signed-in user changes their own password. */
+export const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(8).max(200),
+});
+export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
+
 const BranchRefSchema = z.object({ id: z.uuid(), name: z.string(), code: z.string() });
 
 /** The signed-in user, as returned by POST /auth/login and GET /me. */

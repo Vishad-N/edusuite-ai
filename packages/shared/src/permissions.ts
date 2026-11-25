@@ -93,6 +93,7 @@ export const SCREEN_PERMISSIONS = {
   book: "ai.content",
   dpp: "ai.content",
   test: "ai.content",
+  question_bank: "ai.content",
   lesson: "ai.content",
   receipt: "students.fees",
   image: "image_studio",

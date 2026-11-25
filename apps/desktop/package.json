@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "oxlint -c ../../.oxlintrc.json src electron",
+    "lint": "oxlint -c ../../.oxlintrc.json src electron e2e playwright.config.ts",
     "preview": "vite preview",
     "electron:dev": "vite build && electron .",
     "dist": "vite build && electron-builder",
@@ -20,6 +20,7 @@
     "dist:nsis": "vite build && electron-builder --win nsis",
     "dist:mac": "vite build && electron-builder --mac dmg zip",
     "typecheck": "tsc -p tsconfig.json",
+    "test:e2e": "vite build && playwright test",
     "test": "tsc -p tsconfig.test.json && node --conditions=source --test \".test-dist/**/*.test.js\" \"src/**/*.test.mjs\" \"electron/*.test.cjs\""
   },
   "build": {
@@ -84,6 +85,7 @@
     ]
   },
   "dependencies": {
+    "@sentry/electron": "^8.4.0",
     "@tailwindcss/vite": "^4.3.5",
     "@tanstack/react-query": "^5.108.2",
     "canvas-confetti": "^1.9.4",
@@ -96,6 +98,7 @@
     "tailwindcss": "^4.3.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",

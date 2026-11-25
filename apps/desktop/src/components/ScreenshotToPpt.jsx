@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { generateScreenshotMcqPptx } from "../utils/pptxGenerator";
 import { generateMotionHtml, downloadMotionHtmlFile } from "../utils/motionHtmlGenerator";
+import { McqSetBankButton } from "./PaperBankTools.tsx";
 import { fileToDataUrl } from "../utils/mediaHelper";
 import { useSession } from "../api/session.tsx";
 import { fileUrl, uploadFile } from "../api/documents.ts";
@@ -424,38 +425,24 @@ export default function ScreenshotToPpt({ activeInstitute }) {
         {/* Global Action Download button */}
         {questions.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <button
+            <McqSetBankButton questions={questions} subject={subject} examTag={examTag} />
+            <Button
+              size="sm"
               onClick={handleCopyAllText}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs flex items-center gap-1.5 transition"
               title={tx("सभी प्रश्नों का टेक्स्ट कॉपी करें")}
+              icon={isCopied ? <Check className="size-4 text-success" /> : <Copy className="size-4" />}
             >
-              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               {isCopied ? tx("कॉपी हो गया!") : tx("टेक्स्ट कॉपी")}
-            </button>
-            <button
-              onClick={handleOpenMotionPlayer}
-              className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-              title={tx("60fps मोशन प्लेयर चलाएं")}
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              {tx("▶️ मोशन प्लेयर")}
-            </button>
-            <button
-              onClick={handleDownloadMotionHtml}
-              className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-              title={tx("इंटरएक्टिव HTML5 मोशन फ़ाइल डाउनलोड करें")}
-            >
-              <Film className="w-3.5 h-3.5" />
-              {tx("✨ मोशन फ़ाइल (.html)")}
-            </button>
-            <button
-              onClick={handleDownloadPptx}
-              className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition cursor-pointer"
-              title={tx("Microsoft PowerPoint फाइल डाउनलोड करें")}
-            >
-              <Download className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" onClick={handleOpenMotionPlayer} title={tx("60fps मोशन प्लेयर चलाएं")} icon={<Play className="size-4" />}>
+              {tx("मोशन प्लेयर")}
+            </Button>
+            <Button size="sm" onClick={handleDownloadMotionHtml} title={tx("इंटरएक्टिव HTML5 मोशन फ़ाइल डाउनलोड करें")} icon={<Film className="size-4" />}>
+              {tx("मोशन फ़ाइल (.html)")}
+            </Button>
+            <Button size="sm" variant="primary" onClick={handleDownloadPptx} title={tx("Microsoft PowerPoint फाइल डाउनलोड करें")} icon={<Download className="size-4" />}>
               PowerPoint (.pptx)
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -484,7 +471,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
                 {tx("📁 मल्टीपल सिलेक्शन इनेबल्ड")}
               </span>
               <span className="px-3 py-1 rounded-full bg-white text-slate-700 text-xs font-bold border border-slate-200 shadow-sm">
-                {tx("⚡ 16:9 स्मार्टबोर्ड लेआउट")}
+                {tx("16:9 स्मार्टबोर्ड लेआउट")}
               </span>
             </div>
           </div>
@@ -721,7 +708,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
                 {/* Left: Original Screenshot */}
                 <div className="md:col-span-5 space-y-2">
                   <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span>{tx("मूल स्क्रीनशॉट (Original Screenshot)")}</span>
+                    <span>{tx("मूल स्क्रीनशॉट")}</span>
                     <button
                       onClick={() => setZoomScreenshot(currQ?.previewUrl)}
                       className="text-amber-600 hover:text-amber-700 text-[11px] font-bold flex items-center gap-1"
@@ -769,7 +756,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
                   {/* Question Text */}
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
-                      <span>{tx("प्रश्न (Question Statement):")}</span>
+                      <span>{tx("प्रश्न लिखें:")}</span>
                     </label>
                     <textarea
                       rows={3}
@@ -784,7 +771,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
                   {/* 4 Options Grid */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-800">
-                      {tx("4 विकल्प (Options A, B, C, D) & सही उत्तर चुनें:")}
+                      {tx("चारों विकल्प लिखें और सही उत्तर चुनें:")}
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {["A", "B", "C", "D"].map((optKey) => {
@@ -914,7 +901,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
                     onChange={(e) => setLayoutMode(e.target.value)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-medium focus:outline-none focus:border-amber-400"
                   >
-                    <option value="split">{tx("✍️ प्रश्न + शिक्षक पेन स्पेस (Split)")}</option>
+                    <option value="split">{tx("प्रश्न + शिक्षक के लिखने की जगह")}</option>
                     <option value="screenshot_left">{tx("🖼️ मूल स्क्रीनशॉट + विकल्प")}</option>
                     <option value="classic_full">{tx("📋 फुलस्क्रीन 2x2 विकल्प")}</option>
                   </select>
@@ -975,7 +962,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
                 }`}
               >
                 {showAnswer ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                {showAnswer ? tx("उत्तर छुपाएं") : tx("👁️ उत्तर दिखाएं (Reveal)")}
+                {showAnswer ? tx("उत्तर छुपाएं") : tx("उत्तर दिखाएँ")}
               </button>
 
               <button
@@ -1130,7 +1117,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
                   {/* Teacher Stylus Solution Space */}
                   <div className="rounded-xl border-2 border-dashed border-white/20 bg-white/5 p-2.5 text-center">
                     <span className="text-[11px] font-bold text-[#FACC15] block">
-                      {tx("✏️ शिक्षक हल क्षेत्र (Teacher Pen Area)")}
+                      {tx("शिक्षक का हल क्षेत्र")}
                     </span>
                     <span className="text-[10px] text-white/50 block">
                       {tx("डिजिटल बोर्ड स्टाइलस से यहाँ व्याख्या लिखें")}
@@ -1219,7 +1206,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
                   <div className="md:col-span-4 h-full min-h-[220px] rounded-xl border-2 border-dashed border-white/20 bg-white/5 p-4 flex flex-col justify-between text-center">
                     <div>
                       <span className="text-xs font-bold text-[#FACC15] uppercase tracking-wider block">
-                        {tx("✏️ शिक्षक रफ वर्क / हल (Pen Space)")}
+                        {tx("शिक्षक का रफ़ वर्क / हल")}
                       </span>
                       <span className="text-[11px] text-white/50 block mt-0.5">
                         {tx("(डिजिटल बोर्ड स्टायलस से हल करने का स्थान)")}
@@ -1319,7 +1306,7 @@ export default function ScreenshotToPpt({ activeInstitute }) {
           >
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
               <h4 className="font-bold text-sm text-slate-800">
-                {tx("मूल प्रश्न स्क्रीनशॉट (Zoom View)")}
+                {tx("मूल प्रश्न स्क्रीनशॉट (बड़ा करके)")}
               </h4>
               <button
                 onClick={() => setZoomScreenshot(null)}

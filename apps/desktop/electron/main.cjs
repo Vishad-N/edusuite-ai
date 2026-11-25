@@ -1,8 +1,9 @@
 // Electron main process, hardened per plan §10 and AGENT_README §7 (DN-036).
-const { app, BrowserWindow, dialog, ipcMain, protocol, safeStorage, session } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, nativeImage, protocol, safeStorage, session } = require("electron");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const { pathToFileURL } = require("node:url");
 const {
   MOTION_ORIGIN,
   MOTION_SCHEME,
@@ -13,6 +14,12 @@ const {
 } = require("./security.cjs");
 const { createTokenVault } = require("./tokenVault.cjs");
 const { createUpdater } = require("./updates.cjs");
+const { createTelemetry } = require("./telemetry.cjs");
+const { buildCapturePage, validateCaptureRequest } = require("./capture.cjs");
+
+// PNG export windows (DN-072) may load only their own temporary file.
+const CAPTURE_PARTITION = "edusuite-capture";
+const captureFiles = new Set();
 
 const DIST_INDEX = path.join(__dirname, "../dist/index.html");
 // Development only: load Vite's dev server instead of the built files.
@@ -20,6 +27,14 @@ const DEV_SERVER_URL = !app.isPackaged ? process.env.ELECTRON_DEV_SERVER_URL : u
 // The API address is fixed at build time (dist/app-config.json, written by vite.config.js from
 // EDUSUITE_API_URL; DN-062). An env override is honoured only when not packaged.
 const API_ORIGIN = resolveApiOrigin((!app.isPackaged && process.env.EDUSUITE_API_URL) || readBuildConfig().apiOrigin, "http://localhost:3000");
+
+// Error reporting (DN-068): on only when the build was given a DSN; set up before anything else
+// so startup errors are caught too.
+const telemetry = createTelemetry({
+  dsn: readBuildConfig().sentryDsn,
+  release: `edusuite-desktop@${app.getVersion()}`,
+  environment: app.isPackaged ? "production" : "development",
+});
 
 function readBuildConfig() {
   try {
@@ -131,6 +146,53 @@ function registerIpc() {
   });
 
   // Motion player: keep the generated HTML in memory and serve it from the isolated origin.
+  handle("telemetry:report", (_e, crash) => telemetry.report(crash));
+
+  // Renders a design at its exact export size in a hidden window and saves it as PNG (DN-072).
+  handle("capture:png", async (_e, request) => {
+    const req = validateCaptureRequest(request);
+    const file = path.join(app.getPath("temp"), `edusuite-capture-${crypto.randomUUID()}.html`);
+    await fs.promises.writeFile(file, buildCapturePage(req), "utf8");
+    const fileUrl = pathToFileURL(file).href;
+    captureFiles.add(fileUrl);
+    const win = new BrowserWindow({
+      show: false,
+      width: req.width,
+      height: req.height,
+      useContentSize: true,
+      frame: false,
+      webPreferences: { offscreen: true, javascript: false, sandbox: true, contextIsolation: true, partition: CAPTURE_PARTITION, spellcheck: false },
+    });
+    try {
+      win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+      await win.loadFile(file);
+      // Windows caps a window at the screen's height, so a 1080×1920 poster can't be laid out
+      // in a real window. Chromium's own screenshot with an emulated viewport has no such limit.
+      const dbg = win.webContents.debugger;
+      dbg.attach("1.3");
+      try {
+        await dbg.sendCommand("Emulation.setDeviceMetricsOverride", { width: req.width, height: req.height, deviceScaleFactor: 1, mobile: false });
+        // Let images decode and the frame paint at the new size.
+        await new Promise((r) => setTimeout(r, 200));
+        const shot = await dbg.sendCommand("Page.captureScreenshot", {
+          format: "png",
+          captureBeyondViewport: true,
+          clip: { x: 0, y: 0, width: req.width, height: req.height, scale: 1 },
+        });
+        let image = nativeImage.createFromBuffer(Buffer.from(shot.data, "base64"));
+        const size = image.getSize();
+        if (size.width !== req.width || size.height !== req.height) image = image.resize({ width: req.width, height: req.height, quality: "best" });
+        return saveWithDialog(image.toPNG(), safeName(req.fileName, "image.png"), [{ name: "PNG", extensions: ["png"] }]);
+      } finally {
+        if (dbg.isAttached()) dbg.detach();
+      }
+    } finally {
+      captureFiles.delete(fileUrl);
+      win.destroy();
+      fs.promises.rm(file, { force: true }).catch(() => {});
+    }
+  });
+
   handle("motion:open", (_e, html) => {
     if (typeof html !== "string" || html.length > 60 * 1024 * 1024) throw new Error("invalid document");
     const id = crypto.randomUUID();
@@ -154,6 +216,15 @@ function safeName(name, fallback) {
 }
 
 function hardenSession() {
+  // PNG export windows: only their own file and data: URLs; no permissions (DN-072).
+  const capture = session.fromPartition(CAPTURE_PARTITION);
+  capture.webRequest.onBeforeRequest((details, callback) => {
+    const allowed = details.url.startsWith("data:") || captureFiles.has(details.url);
+    callback({ cancel: !allowed });
+  });
+  capture.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+  capture.setPermissionCheckHandler(() => false);
+
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) =>
     callback(isAllowedPermission(permission)),
   );

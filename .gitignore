@@ -37,3 +37,9 @@ apps/api/src/generated
 release-test
 /updates
 release-local
+# Playwright e2e output
+e2e-results
+e2e-report
+
+# Local testing guide, kept on this PC only
+LOCAL_TESTING.md

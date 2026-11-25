@@ -5,8 +5,14 @@ export const BrandingSchema = z.object({
   tagline: z.string().trim().max(200).optional(),
   phone: z.string().trim().max(30).optional(),
   city: z.string().trim().max(100).optional(),
+  /** The institute's own logo, an uploaded PNG/JPEG/WebP of this institute (DN-071). Omit to remove it. */
+  logoFileId: z.uuid().optional(),
 });
 export type Branding = z.infer<typeof BrandingSchema>;
+
+/** Logos are embedded in every PPTX, motion file and printout, so keep them small (DN-071). */
+export const LOGO_MAX_BYTES = 1024 * 1024;
+export const LOGO_MIMES = ["image/png", "image/jpeg", "image/webp"] as const;
 
 export const InstituteSchema = z.object({
   id: z.uuid(),
