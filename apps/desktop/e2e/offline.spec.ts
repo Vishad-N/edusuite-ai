@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { attachOnFailure, expectSignedIn, go, launch, newProfile, removeProfile, requireApi, signIn, type Running } from "./app";
+import { attachOnFailure, expectSignedIn, go, launch, newProfile, removeProfile, requireApi, RESTART_SKIP_REASON, RESTART_UNSUPPORTED, signIn, type Running } from "./app";
 
 // Journeys: saving while offline, and unsaved work coming back after the app was closed (DN-075).
 test.beforeAll(requireApi);
@@ -33,6 +33,7 @@ test("Save while offline waits, then saves by itself when the connection is back
 });
 
 test("unsaved work is offered back after the app was closed", async () => {
+  test.skip(RESTART_UNSUPPORTED, RESTART_SKIP_REASON);
   const profile = newProfile();
   const title = `E2E ड्राफ़्ट ${Date.now()}`;
   try {

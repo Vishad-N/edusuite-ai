@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { attachOnFailure, expectSignedIn, go, launch, newProfile, removeProfile, requireApi, signIn, type Running } from "./app";
+import { attachOnFailure, expectSignedIn, go, launch, newProfile, removeProfile, requireApi, RESTART_SKIP_REASON, RESTART_UNSUPPORTED, signIn, type Running } from "./app";
 
 // Journey: sign in, deep link, session survives a restart, sign out (DN-037, DN-033).
 test.beforeAll(requireApi);
@@ -25,6 +25,7 @@ test("wrong password shows the server's message; a deep link returns after login
 });
 
 test("the session survives a restart and logging out clears it", async () => {
+  test.skip(RESTART_UNSUPPORTED, RESTART_SKIP_REASON);
   const profile = newProfile();
   // First run: sign in, then quit.
   run = await launch({ profile });

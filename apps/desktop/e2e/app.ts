@@ -17,6 +17,10 @@ export function passwordOf(code: DemoUser): string {
   return m[1]!;
 }
 
+/** Journeys that restart the app need the OS-encrypted sign-in store, which Linux CI lacks. */
+export const RESTART_UNSUPPORTED = process.platform === "linux";
+export const RESTART_SKIP_REASON = "Linux CI has no keyring, so the app keeps the sign-in in memory only (DN-036); restart journeys run on Windows (DN-077)";
+
 export const newProfile = (): string => mkdtempSync(join(tmpdir(), "edusuite-e2e-"));
 export const removeProfile = (dir: string): void => rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
 
@@ -30,9 +34,7 @@ export async function launch(opts: { profile?: string } = {}): Promise<Running> 
   const profile = opts.profile ?? newProfile();
   const app = await electron.launch({
     cwd: DESKTOP,
-    // Linux CI has no keyring, so the app would keep the sign-in in memory only (DN-036) and a
-    // restart would sign out. Chromium's basic store lets restart journeys run there.
-    args: [".", `--user-data-dir=${profile}`, ...(process.platform === "linux" ? ["--password-store=basic"] : [])],
+    args: [".", `--user-data-dir=${profile}`],
     env: { ...process.env, EDUSUITE_API_URL: API, ELECTRON_DEV_SERVER_URL: "" },
   });
   const page = await app.firstWindow();

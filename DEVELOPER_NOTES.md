@@ -18,6 +18,15 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-077 · The two app-restart e2e journeys run on Windows only
+- **Date:** 2026-11-25
+- **Phase / area:** CI `e2e` job · `apps/desktop/e2e/{app,auth.spec,offline.spec}.ts`
+- **Status:** Decided by agent
+- **What was unclear:** On GitHub's Linux runner, 2 of the 19 e2e journeys failed twice: "the session survives a restart" and "unsaved work is offered back after the app was closed". Linux CI has no keyring, so Electron reports encryption as unavailable and the app keeps the sign-in in memory only, as designed (DN-036); after a restart it's signed out. Passing `--password-store=basic` as a launch argument didn't change that.
+- **Decision:** both journeys skip on Linux, with that reason shown in the report. They keep running on Windows, the platform institutes use, where they pass, and every other journey runs in CI. No test-only switch was added to the app's main process.
+- **Verified:** locally on Windows all 19 pass. CI ran 17 of 19 green before this change.
+- **Revisit if:** CI moves to a Windows runner, or a keyring (e.g. gnome-keyring in the job) is set up for Linux.
+
 ### DN-076 · UI leftovers: role-neutral dashboard text, screenshot screen buttons and labels
 - **Date:** 2026-11-25
 - **Phase / area:** DN-051 and DN-043 follow-ups · `apps/desktop/src/{data/translations.js,components/ScreenshotToPpt.jsx,i18n/en.ts}`, `LOCAL_TESTING.md`, `docs/runbooks/local-testing.md`
