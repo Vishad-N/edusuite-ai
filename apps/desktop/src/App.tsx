@@ -39,6 +39,7 @@ import { ErrorBoundary, RouteCrashed, ScreenCrashed } from "./components/ErrorBo
 import { BranchPicker } from "./components/BranchPicker.tsx";
 import QuestionBank from "./components/QuestionBank.tsx";
 import { useInstituteLogo } from "./api/logo.ts";
+import { useOnline } from "./api/drafts.ts";
 import { ChangePasswordModal } from "./components/ChangePasswordModal.tsx";
 import { setUiLanguage, tx } from "./i18n/index.ts";
 
@@ -169,6 +170,7 @@ function AppShell() {
   const { client, logout, switchBranch } = useSession();
   const queryClient = useQueryClient();
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const online = useOnline();
   const navigate = useNavigate();
   const location = useLocation();
   const [lang, setLang] = useLanguage();
@@ -244,6 +246,11 @@ function AppShell() {
         />
         <main className="flex-1 overflow-y-auto bg-slate-100/70 p-6 md:p-8">
           <div className="max-w-7xl mx-auto">
+            {!online && (
+              <p role="status" className="mb-4 rounded-card border border-warning bg-warning-subtle p-3 text-label text-ink">
+                {tx("इंटरनेट कनेक्शन नहीं है। बिना सेव किया काम इस कंप्यूटर पर ड्राफ़्ट में सुरक्षित है और कनेक्शन लौटने पर सेव हो जाएगा। AI और नई जानकारी के लिए इंटरनेट ज़रूरी है।")}
+              </p>
+            )}
             <Outlet context={screenProps} />
           </div>
         </main>

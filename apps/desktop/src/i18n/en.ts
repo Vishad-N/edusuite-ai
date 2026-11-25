@@ -1022,4 +1022,11 @@ export const EN: Record<string, string> = {
   "यह प्रश्न बैंक से हट जाएगा। पहले से बने पेपर नहीं बदलेंगे।": "It will be removed from the bank. Papers already made won't change.",
   "संस्थान के सभी सेव किए MCQ। नया पेपर बनाते समय “प्रश्न बैंक से जोड़ें” से चुनें।": "Every MCQ the institute has saved. When making a paper, pick from “Add from question bank”.",
   "सभी विषय": "All subjects",
+  "इंटरनेट आते ही सेव होगा; काम इस कंप्यूटर पर सुरक्षित है": "Will save when the internet is back; the work is safe on this computer",
+  "इंटरनेट नहीं है। काम इस कंप्यूटर पर सुरक्षित है और इंटरनेट आते ही अपने-आप सेव होगा।": "No internet. The work is safe on this computer and will save by itself when the internet is back.",
+  "ऑफ़लाइन": "Offline",
+  "पिछली बार का बिना सेव किया काम मिला: “{0}” ({1})।": "Unsaved work from last time found: “{0}” ({1}).",
+  "बिना सेव किया काम वापस आ गया। सेव करना न भूलें।": "Unsaved work restored. Don't forget to save.",
+  "वापस लाएँ": "Restore",
+  "इंटरनेट कनेक्शन नहीं है। बिना सेव किया काम इस कंप्यूटर पर ड्राफ़्ट में सुरक्षित है और कनेक्शन लौटने पर सेव हो जाएगा। AI और नई जानकारी के लिए इंटरनेट ज़रूरी है।": "No internet connection. Unsaved work is kept as a draft on this computer and will save when the connection returns. AI and fresh data need the internet.",
 };

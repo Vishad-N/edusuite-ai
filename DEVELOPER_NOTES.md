@@ -18,6 +18,26 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-075 · Offline drafts: unsaved work kept on the PC, offered back, saved when the connection returns
+- **Date:** 2026-11-25
+- **Phase / area:** Plan "IndexedDB drafts while offline" (supersedes DN-018's deferral) · `apps/desktop/src/{api/drafts.ts,components/DocumentBar.tsx,App.tsx}`
+- **Status:** Building it now decided by developer ("Yes, build it"); details decided by agent
+- **What was unclear:** DN-018 deferred offline drafts. When to write a draft, how to offer it back, what "sync" means with compare-and-set saves (DN-038), and what stays on the PC.
+- **Decision:**
+  - **Where:** in the shared save bar, so all 11 document screens get it with no per-screen code.
+  - **Writing drafts:** while a screen has unsaved changes, a draft (title, content, the saved document's id and version if any) is written to IndexedDB about 0.8 s after the last change. It's keyed per signed-in user and document type, so another staff member on the same PC never sees it. It's deleted as soon as the work is saved, discarded, or matches the saved copy again. Without IndexedDB, drafts last for the run only.
+  - **Offering it back:** opening a screen with a leftover draft shows "पिछली बार का बिना सेव किया काम मिला: “title” (time)" with **वापस लाएँ** (restore) and **हटाएँ** (discard). The draft is checked against the type's schema first; a broken one is dropped. Restoring fills the screen, shows it as unsaved, and keeps the document's id and version, so saving updates the same document. If someone changed it meanwhile, the normal "someone else changed it" choice appears (DN-038). Restoring over unsaved work asks first.
+  - **Offline:** the status line shows "ऑफ़लाइन", and the window shows a banner that unsaved work is safe and that AI needs the internet. Pressing Save offline (or a save failing with `NETWORK_ERROR`) marks the work "save when back online". The status then says so, and the save runs by itself when the connection returns. That flag is kept in the draft, so it also survives a restart.
+  - **Not offline:** AI jobs, history, opening saved documents and anything else that needs the server. There's no full offline copy of saved documents; the plan asks only for drafts.
+  - **Privacy:** drafts are document content (papers, slides, notices), never student or fee records, which aren't documents. They stay in the app's own profile folder and are removed once saved.
+- **Verified:**
+  - Desktop 50 tests; typecheck and lint pass.
+  - E2E (2 new):
+    - with the app's network cut, the status shows offline and the banner appears; Save says it will save later; reconnecting saves it by itself
+    - a title typed and left unsaved, the app closed and reopened: the offer shows that title; restore brings it back as unsaved; discarding (New) removes the draft, and the next start offers nothing
+  - Screenshots checked: the banner, offer and offline status read clearly.
+- **Revisit if:** branches need to open saved documents offline (cache them), or drafts should be capped by age (today they stay until saved or discarded).
+
 ### DN-074 · Question bank: shared per institute, filled from papers and MCQ sets, reused in papers
 - **Date:** 2026-11-25
 - **Phase / area:** Plan §06 `question`, DN-056 follow-up · `packages/shared/src/{questions,permissions}.ts`, `apps/api/src/questions/*`, `apps/desktop/src/{api/questions.ts,components/{QuestionBank,QuestionBankList,PaperBankTools,QuestionPaperMaker,ScreenshotToPpt,Sidebar}.*}`
