@@ -28,7 +28,7 @@ test("enrol → receipt within the balance → printed number and balance", asyn
   await page.getByRole("button", { name: "छात्र जोड़ें", exact: true }).click();
   await expect(page.getByText(/छात्र जुड़ गया: DEMO-GTB-/)).toBeVisible();
 
-  const submit = page.locator('form button[type="submit"]');
+  const submit = page.locator('main form button[type="submit"]');
   await page.getByLabel("राशि (₹)").fill("13000");
   await expect(submit).toBeDisabled();
   await page.getByLabel("राशि (₹)").fill("5000");

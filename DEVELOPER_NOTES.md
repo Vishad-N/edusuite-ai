@@ -12,11 +12,31 @@ This file records every point where the AI agent (or a developer) was unsure and
 
 Decisions waiting for the developer. Remove a line here once its entry's status is updated.
 
-- DN-037 · Multi-branch staff: how should they pick a branch at login? (Today everyone works at their home branch.)
+- None.
 
 ---
 
 ## Decision log
+
+### DN-070 · Branch choice after login, branch switching, own password change; a narrower token-reuse rule
+- **Date:** 2026-11-25
+- **Phase / area:** DN-037 (closed), DN-034 "revisit" · `packages/shared/src/auth.ts`, `apps/api/src/auth/{auth.service,auth.controller}.ts`, `apps/api/src/common/errors.ts`, `apps/desktop/src/{api/{client.ts,session.tsx},App.tsx,components/{BranchPicker,ChangePasswordModal,Header}.tsx}`
+- **Status:** Branch picker approach (option A of DN-037) decided by developer ("Ask after login"); the rest decided by agent
+- **What was unclear:** How multi-branch staff choose a branch when the login form doesn't know their branches (DN-037), and how staff change their own password (DN-034 "revisit"). While testing, a flaw in DN-033's theft rule showed up (below).
+- **Decision:**
+  - **`POST /auth/switch-branch {branchId}`** (any signed-in user): the branch must be the user's home or one of their extra branches (`AUTH_BRANCH_NOT_ALLOWED` otherwise). The current session is replaced by a new one at that branch, with the same device and end of day. The answer is a full login response, so the app gets new tokens and the new `/me` at once. The old refresh token stops working. Audited as `auth.switch_branch` with both branch ids.
+  - **After login:** if the user has more than one branch, the app asks "आज किस ब्रांच में काम करेंगे?" before opening. The home branch is highlighted, and choosing it costs no extra request.
+  - **In the header:** for such users the branch chip is a button. It opens a list with a warning that unsaved work may be lost. After switching, every cached query is dropped and the dashboard opens, because cached data belonged to the old branch.
+  - **`POST /me/password {currentPassword, newPassword}`** (any signed-in user, rate-limited like login): a wrong current password gives 400 `PASSWORD_WRONG` (not 401, so the app doesn't treat it as an expired session), and the same password gives 400 `PASSWORD_SAME`; the new one needs at least 8 characters. Every **other** session of the user ends; this one stays signed in. Audited (`auth.password_change`, `auth.password_change_failed`), never with the password. The app opens it from a key button in the header.
+  - **Token-reuse rule narrowed (supersedes part of DN-033):** a refresh token that was *rotated* (replaced), or that is presented from another device, still ends every session of the user, because that means it was copied. A token whose session simply *ended* (logout, block, password reset or change, an earlier reuse response) is now refused with `AUTH_SESSION_REVOKED` without ending the other sessions. Before this, changing your password on one PC made the other PC's next refresh sign you out on the first PC too.
+- **Verified:**
+  - API tests 124 (3 new):
+    - switch to the second branch: `/me` shows it, the new token refreshes, the audit has both ids, and the replaced token is refused
+    - another institute's branch, or a branch the typist doesn't have, gives 403; anonymous gives 401
+    - password: wrong current, same, too short; success; the old password stops working and the new one works; the other PC is signed out while this session stays; the audit has no password
+    - the reuse test now expects one alarm, not two
+  - E2E 11 journeys, 3 new: the demo teacher picks गीता भवन at login and switches back in the header; the super admin isn't asked; the typist changes the password in the dialog (a wrong current one is refused), then changes it back.
+- **Revisit if:** branch admins should see which branch each staff member is working at today, or institutes want password rules beyond 8 characters.
 
 ### DN-069 · Playwright e2e journeys in the real Electron app; one-command local setup and a health check
 - **Date:** 2026-11-25

@@ -98,6 +98,8 @@ export const ERROR_MESSAGES = {
     en: "Too many wrong attempts. The account is locked for 15 minutes.",
   },
   AUTH_BLOCKED: { hi: "यह खाता ब्लॉक है। अपने एडमिन से संपर्क करें।", en: "This account is blocked. Contact your admin." },
+  PASSWORD_WRONG: { hi: "मौजूदा पासवर्ड सही नहीं है।", en: "The current password is not correct." },
+  PASSWORD_SAME: { hi: "नया पासवर्ड पुराने से अलग होना चाहिए।", en: "The new password must be different from the old one." },
   AUTH_BRANCH_NOT_ALLOWED: { hi: "आप इस ब्रांच में काम नहीं कर सकते।", en: "You can't work at this branch." },
   AUTH_SESSION_EXPIRED: { hi: "आज का सत्र समाप्त हो गया। कृपया फिर से लॉगिन करें।", en: "Today's session has ended. Please log in again." },
   AUTH_SESSION_REVOKED: {

@@ -165,9 +165,10 @@ describe("auth (real Postgres)", { skip }, () => {
 
     const afterReuse = await post("/api/v1/auth/refresh", { refreshToken: rotated.refreshToken, deviceId: DEVICE });
     assert.equal(afterReuse.statusCode, 401, "the newest token is also revoked");
-    // Two reuse events: the copied old token, then the newest token after everything was revoked.
+    // One reuse event: the copied old token. The newest token's session was merely ended, which
+    // is refused without a second alarm (DN-070).
     const reuseLog = await db.auditLog.count({ where: { action: "auth.refresh_reuse", actorId: fx.users.superadmin.id } });
-    assert.equal(reuseLog, 2);
+    assert.equal(reuseLog, 1);
   });
 
   test("refresh from a different device is treated as theft", async () => {

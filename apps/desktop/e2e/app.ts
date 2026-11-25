@@ -49,22 +49,34 @@ export async function launch(opts: { profile?: string } = {}): Promise<Running> 
 const RATE_LIMITED = "बहुत ज़्यादा प्रयास";
 
 /**
- * Fills and submits the login form, then waits for the header or a login error. Logins are
- * limited per IP per minute (DN-033); when a local run hits that, it waits the minute out once.
+ * Fills and submits the login form, then waits for the header, the branch question or a login
+ * error. Staff with several branches are asked which one today (DN-070): by default the test
+ * keeps the home branch; `branch` picks another by name. Logins are limited per IP per minute
+ * (DN-033); when a local run hits that, it waits the minute out once.
  */
-export async function signIn(page: Page, code: DemoUser, password = passwordOf(code), retried = false): Promise<void> {
+export async function signIn(page: Page, code: DemoUser, password = passwordOf(code), opts: { branch?: string; retried?: boolean } = {}): Promise<void> {
   await page.locator('input[autocomplete="username"]').fill(code);
   await page.locator('input[autocomplete="current-password"]').fill(password);
   await page.locator('form button[type="submit"]').click();
   const outcome = await page.waitForFunction(
-    () => (document.querySelector("header") ? "in" : [...document.querySelectorAll('[role="alert"]')].map((e) => e.textContent ?? "").join(" ").trim()),
+    () =>
+      document.querySelector("header")
+        ? "in"
+        : document.getElementById("branch-pick-title")
+          ? "pick"
+          : [...document.querySelectorAll('[role="alert"]')].map((e) => e.textContent ?? "").join(" ").trim(),
     undefined,
     { timeout: 20_000 },
   );
   const text = String(await outcome.jsonValue());
-  if (text.includes(RATE_LIMITED) && !retried) {
+  if (text === "pick") {
+    const list = page.locator('section[aria-labelledby="branch-pick-title"] li button');
+    await (opts.branch ? list.filter({ hasText: opts.branch }) : list.filter({ hasText: "होम ब्रांच" })).first().click();
+    return;
+  }
+  if (text.includes(RATE_LIMITED) && !opts.retried) {
     await page.waitForTimeout(61_000);
-    return signIn(page, code, password, true);
+    return signIn(page, code, password, { ...opts, retried: true });
   }
 }
 

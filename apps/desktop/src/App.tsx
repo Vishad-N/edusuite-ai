@@ -9,7 +9,7 @@ import {
   useOutletContext,
   useParams,
 } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SCREEN_PERMISSIONS, can, visibleScreens, type Institute, type Role, type ScreenId, type SessionUser } from "@edusuite/shared";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
@@ -36,6 +36,8 @@ import { translations } from "./data/translations";
 import { useSession, useSignedInUser } from "./api/session.tsx";
 import { Skeleton } from "./components/ui/index.ts";
 import { ErrorBoundary, RouteCrashed, ScreenCrashed } from "./components/ErrorBoundary.tsx";
+import { BranchPicker } from "./components/BranchPicker.tsx";
+import { ChangePasswordModal } from "./components/ChangePasswordModal.tsx";
 import { setUiLanguage, tx } from "./i18n/index.ts";
 
 /** Props every screen receives (the same names the screens used before the router). */
@@ -153,13 +155,17 @@ function LoginRoute() {
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from;
   if (state.status === "loading") return <FullScreenLoading />;
+  // Staff with several branches choose today's branch first (DN-070).
+  if (state.status === "signedIn" && state.pickBranch) return <BranchPicker />;
   if (state.status === "signedIn") return <Navigate to={from && from !== "/login" ? from : "/"} replace />;
   return <LoginScreen onLogin={login} endedBecause={state.endedBecause} />;
 }
 
 function AppShell() {
   const user = useSignedInUser();
-  const { client, logout } = useSession();
+  const { client, logout, switchBranch } = useSession();
+  const queryClient = useQueryClient();
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [lang, setLang] = useLanguage();
@@ -210,7 +216,17 @@ function AppShell() {
           navigate("/login", { replace: true });
         }}
         onOpenSettings={canEditSettings ? () => setSettingsOpen(true) : undefined}
+        branches={user.branches}
+        currentBranchId={user.branch.id}
+        onSwitchBranch={async (branchId) => {
+          await switchBranch(branchId);
+          // Everything cached belonged to the old branch.
+          queryClient.removeQueries();
+          navigate("/", { replace: true });
+        }}
+        onChangePassword={() => setPasswordOpen(true)}
       />
+      {passwordOpen && <ChangePasswordModal open onClose={() => setPasswordOpen(false)} />}
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
           activeTab={activeTab}

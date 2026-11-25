@@ -22,13 +22,18 @@ declare global {
 export type SessionState =
   | { status: "loading" }
   | { status: "signedOut"; endedBecause?: ApiError | undefined }
-  | { status: "signedIn"; user: SessionUser };
+  /** pickBranch: just signed in with more than one branch, so ask which one today (DN-070). */
+  | { status: "signedIn"; user: SessionUser; pickBranch?: boolean };
 
 type SessionContextValue = {
   state: SessionState;
   client: ApiClient;
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Works at another of the user's branches from now on (a new session on the server). */
+  switchBranch: (branchId: string) => Promise<void>;
+  /** Ends the after-login branch question. */
+  finishBranchPick: () => void;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -105,7 +110,7 @@ export function SessionProvider({ apiBaseUrl, children }: { apiBaseUrl: string; 
   const login = useCallback(
     async (identifier: string, password: string) => {
       const res = await client.login({ identifier, password });
-      setState({ status: "signedIn", user: res.user });
+      setState({ status: "signedIn", user: res.user, pickBranch: res.user.branches.length > 1 });
     },
     [client],
   );
@@ -115,7 +120,22 @@ export function SessionProvider({ apiBaseUrl, children }: { apiBaseUrl: string; 
     setState({ status: "signedOut" });
   }, [client]);
 
-  const value = useMemo(() => ({ state, client, login, logout }), [state, client, login, logout]);
+  const switchBranch = useCallback(
+    async (branchId: string) => {
+      const res = await client.switchBranch(branchId);
+      setState({ status: "signedIn", user: res.user });
+    },
+    [client],
+  );
+
+  const finishBranchPick = useCallback(() => {
+    setState((s) => (s.status === "signedIn" ? { status: "signedIn", user: s.user } : s));
+  }, []);
+
+  const value = useMemo(
+    () => ({ state, client, login, logout, switchBranch, finishBranchPick }),
+    [state, client, login, logout, switchBranch, finishBranchPick],
+  );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 

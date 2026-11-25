@@ -1,6 +1,10 @@
 import { Body, Controller, Get, HttpCode, Post, Req } from "@nestjs/common";
 import type { FastifyRequest } from "fastify";
 import {
+  ChangePasswordSchema,
+  SwitchBranchRequestSchema,
+  type ChangePassword,
+  type SwitchBranchRequest,
   LoginRequestSchema,
   LogoutRequestSchema,
   RefreshRequestSchema,
@@ -41,6 +45,30 @@ export class AuthController {
   @HttpCode(204)
   async logout(@Body(new ZodBody(LogoutRequestSchema)) body: LogoutRequest, @Req() req: FastifyRequest): Promise<void> {
     await this.auth.logout(body.refreshToken, { ip: req.ip });
+  }
+
+  @Post("auth/switch-branch")
+  @AnySignedIn()
+  @HttpCode(200)
+  switchBranch(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodBody(SwitchBranchRequestSchema)) body: SwitchBranchRequest,
+    @Req() req: FastifyRequest,
+  ): Promise<LoginResponse> {
+    return this.auth.switchBranch(user, body.branchId, { ip: req.ip });
+  }
+
+  /** Rate-limited like login, so a session left open can't be used to guess the password. */
+  @Post("me/password")
+  @AnySignedIn()
+  @LoginRateLimited()
+  @HttpCode(204)
+  async changePassword(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodBody(ChangePasswordSchema)) body: ChangePassword,
+    @Req() req: FastifyRequest,
+  ): Promise<void> {
+    await this.auth.changePassword(user, body, { ip: req.ip });
   }
 
   @Get("me")

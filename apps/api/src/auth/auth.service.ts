@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import {
   endOfIstDay,
+  type ChangePassword,
   permissionsFor,
   type LoginRequest,
   type LoginResponse,
@@ -16,6 +17,7 @@ import type { AuthUser } from "./authUser";
 import {
   ACCESS_TOKEN_TTL_MS,
   burnPasswordCheck,
+  hashPassword,
   hashRefreshToken,
   newRefreshToken,
   signAccessToken,
@@ -133,8 +135,10 @@ export class AuthService {
   }
 
   /**
-   * Rotates the refresh token. Presenting a token that was already rotated or
-   * revoked means it was copied: every session of that user is ended (plan §09).
+   * Rotates the refresh token. Presenting a token that was already rotated, or from
+   * another device, means it was copied: every session of that user is ended (plan §09).
+   * A token whose session simply ended (logout, block, password change) is refused
+   * without that alarm, so another PC's late refresh can't sign the user out here (DN-070).
    */
   async refresh(input: RefreshRequest, ctx: Ctx): Promise<TokenPair> {
     const db = this.prisma.db;
@@ -147,7 +151,7 @@ export class AuthService {
     const base = { instituteId: old.user.instituteId, actorId: old.userId, ip: ctx.ip };
     const now = new Date();
 
-    if (old.revokedAt || old.replacedById || old.deviceId !== input.deviceId) {
+    if (old.replacedById || old.deviceId !== input.deviceId) {
       await this.revokeAllSessions(old.userId, now);
       await this.audit.log({
         ...base,
@@ -158,6 +162,7 @@ export class AuthService {
       });
       throw new ApiHttpException(401, "AUTH_SESSION_REVOKED");
     }
+    if (old.revokedAt) throw new ApiHttpException(401, "AUTH_SESSION_REVOKED");
     if (old.expiresAt <= now) throw new ApiHttpException(401, "AUTH_SESSION_EXPIRED");
     if (old.user.status === "blocked") {
       await this.revokeAllSessions(old.userId, now);
@@ -213,6 +218,74 @@ export class AuthService {
       entityId: session.id,
       ip: ctx.ip,
     });
+  }
+
+  /**
+   * Moves the signed-in session to another branch the user may work at (DN-070, DN-015).
+   * The current session is replaced by a new one at that branch, with the same device and
+   * end of day, so its old refresh token stops working.
+   */
+  async switchBranch(actor: AuthUser, branchId: string, ctx: Ctx): Promise<LoginResponse> {
+    const db = this.prisma.db;
+    const user = await db.appUser.findUnique({ where: { id: actor.userId }, include: { branches: true } });
+    if (!user || user.instituteId !== actor.instituteId) throw new ApiHttpException(401, "UNAUTHORIZED");
+    const allowed = new Set([user.branchId, ...user.branches.map((b) => b.branchId)]);
+    if (!allowed.has(branchId)) throw new ApiHttpException(403, "AUTH_BRANCH_NOT_ALLOWED");
+
+    const old = await db.session.findUnique({ where: { id: actor.sessionId } });
+    const now = new Date();
+    if (!old || old.revokedAt || old.replacedById || old.expiresAt <= now) throw new ApiHttpException(401, "AUTH_SESSION_REVOKED");
+
+    const refreshToken = newRefreshToken();
+    const next = await db.$transaction(async (tx) => {
+      const created = await tx.session.create({
+        data: { userId: user.id, refreshHash: hashRefreshToken(refreshToken), deviceId: old.deviceId, branchId, expiresAt: old.expiresAt },
+      });
+      const { count } = await tx.session.updateMany({
+        where: { id: old.id, revokedAt: null, replacedById: null },
+        data: { revokedAt: now, replacedById: created.id, lastUsedAt: now },
+      });
+      if (count !== 1) throw new ApiHttpException(401, "AUTH_SESSION_REVOKED");
+      return created;
+    });
+    await this.audit.log({
+      instituteId: user.instituteId,
+      actorId: user.id,
+      ip: ctx.ip,
+      action: "auth.switch_branch",
+      entityType: "session",
+      entityId: next.id,
+      meta: { fromBranchId: old.branchId, branchId },
+    });
+
+    const authUser: AuthUser = { userId: user.id, sessionId: next.id, instituteId: user.instituteId, branchId, role: user.role };
+    const tokens = await this.issueTokens(authUser, refreshToken, old.expiresAt);
+    return { ...tokens, user: await this.me(authUser) };
+  }
+
+  /**
+   * The signed-in user changes their own password (DN-070; DN-034 "revisit").
+   * Every other session of the user ends; this one stays signed in.
+   */
+  async changePassword(actor: AuthUser, input: ChangePassword, ctx: Ctx): Promise<void> {
+    const db = this.prisma.db;
+    const user = await db.appUser.findUnique({ where: { id: actor.userId } });
+    if (!user || user.instituteId !== actor.instituteId) throw new ApiHttpException(401, "UNAUTHORIZED");
+    const base = { instituteId: user.instituteId, actorId: user.id, ip: ctx.ip };
+    if (!(await verifyPassword(user.passwordHash, input.currentPassword))) {
+      await this.audit.log({ ...base, action: "auth.password_change_failed", meta: { reason: "wrong_current" } });
+      throw new ApiHttpException(400, "PASSWORD_WRONG");
+    }
+    if (input.currentPassword === input.newPassword) throw new ApiHttpException(400, "PASSWORD_SAME");
+    await db.appUser.update({
+      where: { id: user.id },
+      data: { passwordHash: await hashPassword(input.newPassword), failedLoginCount: 0, lockedUntil: null },
+    });
+    await db.session.updateMany({
+      where: { userId: user.id, revokedAt: null, id: { not: actor.sessionId } },
+      data: { revokedAt: new Date() },
+    });
+    await this.audit.log({ ...base, action: "auth.password_change", entityType: "user", entityId: user.id });
   }
 
   async me(user: AuthUser): Promise<SessionUser> {
