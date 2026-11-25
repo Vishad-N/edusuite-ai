@@ -64,9 +64,9 @@ Run every command from the repo root.
 
 | Log in as | Try |
 |---|---|
-| `DEMO-T` (teacher) | Any AI tool: PPT, question paper, DPP, lesson plan, doubt, YouTube, book chapter, deck → quiz, screenshot → MCQ. Save, then reopen from History. Press "रोकें" while a job runs. |
+| `DEMO-T` (teacher, two branches) | Picks a branch after login. Any AI tool: PPT, question paper, DPP, lesson plan, doubt, YouTube, book chapter, deck → quiz, screenshot → MCQ. Save, then reopen from History. Press "रोकें" while a job runs. Question bank, PNG download, drafts and offline saving. |
 | `DEMO-C` (counselor, second branch) | Students: add one with a photo, issue a fee receipt, print it, print the ID card. Notices with AI. |
-| `DEMO-SA` (super admin) | Users, settings, cancelling a receipt (needs a reason), "AI उपयोग और ऑडिट लॉग". |
+| `DEMO-SA` (super admin) | Users, settings and the institute logo, cancelling a receipt (needs a reason), "AI उपयोग और ऑडिट लॉग". |
 | `DEMO-BA` (branch admin) | The same, limited to the main branch. |
 | `DEMO-PA` (EduSuite operator) | AI credits per institute, adding or taking away credits, job prices. |
 

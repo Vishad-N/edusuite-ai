@@ -29,7 +29,7 @@ export const translations = {
     // Dashboard
     heroBadge: "डिजिटल एडमिन पोर्टल",
     greeting: "नमस्ते!",
-    heroDesc: "संस्थान की सभी शैक्षणिक एवं प्रशासनिक जरूरतें एक ही जगह पर। लेक्चर PPT, स्टडी बुक्स, डेली DPP, YouTube थंबनेल, टेस्ट पेपर्स और छात्र रसीदें मिनटों में तैयार करें।",
+    heroDesc: "संस्थान का शैक्षणिक और प्रशासनिक काम एक ही जगह। बाईं ओर के मेनू से अपने काम का टूल चुनें; आपकी भूमिका के टूल ही दिखते हैं।",
     btnMakeThumbnail: "YouTube थंबनेल बनाएं",
     btnNewBook: "नई किताब / मॉड्यूल",
 
@@ -113,7 +113,7 @@ export const translations = {
     // Dashboard
     heroBadge: "Digital Admin Portal",
     greeting: "Welcome!",
-    heroDesc: "All academic and management workflows under one roof. Produce Lecture PPTs, Books, DPPs, YouTube Thumbnails, Exam Papers, and Student Fee Receipts in seconds.",
+    heroDesc: "Your institute’s teaching and office work in one place. Pick a tool from the menu on the left; only the tools for your role are shown.",
     btnMakeThumbnail: "Create YouTube Thumbnail",
     btnNewBook: "New Book / Module",
 

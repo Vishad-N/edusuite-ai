@@ -18,6 +18,24 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-076 · UI leftovers: role-neutral dashboard text, screenshot screen buttons and labels
+- **Date:** 2026-11-25
+- **Phase / area:** DN-051 and DN-043 follow-ups · `apps/desktop/src/{data/translations.js,components/ScreenshotToPpt.jsx,i18n/en.ts}`, `LOCAL_TESTING.md`, `docs/runbooks/local-testing.md`
+- **Status:** Decided by agent
+- **What was unclear:** Two leftovers were named earlier:
+  - the dashboard's hero text listed every tool for every role and promised work "in seconds" (DN-051)
+  - the screenshot screen kept its older styling (DN-043)
+- **Decision:**
+  - **Dashboard:** the text now says the institute's work is in one place, and that the menu shows the tools for your role.
+  - **Screenshot screen:** a screenshot review showed it already uses the page header, save bar and AI box. What remained were four hand-styled action buttons in clashing colours (indigo, red, amber) with emoji, and labels that repeated themselves in English inside the Hindi text (e.g. "प्रश्न (Question Statement):"). The buttons now use the shared Button (PowerPoint is the primary one). The 11 labels are plain Hindi, with English in the dictionary like every other screen. The editor's own preview styling (the smartboard look) stays, since that is the product.
+  - **Guide:** `LOCAL_TESTING.md` gained rows for branch choice, password change, logo, PNG download, deck quiz saving, the question bank, drafts and offline saving, and the e2e list. The runbook's role table mentions them.
+- **Verified:** final full run on 2026-11-25:
+  - lint (warnings only, none new from this work), typecheck
+  - API 129, desktop 50, shared 54 tests
+  - all 17 e2e journeys pass against the rebuilt stack
+  - a screenshot of the screenshot screen after the change
+- **Revisit if:** the remaining English sample topic chips on the PPT screen ("Newton's Laws…") should follow the UI language.
+
 ### DN-075 · Offline drafts: unsaved work kept on the PC, offered back, saved when the connection returns
 - **Date:** 2026-11-25
 - **Phase / area:** Plan "IndexedDB drafts while offline" (supersedes DN-018's deferral) · `apps/desktop/src/{api/drafts.ts,components/DocumentBar.tsx,App.tsx}`

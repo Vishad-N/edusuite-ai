@@ -161,6 +161,9 @@ Tick each item as you go. "Expect" is what a correct build does. Anything differ
 | Sign in correctly, close the app, open it again | You are still signed in. Sessions last until 23:59 that day. |
 | Header → लॉगआउट → हाँ, लॉगआउट | Back to the login screen. Reopening the app asks you to sign in again. |
 | Header → हिन्दी / English | Every screen switches language at once. Names and saved text stay as typed. |
+| Sign in as `DEMO-T` (works at two branches) | Before the app opens: "आज किस ब्रांच में काम करेंगे?" with मेन ब्रांच (home) and गीता भवन. Users with one branch, like `DEMO-SA`, aren't asked. |
+| As `DEMO-T`, click the branch chip in the header and pick the other branch | It warns that unsaved work may be lost, then the dashboard opens at the new branch and the chip shows its name. |
+| Header → key button (पासवर्ड बदलें) | A wrong current password says "मौजूदा पासवर्ड सही नहीं है।" A correct change says other computers must sign in again; the old password stops working. **Change it back afterwards** so the seed file stays right. |
 
 ### 6.2 Teacher (`DEMO-T`): AI tools, saving and history
 
@@ -181,7 +184,15 @@ The header shows **AI क्रेडिट: N**, the institute's remaining cred
 | **YouTube** | Fill the thumbnail fields, then AI | Title (100 characters at most), description and tags. |
 | **Book creator** | AI on a chapter (2 credits) | Theory paragraphs, exam points and practice MCQs. |
 | **Screenshot → MCQ** | Upload 1–20 PNG/JPG screenshots, then AI (1 credit each) | Questions fill. Answers the AI guessed are flagged "यह उत्तर स्क्रीनशॉट पर नहीं था…" until you confirm them. |
-| **Deck → interactive quiz** | Upload a PDF deck, fill exam and subject (10 credits) | Questions to review. Download stays blocked until every flagged answer is ticked or changed. "क्विज़ खोलें" plays it. The HTML carries only your institute's name. |
+| **Deck → interactive quiz** | Upload a PDF deck, fill exam and subject (10 credits) | Questions to review. Download stays blocked until every flagged answer is ticked or changed. "क्विज़ खोलें" plays it. The HTML carries only your institute's name (and its logo, if one is uploaded). |
+| Deck quiz | Save, press नया, then इतिहास → खोलें | The quiz comes back with your ticked answers; download works without re-checking. |
+| **YouTube / Poster** | Type a headline, press "PNG डाउनलोड करें" | A save dialog; the PNG is exactly 1280×720 (thumbnail) or 1080×1080, 1920×1080, 1080×1920 (poster, by its size) and looks like the preview, with sharp text. Disabled until there is a headline. |
+| **Question paper** | After an AI paper, press "MCQ प्रश्न बैंक में जोड़ें" | "प्रश्न बैंक में N जुड़े, 0 पहले से थे।" Pressing again: "0 जुड़े, N पहले से थे।" (no copies). Needs the paper's subject. |
+| **प्रश्न बैंक** (sidebar) | Search, pick a subject, tick "केवल मेरे" | The questions, with the right option in green. You may delete your own; admins may delete any. |
+| Question paper | "प्रश्न बैंक से जोड़ें" → tick questions → "N प्रश्न जोड़ें" | They are added to the section being edited, with options and the answer key. |
+| Screenshot → MCQ | "प्रश्न बैंक में जोड़ें" | Every question with text and four options goes in under the set's subject. |
+| **Drafts** | Type on any tool screen without saving, close the app, open it, go back to that screen | "पिछली बार का बिना सेव किया काम मिला: “title” (time)". **वापस लाएँ** brings it back as unsaved; **हटाएँ** drops it. |
+| **Offline** | Turn off Wi-Fi (or unplug), edit, press सेव करें | A yellow "इंटरनेट कनेक्शन नहीं है…" banner; the status shows "ऑफ़लाइन" and "इंटरनेट आते ही सेव होगा". Turn the internet back on: it saves by itself ("सेव हो गया"). AI buttons need the internet. |
 | Any AI box | Press **रोकें** while a job runs | "रोक दिया गया", and the credits come back. Jobs finish in under a second in fixture mode; to test this, stop the worker first (6.7). |
 | Any screen | Run out of credits | "आपके संस्थान के AI क्रेडिट कम हैं…", and nothing is charged. |
 
@@ -214,6 +225,7 @@ A counselor must **not** reach the teaching AI tools (PPT, papers and so on).
 | **AI उपयोग और ऑडिट लॉग** → usage | One row per job type for the month, with credits kept (refunds aren't counted). |
 | Same screen → audit log | Who did what and when, filterable by group and date. It shows no passwords or tokens. |
 | Settings (super admin) | The institute name, branding and branches can be edited. There is no API-key field. |
+| Settings → संस्थान का लोगो → choose a PNG/JPG/WebP under 1 MB, then सेव करें | The preview shows it; after saving, the dashboard badge, PPTX, motion files, receipts, papers and deck quizzes use the logo instead of the initials. A GIF or a file over 1 MB is refused. "लोगो हटाएँ" + save brings the initials back. |
 | Branch admin's audit and usage | Only their own branch's staff. |
 
 ### 6.5 EduSuite operator (`DEMO-PA`)
@@ -263,8 +275,14 @@ npm test
 npm run test:e2e
 ```
 
-- `npm test` runs the unit and API tests (about 170). The API tests use a separate `edusuite_test` database, so Docker must be running.
-- `npm run test:e2e` opens the real desktop app in its own temporary profile and runs the main journeys: sign-in, teacher AI → save → history, roles, counselor fee receipt, and the English switch. It needs the stack running and seeded. Each run adds one "E2E छात्र …" student and one saved deck to the demo data.
+- `npm test` runs the unit and API tests (about 230). The API tests use a separate `edusuite_test` database, so Docker must be running.
+- `npm run test:e2e` opens the real desktop app in its own temporary profile and runs 17 journeys:
+  - sign-in and sessions; branch choice and switching; own password change (changed back at the end)
+  - teacher AI → save → history; roles; counselor fee receipt; the English switch
+  - institute logo; PNG thumbnail and poster; deck quiz save and reopen; question bank
+  - offline save and draft recovery
+
+  It needs the stack running and seeded. Each run adds a few demo records ("E2E छात्र …" students, saved decks and quizzes, "E2E रसायन …" bank questions) to the demo data.
 
 ---
 
