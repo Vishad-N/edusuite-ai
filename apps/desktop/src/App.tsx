@@ -37,6 +37,7 @@ import { useSession, useSignedInUser } from "./api/session.tsx";
 import { Skeleton } from "./components/ui/index.ts";
 import { ErrorBoundary, RouteCrashed, ScreenCrashed } from "./components/ErrorBoundary.tsx";
 import { BranchPicker } from "./components/BranchPicker.tsx";
+import { useInstituteLogo } from "./api/logo.ts";
 import { ChangePasswordModal } from "./components/ChangePasswordModal.tsx";
 import { setUiLanguage, tx } from "./i18n/index.ts";
 
@@ -177,6 +178,8 @@ function AppShell() {
     queryFn: () => client.get<Institute>(`/institutes/${user.institute.id}`),
   });
 
+  // The uploaded logo (DN-071); every screen's instituteLogo() falls back to initials without it.
+  const logo = useInstituteLogo(institute.data?.branding.logoFileId);
   const activeInstitute: LegacyInstitute = useMemo(
     () => ({
       id: user.institute.id,
@@ -184,8 +187,9 @@ function AppShell() {
       tagline: institute.data?.branding.tagline ?? "",
       phone: institute.data?.branding.phone ?? "",
       city: institute.data?.branding.city ?? "",
+      ...(logo && { logo }),
     }),
-    [institute.data, user.institute],
+    [institute.data, user.institute, logo],
   );
 
   const currentUser = toLegacyUser(user, lang);

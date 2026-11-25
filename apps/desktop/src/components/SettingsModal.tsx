@@ -1,6 +1,9 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { scopeFor, type Branch, type Institute, type SessionUser } from "@edusuite/shared";
+import { LOGO_MAX_BYTES, LOGO_MIMES, scopeFor, type Branch, type Institute, type SessionUser } from "@edusuite/shared";
+import { uploadFile } from "../api/documents.ts";
+import { useInstituteLogo } from "../api/logo.ts";
+import { initialsLogo } from "../utils/branding.ts";
 import { useSession } from "../api/session.tsx";
 import { ApiError } from "../api/client.ts";
 import { Button, ErrorState, Field, Input, Modal, Skeleton, useToast } from "./ui/index.ts";
@@ -23,7 +26,7 @@ export default function SettingsModal({ open, onClose, user }: Props) {
   );
 }
 
-type InstituteValues = { name: string; tagline: string; phone: string; city: string };
+type InstituteValues = { name: string; tagline: string; phone: string; city: string; logoFileId: string };
 
 function InstituteSettings({ open, onClose, instituteId }: { open: boolean; onClose: () => void; instituteId: string }) {
   const { client } = useSession();
@@ -38,7 +41,7 @@ function InstituteSettings({ open, onClose, instituteId }: { open: boolean; onCl
     mutationFn: (v: InstituteValues) =>
       client.patch<Institute>(`/institutes/${instituteId}`, {
         name: v.name,
-        branding: { tagline: v.tagline, phone: v.phone, city: v.city },
+        branding: { tagline: v.tagline, phone: v.phone, city: v.city, ...(v.logoFileId && { logoFileId: v.logoFileId }) },
       }),
     onSuccess: (data) => {
       queryClient.setQueryData(["institute", instituteId], data);
@@ -92,6 +95,7 @@ function InstituteForm({
     tagline: b.tagline ?? "",
     phone: b.phone ?? "",
     city: b.city ?? "",
+    logoFileId: b.logoFileId ?? "",
   });
   const set = (key: keyof InstituteValues) => (e: { target: { value: string } }) => setV((f) => ({ ...f, [key]: e.target.value }));
   return (
@@ -118,7 +122,79 @@ function InstituteForm({
           <Input value={v.city} onChange={set("city")} />
         </Field>
       </div>
+      <LogoPicker name={v.name} fileId={v.logoFileId} onChange={(logoFileId) => setV((f) => ({ ...f, logoFileId }))} />
     </form>
+  );
+}
+
+/**
+ * The institute's logo (DN-071): PNG, JPG or WebP up to 1 MB. It replaces the initials badge on
+ * every printout and export once settings are saved.
+ */
+function LogoPicker({ name, fileId, onChange }: { name: string; fileId: string; onChange: (fileId: string) => void }) {
+  const { client } = useSession();
+  const preview = useInstituteLogo(fileId || undefined);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const inputId = "institute-logo-file";
+
+  const pick = async (file: File | undefined) => {
+    setError("");
+    if (!file) return;
+    if (!(LOGO_MIMES as readonly string[]).includes(file.type)) return setError(tx("केवल PNG, JPG या WebP चुनें।"));
+    if (file.size > LOGO_MAX_BYTES) return setError(tx("लोगो 1 MB से छोटा होना चाहिए।"));
+    setBusy(true);
+    try {
+      const uploaded = await uploadFile(client, file);
+      onChange(uploaded.id);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : tx("लोगो अपलोड नहीं हुआ। फिर से कोशिश करें।"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-4 rounded-card border border-line p-3">
+      <img
+        src={fileId ? (preview ?? initialsLogo(name)) : initialsLogo(name)}
+        alt={fileId ? tx("संस्थान का लोगो") : tx("लोगो नहीं है; नाम के अक्षर दिखते हैं")}
+        className="size-16 rounded-control border border-line object-contain bg-surface"
+      />
+      <div className="flex flex-col gap-2">
+        <span className="text-label font-semibold text-ink">{tx("संस्थान का लोगो")}</span>
+        <span className="text-caption text-muted">{tx("PNG, JPG या WebP, 1 MB तक। रसीदों, प्रिंट, PPT और क्विज़ पर दिखता है।")}</span>
+        <div className="flex gap-2">
+          <label
+            htmlFor={inputId}
+            className="inline-flex cursor-pointer items-center rounded-control border border-line-strong bg-surface px-3 py-1.5 text-label font-semibold text-ink hover:bg-page focus-within:outline-2"
+          >
+            {busy ? tx("अपलोड हो रहा है…") : fileId ? tx("लोगो बदलें") : tx("लोगो चुनें")}
+            <input
+              id={inputId}
+              type="file"
+              accept={LOGO_MIMES.join(",")}
+              className="sr-only"
+              disabled={busy}
+              onChange={(e) => {
+                void pick(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          {fileId && (
+            <Button type="button" variant="ghost" onClick={() => onChange("")}>
+              {tx("लोगो हटाएँ")}
+            </Button>
+          )}
+        </div>
+        {error && (
+          <p role="alert" className="text-caption text-danger">
+            {error}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 

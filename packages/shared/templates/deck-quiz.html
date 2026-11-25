@@ -238,6 +238,7 @@ main{max-width:1380px}
 img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none}
 @media print{#wm{opacity:.2!important;display:block!important}.top,.nav,.dots{display:none}}
 /* ================= LOGO BADGE + CONCEPT SCENE (EduSuite template) ================= */
+.logo-img{width:100%;height:100%;object-fit:contain;border-radius:50%;background:#fff;display:block}
 .logo.badge{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#0f172a;border:2px solid var(--accent);color:var(--accent);font-weight:700;font-size:15px;flex:none}
 .cx{position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;padding:22px 20px 44px;overflow:auto}
 .cx-h{font-weight:700;font-size:clamp(16px,2.2vw,20px);color:var(--accent);line-height:1.35}
@@ -263,7 +264,7 @@ img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none}
 <div id="fxlayer"></div>
 <script>
 /* ================= QUIZ DATA (filled in by EduSuite) =================
-   CFG: { brand, title:{hi,en}, sub:{hi,en}, initials }
+   CFG: { brand, title:{hi,en}, sub:{hi,en}, initials, logo (image data URL or "") }
    Q:   [{ q:{hi,en}, o:[4×{hi,en}], a:0-3, ex:{hi,en}, sc:{t:'concept', p:{title:{hi,en}, points:[{hi,en,key}]}} }] */
 const CFG = /*{{CFG}}*/null;
 const Q = /*{{Q}}*/[];
@@ -448,7 +449,11 @@ document.addEventListener('keydown', e => {
   else if ((e.key === 'ArrowRight' || e.key === 'Enter') && !$('#nx').disabled) $('#nx').click();
   else if (e.key === 'ArrowLeft' && idx > 0) showQ(idx - 1);
 });
-$('#logo').textContent = TXT(CFG.initials);
+if (CFG.logo) {
+  const img = document.createElement('img');
+  img.src = CFG.logo; img.alt = ''; img.className = 'logo-img';
+  $('#logo').classList.remove('badge'); $('#logo').appendChild(img);
+} else $('#logo').textContent = TXT(CFG.initials);
 document.documentElement.style.setProperty('--mark', JSON.stringify('© ' + TXT(CFG.brand)));
 hud(); startScreen();
 

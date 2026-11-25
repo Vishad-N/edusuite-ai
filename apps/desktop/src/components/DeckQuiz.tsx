@@ -15,7 +15,7 @@ import { AiGenerate } from "./AiGenerate.tsx";
 import { Button, Card, CardBody, CardHeader, CardTitle, ConfirmDialog, Field, Input, Modal, PageHeader, useToast } from "./ui/index.ts";
 import { tx } from "../i18n/index.ts";
 
-type Props = { activeInstitute?: { name?: string | null } | null };
+type Props = { activeInstitute?: { name?: string | null; logo?: string | undefined } | null };
 type Upload = { state: "idle" } | { state: "uploading"; name: string } | { state: "done"; file: FileInfo } | { state: "error"; name: string; message: string };
 
 const LETTERS = ["a", "b", "c", "d"];
@@ -44,7 +44,7 @@ export default function DeckQuiz({ activeInstitute }: Props) {
   const blocker = useBlocker(({ currentLocation, nextLocation }) => quiz !== null && !downloaded && currentLocation.pathname !== nextLocation.pathname);
 
   const unchecked = quiz ? quiz.questions.filter((q, i) => !q.answerInDeck && !confirmed.has(i)).length : 0;
-  const brand = { instituteName, exam, subject };
+  const brand = { instituteName, exam, subject, logo: activeInstitute?.logo };
 
   const pick = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

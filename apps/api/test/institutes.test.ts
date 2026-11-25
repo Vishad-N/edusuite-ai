@@ -42,6 +42,43 @@ describe("institutes API (real Postgres)", { skip }, () => {
     assert.equal(await t.db.auditLog.count({ where: { action: "institute.update" } }), 1);
   });
 
+  test("the logo must be this institute's finished small image upload (DN-071)", async () => {
+    const file = (over: Record<string, unknown>) =>
+      t.db.file.create({
+        data: {
+          instituteId: t.fx.instA.id,
+          uploadedById: t.fx.users.superadmin.id,
+          bucketKey: `${t.fx.instA.id}/${Math.random().toString(16).slice(2)}.png`,
+          mime: "image/png",
+          bytes: 2048,
+          name: "logo.png",
+          uploadedAt: new Date(),
+          ...over,
+        },
+      });
+    const patch = (logoFileId: string) => t.call("PATCH", `/api/v1/institutes/${t.fx.instA.id}`, sa, { branding: { city: "इंदौर", logoFileId } });
+
+    const good = await file({});
+    const ok = await patch(good.id);
+    assert.equal(ok.statusCode, 200);
+    assert.equal(ok.json().branding.logoFileId, good.id);
+
+    const pdf = await file({ mime: "application/pdf", name: "x.pdf" });
+    const big = await file({ bytes: 1024 * 1024 + 1 });
+    const unfinished = await file({ uploadedAt: null });
+    const otherInst = await t.db.file.create({
+      data: { instituteId: t.fx.instB.id, uploadedById: t.fx.users.otherAdmin.id, bucketKey: `${t.fx.instB.id}/l.png`, mime: "image/png", bytes: 10, name: "l.png", uploadedAt: new Date() },
+    });
+    for (const f of [pdf, big, unfinished, otherInst]) {
+      const res = await patch(f.id);
+      assert.equal(res.statusCode, 400);
+      assert.equal(res.json().code, "LOGO_INVALID");
+    }
+    // Leaving it out removes the logo.
+    const removed = await t.call("PATCH", `/api/v1/institutes/${t.fx.instA.id}`, sa, { branding: { city: "इंदौर" } });
+    assert.equal(removed.json().branding.logoFileId, undefined);
+  });
+
   test("code and AI quota can't be changed from the app", async () => {
     const res = await t.call("PATCH", `/api/v1/institutes/${t.fx.instA.id}`, sa, { code: "HACK", aiMonthlyTokenQuota: 999999999 });
     assert.equal(res.statusCode, 400);

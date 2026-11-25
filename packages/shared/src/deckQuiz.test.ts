@@ -84,6 +84,20 @@ test("the built file uses this institute's name, escapes deck text, and its data
   assert.equal(data.Q[0]!.q.hi, "&#60;/script&#62;&#60;script&#62;alert(1)&#60;/script&#62;");
 });
 
+test("the institute's logo goes in only as an embedded image (DN-071)", () => {
+  const quiz = normalizeDeckQuiz({ title: bi("जीव", "Biology"), questions: [question()], issues: [] })!;
+  const cfgOf = (logo: string | undefined) => {
+    const html = buildDeckQuizHtml(quiz, { instituteName: "डेमो", exam: "SSC", subject: "जीव", logo });
+    const line = html.split("\n").find((l) => l.startsWith("const CFG = "))!;
+    return runInNewContext(`${line}\nCFG`) as { logo: string };
+  };
+  const png = "data:image/png;base64,iVBORw0KGgo=";
+  assert.equal(cfgOf(png).logo, png);
+  for (const bad of [undefined, "https://example.com/logo.png", "data:image/svg+xml;base64,PHN2Zz4=", 'data:image/png;base64,x"onerror=alert(1)']) {
+    assert.equal(cfgOf(bad).logo, "", String(bad));
+  }
+});
+
 test("download name comes from the English title", () => {
   const quiz = normalizeDeckQuiz({ title: bi("जीव", "Biology · Taxonomy!"), questions: [question()], issues: [] })!;
   assert.equal(deckQuizFileName(quiz), "biology-taxonomy-quiz.html");

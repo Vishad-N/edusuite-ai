@@ -18,6 +18,22 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-071 · Institute logo upload
+- **Date:** 2026-11-25
+- **Phase / area:** DN-052 "revisit" · `packages/shared/src/{institutes,deckQuiz}.ts`, `packages/shared/templates/deck-quiz.html`, `apps/api/src/institutes/institutes.service.ts`, `apps/desktop/src/{api/logo.ts,App.tsx,components/{SettingsModal,DeckQuiz}.tsx}`
+- **Status:** Decided by agent (developer asked for all follow-ups)
+- **What was unclear:** DN-052 left logo upload for later: "store the file id in `branding`, then `instituteLogo` uses it". It didn't say the size limit or how exports get the image after the 5-minute signed link expires.
+- **Decision:**
+  - **Data:** `branding.logoFileId`, an uploaded file of this institute. The server accepts it only if the upload finished, it's PNG, JPEG or WebP, and it's at most 1 MB (`LOGO_MAX_BYTES`; it is embedded in every PPTX, motion file and quiz). Otherwise 400 `LOGO_INVALID`. Leaving it out of `branding` removes it. No migration (branding is JSON).
+  - **App:** loads the logo once through the files API as a data URL (`useInstituteLogo`, cached for the session) and puts it on `activeInstitute.logo`. Every screen already calls `instituteLogo()`, so the dashboard, receipts, papers, PPTX and motion exports use it, and the initials badge remains the fallback.
+  - **Settings** (super admin): a logo box with a preview, choose/change and remove. Type and size are checked before uploading; it takes effect on save.
+  - **Deck quiz HTML:** takes the logo only as an embedded `data:image/(png|jpeg|webp);base64` URL, so the file still never loads anything from outside. Anything else falls back to initials. The template was regenerated.
+- **Verified:**
+  - API: institute tests 7, 1 new: a good logo is saved; PDF, over 1 MB, unfinished and another institute's file give `LOGO_INVALID`; leaving it out removes it.
+  - Shared 52 tests, 1 new: the logo is embedded; an https link, SVG and a broken data URL are refused.
+  - E2E: the super admin's GIF is refused in the dialog; a PNG uploads and previews; after save the dashboard shows it; removing it brings the initials back.
+- **Revisit if:** institutes want separate logos per branch, or a larger print-quality logo.
+
 ### DN-070 · Branch choice after login, branch switching, own password change; a narrower token-reuse rule
 - **Date:** 2026-11-25
 - **Phase / area:** DN-037 (closed), DN-034 "revisit" · `packages/shared/src/auth.ts`, `apps/api/src/auth/{auth.service,auth.controller}.ts`, `apps/api/src/common/errors.ts`, `apps/desktop/src/{api/{client.ts,session.tsx},App.tsx,components/{BranchPicker,ChangePasswordModal,Header}.tsx}`
