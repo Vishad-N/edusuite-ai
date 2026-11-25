@@ -1,5 +1,4 @@
 import { useState, type ChangeEvent } from "react";
-import { useBlocker } from "react-router";
 import { AlertTriangle, CheckCircle2, Download, FileUp, MonitorPlay, Sparkles } from "lucide-react";
 import {
   DECK_QUIZ_MAX_PDF_BYTES,
@@ -12,7 +11,8 @@ import {
 import { uploadFile } from "../api/documents.ts";
 import { useSession } from "../api/session.tsx";
 import { AiGenerate } from "./AiGenerate.tsx";
-import { Button, Card, CardBody, CardHeader, CardTitle, ConfirmDialog, Field, Input, Modal, PageHeader, useToast } from "./ui/index.ts";
+import { DocumentBar } from "./DocumentBar.tsx";
+import { Button, Card, CardBody, CardHeader, CardTitle, Field, Input, Modal, PageHeader, useToast } from "./ui/index.ts";
 import { tx } from "../i18n/index.ts";
 
 type Props = { activeInstitute?: { name?: string | null; logo?: string | undefined } | null };
@@ -25,7 +25,7 @@ const mb = (bytes: number) => (bytes < 1024 * 1024 ? `${Math.max(1, Math.ceil(by
  * Deck → interactive quiz (DN-055). The teacher uploads an MCQ deck (PDF), Claude
  * reads it into bilingual questions, the teacher confirms every answer the deck
  * didn't state, and the app builds one HTML quiz with this institute's name only.
- * The result isn't saved on the server yet: download it before leaving.
+ * The reviewed quiz is saved like any other document, with history (DN-073).
  */
 export default function DeckQuiz({ activeInstitute }: Props) {
   const { client } = useSession();
@@ -38,10 +38,18 @@ export default function DeckQuiz({ activeInstitute }: Props) {
   const [quiz, setQuiz] = useState<DeckQuizData | null>(null);
   /** Indexes of questions whose inferred answer the teacher has checked. */
   const [confirmed, setConfirmed] = useState<Set<number>>(new Set());
-  const [downloaded, setDownloaded] = useState(false);
   const [preview, setPreview] = useState<{ url?: string; doc?: string } | null>(null);
-
-  const blocker = useBlocker(({ currentLocation, nextLocation }) => quiz !== null && !downloaded && currentLocation.pathname !== nextLocation.pathname);
+  const [docTitle, setDocTitle] = useState("");
+  /** The deck a reopened quiz was made from; a new upload replaces it. */
+  const [savedFileId, setSavedFileId] = useState<string | undefined>(undefined);
+  const fileId = upload.state === "done" ? upload.file.id : savedFileId;
+  const documentContent = {
+    exam,
+    subject,
+    ...(fileId && { fileId }),
+    quiz,
+    confirmed: [...confirmed].sort((a, b) => a - b),
+  };
 
   const unchecked = quiz ? quiz.questions.filter((q, i) => !q.answerInDeck && !confirmed.has(i)).length : 0;
   const brand = { instituteName, exam, subject, logo: activeInstitute?.logo };
@@ -70,14 +78,13 @@ export default function DeckQuiz({ activeInstitute }: Props) {
     }
     setQuiz(parsed.data);
     setConfirmed(new Set());
-    setDownloaded(false);
+    if (!docTitle.trim()) setDocTitle(parsed.data.title.hi || parsed.data.title.en);
   };
 
   const setAnswer = (qi: number, answer: number) => {
     if (!quiz) return;
     setQuiz({ ...quiz, questions: quiz.questions.map((q, i) => (i === qi ? { ...q, answer } : q)) });
     setConfirmed((s) => new Set(s).add(qi));
-    setDownloaded(false);
   };
   const toggleConfirmed = (qi: number) =>
     setConfirmed((s) => {
@@ -110,7 +117,6 @@ export default function DeckQuiz({ activeInstitute }: Props) {
       a.click();
       URL.revokeObjectURL(url);
     }
-    setDownloaded(true);
     toast.show({ tone: "success", title: tx("क्विज़ फ़ाइल सेव हो गई"), description: name });
   };
 
@@ -121,6 +127,30 @@ export default function DeckQuiz({ activeInstitute }: Props) {
         icon={<Sparkles className="size-6" />}
         badge="HTML"
         description={tx("अपने संस्थान का MCQ डेक (PDF) दें। AI हर प्रश्न को हिन्दी और English में, उत्तर, व्याख्या और मुख्य बिंदुओं के साथ एक क्विज़ फ़ाइल में बदलता है।")}
+      />
+
+      <DocumentBar
+        type="deck_quiz"
+        title={docTitle}
+        onTitleChange={setDocTitle}
+        content={documentContent}
+        onOpen={(content) => {
+          setExam(content.exam);
+          setSubject(content.subject);
+          setQuiz(content.quiz);
+          setConfirmed(new Set(content.confirmed));
+          setSavedFileId(content.fileId);
+          setUpload({ state: "idle" });
+        }}
+        onNew={() => {
+          setExam("");
+          setSubject("");
+          setQuiz(null);
+          setConfirmed(new Set());
+          setSavedFileId(undefined);
+          setUpload({ state: "idle" });
+          setDocTitle("");
+        }}
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
@@ -267,16 +297,6 @@ export default function DeckQuiz({ activeInstitute }: Props) {
         )}
       </Modal>
 
-      <ConfirmDialog
-        open={blocker.state === "blocked"}
-        title={tx("क्विज़ अभी डाउनलोड नहीं हुआ")}
-        message={tx("यह क्विज़ सर्वर पर सेव नहीं होता। बिना डाउनलोड किए जाएँगे तो इसे दोबारा बनाना होगा (क्रेडिट फिर लगेंगे)।")}
-        confirmLabel={tx("हाँ, छोड़ दें")}
-        cancelLabel={tx("रुकें")}
-        tone="danger"
-        onConfirm={() => blocker.state === "blocked" && blocker.proceed()}
-        onCancel={() => blocker.state === "blocked" && blocker.reset()}
-      />
     </div>
   );
 }

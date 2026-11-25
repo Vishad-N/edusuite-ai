@@ -39,6 +39,7 @@ export const DOCUMENT_SCREENS = {
   youtube: "youtube",
   notice: "notice",
   poster: "image",
+  deck_quiz: "deck_quiz",
 } as const satisfies Record<DocumentType, ScreenId>;
 
 /** Hindi names for each document type, for lists and counts. */
@@ -53,4 +54,5 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   youtube: "YouTube थंबनेल",
   notice: "नोटिस",
   poster: "पोस्टर",
+  deck_quiz: "डेक क्विज़",
 };

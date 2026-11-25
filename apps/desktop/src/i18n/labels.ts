@@ -14,5 +14,6 @@ export function documentTypeLabel(type: DocumentType): string {
     case "youtube": return tx("YouTube थंबनेल");
     case "notice": return tx("नोटिस");
     case "poster": return tx("पोस्टर");
+    case "deck_quiz": return tx("डेक क्विज़");
   }
 }

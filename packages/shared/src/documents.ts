@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Permission } from "./permissions.ts";
 import { PageQuerySchema } from "./pagination.ts";
+import { DECK_QUIZ_MAX_QUESTIONS, DeckQuizSchema } from "./deckQuiz.ts";
 
 /**
  * Saved work from the tool screens (plan §06 "one documents table", ADR-3).
@@ -155,7 +156,19 @@ export const PosterContentSchema = z.object({
   accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
 });
 
-export const DOCUMENT_TYPES = ["ppt", "mcq_set", "paper", "dpp", "lesson", "book", "doubt", "youtube", "notice", "poster"] as const;
+/** A reviewed deck → quiz (DN-073): the quiz as checked by the teacher, ready to download again. */
+export const DeckQuizContentSchema = z.object({
+  exam: shortText(100),
+  subject: shortText(150),
+  /** The uploaded PDF it was made from, if the teacher wants to run it again. */
+  fileId: z.uuid().optional(),
+  /** Null until the AI has made the quiz. */
+  quiz: DeckQuizSchema.nullable(),
+  /** Questions whose AI-decided answer the teacher has checked. */
+  confirmed: z.array(z.number().int().min(0)).max(DECK_QUIZ_MAX_QUESTIONS),
+});
+
+export const DOCUMENT_TYPES = ["ppt", "mcq_set", "paper", "dpp", "lesson", "book", "doubt", "youtube", "notice", "poster", "deck_quiz"] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];
 
 export const DOCUMENT_CONTENT_SCHEMAS = {
@@ -169,6 +182,7 @@ export const DOCUMENT_CONTENT_SCHEMAS = {
   youtube: YoutubeContentSchema,
   notice: NoticeContentSchema,
   poster: PosterContentSchema,
+  deck_quiz: DeckQuizContentSchema,
 } as const satisfies Record<DocumentType, z.ZodType>;
 
 export type DocumentContent<T extends DocumentType> = z.infer<(typeof DOCUMENT_CONTENT_SCHEMAS)[T]>;
@@ -185,6 +199,7 @@ export const DOCUMENT_SCHEMA_VERSIONS: Record<DocumentType, number> = {
   youtube: 1,
   notice: 1,
   poster: 1,
+  deck_quiz: 1,
 };
 
 /** Permission needed to create, open or list a document type (same as the screen that makes it). */
@@ -199,6 +214,7 @@ export const DOCUMENT_PERMISSIONS = {
   youtube: "ai.content",
   notice: "notices",
   poster: "image_studio",
+  deck_quiz: "ai.content",
 } as const satisfies Record<DocumentType, Permission>;
 
 /** Largest content accepted, as JSON (a full book is the biggest case). */

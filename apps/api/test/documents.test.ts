@@ -52,6 +52,34 @@ describe("documents API (real Postgres)", { skip }, () => {
     assert.equal("content" in list.items[0], false, "history lists summaries only");
   });
 
+  test("a reviewed deck quiz is saved and reopened with its checked answers (DN-073)", async () => {
+    const bi = (hi: string, en: string) => ({ hi, en });
+    const quiz = {
+      title: bi("जीव विज्ञान", "Biology"),
+      issues: [],
+      questions: [
+        {
+          q: bi("कोशिका का पावरहाउस?", "Powerhouse of the cell?"),
+          options: [bi("माइटोकॉन्ड्रिया", "Mitochondria"), bi("राइबोसोम", "Ribosome"), bi("केंद्रक", "Nucleus"), bi("लाइसोसोम", "Lysosome")],
+          answer: 0,
+          answerInDeck: false,
+          explanation: bi("ऊर्जा बनाता है।", "Makes energy."),
+          visual: { title: bi("मुख्य बिंदु", "Key points"), points: [{ hi: "ATP", en: "ATP", key: true }] },
+          note: "",
+        },
+      ],
+    };
+    const body = { type: "deck_quiz", title: "जीव विज्ञान क्विज़", content: { exam: "SSC", subject: "जीव विज्ञान", quiz, confirmed: [0] } };
+    const created = await create(teacher, body);
+    assert.equal(created.statusCode, 201, created.body);
+    const reopened = (await t.call("GET", `/api/v1/documents/${created.json().id}`, teacher)).json();
+    assert.deepEqual(reopened.content, body.content);
+    assert.equal((await create(teacher, { ...body, content: { ...body.content, quiz: null, confirmed: [] } })).statusCode, 201, "saved before generating");
+    assert.equal((await create(counselor, body)).statusCode, 403);
+    const stats = (await t.call("GET", "/api/v1/stats/dashboard", teacher)).json();
+    assert.ok(stats.byType.deck_quiz.mine >= 2, "counted on the dashboard");
+  });
+
   test("each type needs its screen's permission", async () => {
     assert.equal((await create(counselor, ppt())).statusCode, 403, "counselor can't make AI content");
     assert.equal((await create(counselor, notice)).statusCode, 201, "counselor may write notices");

@@ -18,6 +18,21 @@ Decisions waiting for the developer. Remove a line here once its entry's status 
 
 ## Decision log
 
+### DN-073 · Deck quizzes are saved as documents with history
+- **Date:** 2026-11-25
+- **Phase / area:** DN-055 follow-up · `packages/shared/src/{documents,stats}.ts`, `apps/api/prisma` (migration `20261125000000_deck_quiz_documents`), `apps/desktop/src/{components/DeckQuiz.tsx,i18n/labels.ts}`
+- **Status:** Decided by agent (developer asked for all follow-ups)
+- **What was unclear:** DN-055 didn't save quizzes: leaving before downloading lost a 10-credit quiz. What to keep, and whether the quiz HTML or the data is stored.
+- **Decision:**
+  - **New document type `deck_quiz`** (`ai.content`, schema version 1): exam, subject, the uploaded deck's file id (optional), the reviewed quiz (`DeckQuizSchema`, or null before generating) and the indexes of answers the teacher checked. The data is stored, not the HTML; the file is built again on download, so it always uses the current template, name and logo.
+  - **Migration:** `ALTER TYPE "DocumentType" ADD VALUE 'deck_quiz'` (the documents table uses a Postgres enum).
+  - **Screen:** the shared save bar (title, New, History, Save, unsaved-change guard). The title fills from the quiz title. The screen's own "not downloaded yet, credits will be lost" guard is gone, because saving now keeps the work. Reopening restores the questions, answers and checks, so download is allowed at once if everything was checked.
+  - **Dashboard:** counts and lists deck quizzes ("डेक क्विज़") like other documents and opens them on the quiz screen.
+- **Verified:**
+  - API: the documents test saves and reopens a quiz with its checks, saves one before generating, refuses a counselor (403), and finds it in the dashboard counts. Shared 52 tests (the type registries stay complete).
+  - E2E: upload a PDF, generate (fixture), tick every flagged answer, save, New clears the screen, History → Open brings back the same questions, exam and checks, with download enabled.
+- **Revisit if:** quizzes need sharing links for students (then host the HTML), or versions of the same quiz.
+
 ### DN-072 · PNG download for YouTube thumbnails and posters, at exact sizes
 - **Date:** 2026-11-25
 - **Phase / area:** DN-047 and DN-050 follow-up · `apps/desktop/electron/{capture,main,preload}.cjs`, `apps/desktop/src/{utils/exportPng.ts,components/{PngDownloadButton,YouTubeStudio,ImageStudio}.*}`
